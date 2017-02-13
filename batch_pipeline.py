@@ -65,6 +65,10 @@ search_directory = "Z:\\Kevin\\iPosition\\Hillary\\MRE"
 data_shape = (15, 5, 2)
 out_filename = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.csv")
 
+if not os.path.exists(search_directory):
+    logging.error('The input path was not found.')
+    exit()
+
 logging.info('Finding files in folder {0}.'.format(search_directory))
 
 # Find the files
