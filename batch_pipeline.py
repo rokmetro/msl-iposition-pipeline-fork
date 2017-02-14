@@ -11,6 +11,7 @@ import time
 
 import numpy
 
+from types import *
 from full_pipeline import *
 
 logging.basicConfig(level=logging.INFO)
@@ -18,8 +19,20 @@ logging.basicConfig(level=logging.INFO)
 # TODO: Documentation needs an audit/overhaul
 
 
-# This function crawls the specified directory looking for the actual coordinate file and data files
 def find_data_files_in_directory(directory):
+    """
+    This function crawls the specified directory, recursively looking for the actual coordinate file and data files
+
+    :rtype: string (or None), list of strings (or empty list)
+    :param directory: the directory in which to recursively search for data files
+    :return: the actual coordinate filename/path (None if no file was found), a list of the data filenames/paths (empty list if no files were found)
+    """
+
+    assert type(directory) is StringType, "directory is not a string: {0}".format(str(directory))
+
+    if not os.path.exists(directory):
+        raise IOError('The input path was not found.')
+
     start_time = time.time()
     data_files = []
     actual_coordinate_file = None
@@ -48,10 +61,34 @@ def find_data_files_in_directory(directory):
     logging.info('Found {0} data files in {1} seconds and {2} actual coordinate file.'.format(len(data_files),
                                                                                               time.time() - start_time,
                                                                                               actual_coordinate_file))
+
     return actual_coordinate_file, data_files
 
 
-def get_single_file_result(actual_coordinates, dat, label, accuracy_z_value=1.96, flags=PipelineFlags.All):
+def get_single_file_result(actual_coordinates, dat, label="", accuracy_z_value=1.96, flags=PipelineFlags.All):
+    """
+    This function generates the results for a specific file's data structure, usually containing multiple trials
+
+    :rtype: list (or empty list)
+    :param actual_coordinates: the correct coordinates for the points - an (Nt, Ni, d) sized list of floats where Nt is the number of trials, Ni is the number of items, and d is the dimensionality of the points
+    :param dat: the data coordinates for the points - an (Nt, Ni, d) sized list of floats where Nt is the number of trials, Ni is the number of items, and d is the dimensionality of the points
+    :param label: the label identifying the participant ID for this file, used for debugging purposes only (default is empty string)
+    :param accuracy_z_value: a float representing the z threshold for counting something as accurate (default is 1.96, i.e. 95% confidence interval)
+    :param flags: the PipelineFlags describing what pipeline elements should/should not be run on the data (default is PipelineFlags.All)
+    :return: a list, (Nt, r), where Nt is the number of trials and r is the number of result metrics, of results values from the analysis for each trial on a particular file's data
+    """
+
+    assert type(actual_coordinates) is ListType or type(actual_coordinates) is type(array()), "actual_coordinates should be list or numpy array: {0}".format(str(actual_coordinates))
+    assert type(dat) is ListType or type(dat) is type(array()), "dat should be list or numpy array: {0}".format(str(actual_coordinates))
+    assert shape(array(actual_coordinates)) == 3, "actual_coordinates should be a 3d list or numpy array of form (Nt, Ni, d) where Nt is the number of trials, Ni is the number of items, and d is the dimensionality of the data: {0}".format(actual_coordinates)
+    assert all(isinstance(x, int) or isinstance(x, float) for x in ndarray.flatten(array(actual_coordinates))), "actual_coodinates contains some non int or float values"
+    assert shape(actual_coordinates) == shape(data), "shapes of actual_coordinates and data are not the same, actual: {0}, data: {1}".format(str(shape(actual_coordinates)), str(shape(data)))
+    assert shape(actual_coordinates)
+    assert type(label) is StringType, "label must be a string: {0}".format(str(label))
+    assert type(accuracy_z_value) is IntType or type(accuracy_z_value) is FloatType, "accuracy_z_value must be int or float: {0}".format(str(accuracy_z_value))
+    assert accuracy_z_value > 0, "accuracy_z_value must be greater than 0: {0}".format(str(accuracy_z_value))
+    assert type(flags) is type(PipelineFlags.All), "flags is not of type PipelineFlags: {0}".format(str(flags))
+
     results = []
     # Iterate through the trial lines
     for idx, (aline, dline) in enumerate(zip(actual_coordinates, dat)):
@@ -64,6 +101,16 @@ def get_single_file_result(actual_coordinates, dat, label, accuracy_z_value=1.96
 
 def batch_pipeline(search_directory, data_shape, out_filename, accuracy_z_value=1.96, flags=PipelineFlags.All,
                    collapse_trials=True):
+    """
+
+    :rtype: None
+    :param search_directory:
+    :param data_shape:
+    :param out_filename:
+    :param accuracy_z_value:
+    :param flags:
+    :param collapse_trials:
+    """
     if not os.path.exists(search_directory):
         logging.error('The input path was not found.')
         exit()
@@ -99,7 +146,8 @@ def batch_pipeline(search_directory, data_shape, out_filename, accuracy_z_value=
         logging.debug('Parsing {0}.'.format(label))
 
         # Get results
-        results = get_single_file_result(actual_coordinates, dat, label, accuracy_z_value=accuracy_z_value, flags=flags)
+        results = get_single_file_result(actual_coordinates, dat, label=label,
+                                         accuracy_z_value=accuracy_z_value, flags=flags)
 
         # Append the across-trial variables
         # Look for NaNs
