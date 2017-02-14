@@ -1,13 +1,17 @@
+# noinspection PyUnresolvedReferences
 import argparse
 import datetime
+# noinspection PyUnresolvedReferences
 import logging
+# noinspection PyUnresolvedReferences
 import os
+# noinspection PyUnresolvedReferences
 import sys
 import time
 
 import numpy
 
-from full_pipeline import full_pipeline, get_header_labels, get_coordinates_from_file, get_id_from_file, PipelineFlags
+from full_pipeline import *
 
 logging.basicConfig(level=logging.INFO)
 
@@ -47,10 +51,19 @@ def find_data_files_in_directory(directory):
     return actual_coordinate_file, data_files
 
 
-# TODO: Cross-trial metrics should be computed more cleanly
-# TODO: An output mode which allows all trials to be output should be added
-# TODO: The ability to exclude columns from averaging should be added
-def batch_pipeline(search_directory, data_shape, out_filename, accuracy_z_value=1.96, flags=PipelineFlags.All):
+def get_single_file_result(actual_coordinates, dat, label, accuracy_z_value=1.96, flags=PipelineFlags.All):
+    results = []
+    # Iterate through the trial lines
+    for idx, (aline, dline) in enumerate(zip(actual_coordinates, dat)):
+        # Process the trial
+        line_result = full_pipeline(aline, dline, accuracy_z_value=accuracy_z_value, flags=flags,
+                                    debug_labels=[label, idx])
+        results.append(line_result)
+    return results
+
+
+def batch_pipeline(search_directory, data_shape, out_filename, accuracy_z_value=1.96, flags=PipelineFlags.All,
+                   collapse_trials=True):
     if not os.path.exists(search_directory):
         logging.error('The input path was not found.')
         exit()
@@ -66,35 +79,49 @@ def batch_pipeline(search_directory, data_shape, out_filename, accuracy_z_value=
     actual_coordinates = get_coordinates_from_file(actual_coordinates_filename, data_shape)
     data_coordinates = [get_coordinates_from_file(filename, data_shape) for filename in data_coordinates_filenames]
     data_labels = [get_id_from_file(filename) for filename in data_coordinates_filenames]
-
     logging.info('The following ids were found and are being processed: {0}'.format(data_labels))
+
+    # Get the labels and aggregation methods
+    agg_functions = get_aggregation_functions()
+    header_labels = get_header_labels()
+
+    # Add cross-trial labels and aggregation methods
+    agg_functions.append(nansum)
+    header_labels.append('num_rows_with_nan')
 
     # Generate the output file and write the header
     out_fp = open(out_filename, 'w')
-    # Keep in mind some columns may be aggregated across trials rather than the mean of trial data - these are
-    # populated in the header here.
-    header = "subID,{0}\n".format(','.join(get_header_labels() + ["num_rows_with_nan"]))
+    header = "subID,{0}\n".format(','.join(header_labels))
     out_fp.write(header)
+
     # Iterate through the participants
     for dat, label in zip(data_coordinates, data_labels):
         logging.debug('Parsing {0}.'.format(label))
-        results = []
-        # Keep track of NaN values so we know how much to believe a given row
-        num_rows_with_nan = 0
-        # Iterate through the trial lines
-        for idx, (aline, dline) in enumerate(zip(actual_coordinates, dat)):
-            # Process the trial
-            line_result = full_pipeline(aline, dline, accuracy_z_value=accuracy_z_value, flags=flags,
-                                        debug_labels=[label, idx])
-            # Look for NaNs
-            if numpy.nan in line_result:
-                num_rows_with_nan += 1
-            results.append(line_result)
-        # Take the mean of all values (ignoring NaN)
-        result = numpy.nanmean(results, axis=0)
+
+        # Get results
+        results = get_single_file_result(actual_coordinates, dat, label, accuracy_z_value=accuracy_z_value, flags=flags)
+
         # Append the across-trial variables
-        result = numpy.append(result, num_rows_with_nan)
-        out_fp.write('{0},{1}\n'.format(label, ','.join([str(r) for r in result])))
+        # Look for NaNs
+        for line in results:
+            num_rows_with_nan = 0
+            for item in line:
+                if item is numpy.nan:
+                    num_rows_with_nan += 1
+            line.append(num_rows_with_nan)
+
+        if collapse_trials:
+            # Apply the aggregation function to each value
+            result = []
+            for idx, column in enumerate(transpose(results)):
+                result.append(agg_functions[idx](column))
+
+            # Write to file
+            out_fp.write('{0},{1}\n'.format(label, ','.join([str(r) for r in result])))
+        else:
+            for idx, row in enumerate(results):
+                out_fp.write('{0},{1},{2}\n'.format(label, idx, ','.join([str(r) for r in row])))
+
     out_fp.close()
 
     logging.info('Done processing all files. Data can be found in {0}.'.format(out_filename))
@@ -120,13 +147,16 @@ if __name__ == "__main__":
     parser.add_argument('--accuracy_z_value', type=float, help='the z value to be used for accuracy exclusion ('
                                                                'default is 1.96, corresponding to 95% confidence',
                         default=1.96)
+    parser.add_argument('--collapse_trials', type=int, help='if 0, one row per trial will be output, otherwise one '
+                                                            'row per participant will be output (default is 1)',
+                        default=1)
 
     if len(sys.argv) > 1:
         args = parser.parse_args()
-        actual = get_coordinates_from_file(args.actual_coordinates, (args.num_trials, args.num_items, 2))
-        data = get_coordinates_from_file(args.data_coordinates, (args.num_trials, args.num_items, 2))
-        full_pipeline(actual[args.line_number], data[args.line_number],
-                      accuracy_z_value=args.accuracy_z_value, flags=PipelineFlags(args.pipeline_mode), visualize=True)
+        batch_pipeline(args.search_directory, (args.num_trials, args.num_items, 2),
+                       datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.csv"),
+                       accuracy_z_value=args.accuracy_z_value, flags=PipelineFlags(args.pipeline_mode),
+                       collapse_trials=args.collapse_trials != 0)
         exit()
 
     logging.info("No arguments found - assuming running in test mode.")

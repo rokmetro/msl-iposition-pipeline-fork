@@ -329,6 +329,12 @@ def get_header_labels():
             "Partial Swaps", "Cycle Swaps", "Partial Cycle Swaps"]
 
 
+def get_aggregation_functions():
+    return [nanmean, nanmean, nanmean, nansum,
+            nansum, nanmean, nanmean, nanmean,
+            nanmean, nanmean, nanmean, nanmean,
+            nanmean, nanmean, nanmean]
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
