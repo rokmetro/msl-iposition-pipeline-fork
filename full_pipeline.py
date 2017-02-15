@@ -17,11 +17,11 @@ from similarity_transform import similarity_transform
 
 # TODO: Documentation needs an audit/overhaul
 # TODO: Outputting "misassignment" (i.e. item which is accurate but mis-identified) would be useful
-# TODO: Metrics which output *which* item is invovled in a swap would be useful to compare between metric types
 # TODO: Edge and Displacement should be added (the other 2 original metrics)
+# TODO: Metrics which output *which* item is invovled in a swap would be useful to compare between metric types
 # TODO: Addition transformation/de-anonymization methods(see https://en.wikipedia.org/wiki/Point_set_registration)
 # TODO: Debug geometric transform issue causing it to often produce a transform which lowers accuracy (~36% of the time)
-# TODO: Everything assumes 2D, but it could be somewhat-easily generalized to ND
+# TODO: Test 3D
 
 
 class PipelineFlags(Enum):
@@ -41,16 +41,16 @@ class PipelineFlags(Enum):
 # This function is for testing. It generates a set of "correct" and "incorrect" points such that the correct points are
 # randomly placed between (0,0) and (1,1) in R2. Then it generates "incorrect" points which are offset randomly up
 # to 10% in the positive direction, shuffled, and where one point is completely random.
-def generate_random_test_points(number_of_points=5):
-    correct_points = [[random.random(), random.random()] for _ in range(0, number_of_points)]
-    offsets = [[(random.random()) / 20.0, (random.random()) / 20.0] for _ in range(0, number_of_points)]
-    input_points = [list(first + second for first, second in zip(ta, tb)) for ta, tb in zip(correct_points, offsets)]
+def generate_random_test_points(number_of_points=5, dimension=2):
+    correct_points = [[random.random() for _ in range(dimension)] for _ in range(0, number_of_points)]
+    offsets = [[(random.random()) / 20.0 for _ in range(dimension)] for _ in range(0, number_of_points)]
+    input_points = array(correct_points) + array(offsets)
 
     perms = list(itertools.permutations(input_points))
     input_points = perms[random.randint(0, len(perms) - 1)]
     index = random.randint(0, len(input_points))
-    input_points[index][0] = random.random()
-    input_points[index][1] = random.random()
+    for idx in range(len(input_points[index])):
+        input_points[index][idx] = random.random()
 
     return correct_points, input_points
 
@@ -129,32 +129,30 @@ def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=N
             # Perform the transformation via Umeyama's method
             rotation_matrix, scaling, translation = similarity_transform(from_points, to_points)
             # Compute the rotation factor
-            theta_matrix = [[arccos(rotation_matrix[0][0]), arcsin(rotation_matrix[0][1])],
-                            [arcsin(rotation_matrix[0][1]), arccos(rotation_matrix[1][1])]]
+            theta_matrix = [map(arccos, x) for x in rotation_matrix]
             theta_matrix = [map(abs, x) for x in theta_matrix]
             rotation_theta = mean(theta_matrix)  # Rotation angle
-            translation_magnitude = linalg.norm(
-                translation)  # Translation magnitude (direction is in 'translation' variable)
+            translation_magnitude = linalg.norm(translation)  # Translation magnitude (direction is in 'translation')
             # Apply the linear transformation to the data coordinates to cancel out global errors if possible
-            transformed_coordinates = [array([ax + bx for (ax, bx) in
-                                              zip(x, translation)]).dot(rotation_matrix) * scaling
+            transformed_coordinates = [(array(x) + array(translation)).dot(rotation_matrix) * scaling
                                        for x in data_points]
             transformation_auto_exclusion = False
             new_error = minimization_function(transformed_coordinates, actual_points)
             old_error = minimization_function(data_points, actual_points)
-            if new_error > old_error:
-                rotation_theta = 0
-                logging.warning(str(debug_labels) + " : " +
+            if new_error > old_error:  # Exclude rotation from transform
+                rotation_theta = nan
+                logging.info(str(debug_labels) + " : " +
                                 ('The transformation function did not reduce the error, removing rotation and retying' +
                                  ' (old_error={0}, new_error={1}).').format(old_error,
                                                                             new_error))
-                transformed_coordinates = [array([ax + bx for (ax, bx) in
-                                                  zip(x, translation)]) * scaling
-                                           for x in data_points]
+                transformed_coordinates = [(array(x) + array(translation)) * scaling for x in data_points]
                 new_error = minimization_function(transformed_coordinates, actual_points)
                 old_error = minimization_function(data_points, actual_points)
-                if new_error > old_error:
+                if new_error > old_error:  # Completely exclude transform
                     transformation_auto_exclusion = True
+                    rotation_theta = nan
+                    scaling = nan
+                    translation_magnitude = nan
                     transformed_coordinates = array(data_points, copy=True)
                     logging.warning(str(debug_labels) + " : " +
                                     ('The transformation function did not reduce the error, removing transform ' +
@@ -163,7 +161,7 @@ def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=N
 
         except ValueError:
             transformed_coordinates = array(data_points, copy=True)
-            logging.error(('Finding transformation failed due to colinearility, ' +
+            logging.error(('Finding transformation failed , ' +
                            'from_points={0}, to_points={1}.').format(from_points, to_points))
     return (translation_magnitude, scaling, rotation_theta, transformation_auto_exclusion,
             num_geometric_transform_points_excluded, transformed_coordinates)
@@ -219,6 +217,11 @@ def deanonymize(actual_points, data_points):
 # animation ticks in frames
 def visualization(actual_points, data_points, min_points, transformed_points, output_list,
                   animation_duration=2, animation_ticks=20):
+
+    if len(actual_points[0]) != 2:
+        logging.error("the visualization method expects 2D points, found {0}D".format(array(actual_points[0]).shape))
+        return
+
     # Generate a figure with 3 scatter plots (actual points, data points, and transformed points)
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
@@ -244,12 +247,12 @@ def visualization(actual_points, data_points, min_points, transformed_points, ou
         color = 'r'
         if acc:
             color = 'g'
-        ax.add_patch(plt.Circle((x, y), threshold, alpha=0.3, edgecolor='none', color=color))
+        ax.add_patch(plt.Circle((x, y), threshold, alpha=0.3, color=color))
 
     accuracies, threshold = accuracy(actual_points, min_points, output_threshold=True)
 
     for acc, x, y in zip(accuracies, transpose(min_points)[0], transpose(min_points)[1]):
-        ax.add_patch(plt.Circle((x, y), threshold, alpha=0.1, edgecolor='none', color='b'))
+        ax.add_patch(plt.Circle((x, y), threshold, alpha=0.1, color='b'))
 
     # An update function which will set the animated scatter plot to the next interpolated points
     def update(i):
@@ -272,16 +275,16 @@ def get_coordinates_from_file(path, expected_shape):
     with open(path) as tsv:
         coordinates = zip(*([float(element) for element in line.strip().split('\t')] for line in tsv))
         coordinates = transpose(coordinates)
-        coordinates = reshape(array(coordinates), expected_shape)
     if expected_shape is not None:
+        coordinates = reshape(array(coordinates), expected_shape)
         assert array(coordinates).shape == expected_shape, \
             "shape {0} does not equal expectation {1}".format(array(coordinates).shape, expected_shape)
     return coordinates
 
 
 # This function grabs the first 3 characters of the filename which are assumed to be the participant id
-def get_id_from_file(path):
-    return os.path.basename(path)[0:3]
+def get_id_from_file_prefix(path, prefix_length=3):
+    return os.path.basename(path)[0:prefix_length]
 
 
 # This function is the main pipeline for the new processing methods. When run alone, it just returns the values
@@ -386,11 +389,12 @@ if __name__ == "__main__":
     parser.add_argument('--accuracy_z_value', type=float, help='the z value to be used for accuracy exclusion ('
                                                                'default is 1.96, corresponding to 95% confidence',
                         default=1.96)
+    parser.add_argument('--dimension', type=int, help='the dimensionality of the data (default is 2)', default=2)
 
     if len(sys.argv) > 1:
         args = parser.parse_args()
-        actual = get_coordinates_from_file(args.actual_coordinates, (args.num_trials, args.num_items, 2))
-        data = get_coordinates_from_file(args.data_coordinates, (args.num_trials, args.num_items, 2))
+        actual = get_coordinates_from_file(args.actual_coordinates, (args.num_trials, args.num_items, args.dimension))
+        data = get_coordinates_from_file(args.data_coordinates, (args.num_trials, args.num_items, args.dimension))
         full_pipeline(actual[args.line_number], data[args.line_number],
                       accuracy_z_value=args.accuracy_z_value, flags=PipelineFlags(args.pipeline_mode), visualize=True)
         exit()

@@ -189,7 +189,7 @@ def detect_shape_from_file(path, dimension):
 
 
 def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_value=1.96, flags=PipelineFlags.All,
-                   collapse_trials=True):
+                   collapse_trials=True, dimension=2):
     """
     This function allows the easy running of the pipeline on a directory and all of the appropriate files in its
     subdirectories. It will search for the actual coordinates and data files and process them all as specified
@@ -208,6 +208,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     the data (default is PipelineFlags.All)
     :param collapse_trials: (optional) if True, the output file will contain one row per participant, otherwise each
     trial will be output in an individual row
+    :param dimension: (optional) the dimensionality of the data (default is 2)
     """
     assert type(search_directory) is StringType, "search_directory must be a string: {0}".format(search_directory)
     assert len(search_directory) > 0, "search_directory must have length greater than 0: {0}".format(search_directory)
@@ -236,13 +237,13 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     logging.info('Parsing files with expected shape {0}.'.format(data_shape))
 
     if data_shape is None:
-        num_trials, num_items = detect_shape_from_file(actual_coordinates_filename, 2)
-        data_shape = (num_trials, num_items, 2)
+        num_trials, num_items = detect_shape_from_file(actual_coordinates_filename, dimension)
+        data_shape = (num_trials, num_items, dimension)
 
     # Parse the files
     actual_coordinates = get_coordinates_from_file(actual_coordinates_filename, data_shape)
     data_coordinates = [get_coordinates_from_file(filename, data_shape) for filename in data_coordinates_filenames]
-    data_labels = [get_id_from_file(filename) for filename in data_coordinates_filenames]
+    data_labels = [get_id_from_file_prefix(filename) for filename in data_coordinates_filenames]
     logging.info('The following ids were found and are being processed: {0}'.format(data_labels))
 
     # Get the labels and aggregation methods
@@ -315,6 +316,7 @@ if __name__ == "__main__":
     parser.add_argument('--collapse_trials', type=int, help='if 0, one row per trial will be output, otherwise one '
                                                             'row per participant will be output (default is 1)',
                         default=1)
+    parser.add_argument('--dimension', type=int, help='the dimensionality of the data (default is 2)', default=2)
 
     if len(sys.argv) > 1:
         args = parser.parse_args()
@@ -323,7 +325,7 @@ if __name__ == "__main__":
                             'detected from the actual coordinates.')
             d_shape = None
         else:
-            d_shape = (args.num_trials, args.num_items, 2)
+            d_shape = (args.num_trials, args.num_items, args.dimension)
         batch_pipeline(args.search_directory,
                        datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.csv"),
                        data_shape=d_shape,
