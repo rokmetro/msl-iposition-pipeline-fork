@@ -20,7 +20,8 @@ from similarity_transform import similarity_transform
 # TODO: Metrics which output *which* item is invovled in a swap would be useful to compare between metric types
 # TODO: Edge and Displacement should be added (the other 2 original metrics)
 # TODO: Addition transformation/de-anonymization methods(see https://en.wikipedia.org/wiki/Point_set_registration)
-# TODO: Debug issue with geometric transform that causes it to often produce a transform which lowers accuracy
+# TODO: Debug geometric transform issue causing it to often produce a transform which lowers accuracy (~36% of the time)
+# TODO: Everything assumes 2D, but it could be somewhat-easily generalized to ND
 
 
 class PipelineFlags(Enum):
@@ -67,7 +68,7 @@ def lerp(start, finish, t):
     return [(bx - ax) * t + ax for ax, bx in zip(start, finish)]
 
 
-def accuracy(actual_points, data_points, z_value=1.96):
+def accuracy(actual_points, data_points, z_value=1.96, output_threshold=False):
     dists = diag(distance.cdist(data_points, actual_points))
     mu = mean(dists)
     sd = std(dists)
@@ -75,20 +76,20 @@ def accuracy(actual_points, data_points, z_value=1.96):
     ci = ste * z_value
     exclusion_threshold = ci + mu
     dist_accuracy_map = [x < exclusion_threshold for x in dists]
-    return dist_accuracy_map
+    if output_threshold:
+        return dist_accuracy_map, exclusion_threshold
+    else:
+        return dist_accuracy_map
 
 
 def axis_swap(actual_points, data_points):
     axis_swaps = 0
     comparisons = 0
-
-    def axis_signs(points0, points1):
-        return all(array(map(sign, array(points0) - array(points1))))
-
     for idx in range(0, len(actual_points)):
         for idx2 in range(idx + 1, len(actual_points)):
             comparisons += 1
-            if axis_signs(actual_points[idx], actual_points[idx2]) != axis_signs(data_points[idx], data_points[idx2]):
+            if all(array(map(sign, array(actual_points[idx]) - array(actual_points[idx2]))) !=
+                   array(map(sign, array(data_points[idx]) - array(data_points[idx2])))):
                 axis_swaps += 1
     axis_swaps = float(axis_swaps) / float(comparisons)
     return axis_swaps
@@ -117,7 +118,7 @@ def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=N
     rotation_theta = nan
     scaling = nan
     transformation_auto_exclusion = True
-    transformed_coordinates = data_points
+    transformed_coordinates = array(data_points, copy=True)
     # Confirm there are enough points to perform the transformation
     # (it is meaningless to perform with 0 or 1 points)
     if num_geometric_transform_points_used <= 1:
@@ -139,14 +140,29 @@ def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=N
                                               zip(x, translation)]).dot(rotation_matrix) * scaling
                                        for x in data_points]
             transformation_auto_exclusion = False
-            if minimization_function(transformed_coordinates, actual_points) > \
-                    minimization_function(data_points, actual_points):
-                transformation_auto_exclusion = True
-                transformed_coordinates = data_points
-                logging.warning(str(debug_labels) + " : " + 'The transformation function did not reduce the error.')
+            new_error = minimization_function(transformed_coordinates, actual_points)
+            old_error = minimization_function(data_points, actual_points)
+            if new_error > old_error:
+                rotation_theta = 0
+                logging.warning(str(debug_labels) + " : " +
+                                ('The transformation function did not reduce the error, removing rotation and retying' +
+                                 ' (old_error={0}, new_error={1}).').format(old_error,
+                                                                            new_error))
+                transformed_coordinates = [array([ax + bx for (ax, bx) in
+                                                  zip(x, translation)]) * scaling
+                                           for x in data_points]
+                new_error = minimization_function(transformed_coordinates, actual_points)
+                old_error = minimization_function(data_points, actual_points)
+                if new_error > old_error:
+                    transformation_auto_exclusion = True
+                    transformed_coordinates = array(data_points, copy=True)
+                    logging.warning(str(debug_labels) + " : " +
+                                    ('The transformation function did not reduce the error, removing transform ' +
+                                    '(old_error={0}, new_error={1}).').format(old_error,
+                                                                              new_error))
 
         except ValueError:
-            transformed_coordinates = data_points
+            transformed_coordinates = array(data_points, copy=True)
             logging.error(('Finding transformation failed due to colinearility, ' +
                            'from_points={0}, to_points={1}.').format(from_points, to_points))
     return (translation_magnitude, scaling, rotation_theta, transformation_auto_exclusion,
@@ -199,28 +215,41 @@ def deanonymize(actual_points, data_points):
     return min_coordinates, min_score, min_score_position
 
 
-# TODO: Visualize accuracy thresholds around items
 # animation length in seconds
 # animation ticks in frames
 def visualization(actual_points, data_points, min_points, transformed_points, output_list,
                   animation_duration=2, animation_ticks=20):
     # Generate a figure with 3 scatter plots (actual points, data points, and transformed points)
     fig, ax = plt.subplots()
+    ax.set_aspect('equal')
     labels = range(len(actual_points))
     x = [float(v) for v in list(transpose(transformed_points)[0])]
     y = [float(v) for v in list(transpose(transformed_points)[1])]
     ax.scatter(x, y, c='b', alpha=0.5)
     scat = ax.scatter(x, y, c='b', animated=True)
-    ax.scatter(transpose(actual_points)[0], transpose(actual_points)[1], c='g')
-    ax.scatter(transpose(data_points)[0], transpose(data_points)[1], c='r')
+    ax.scatter(transpose(actual_points)[0], transpose(actual_points)[1], c='g', s=50)
+    ax.scatter(transpose(data_points)[0], transpose(data_points)[1], c='r', s=50)
     # Label the stationary points (actual and data)
     for idx, xy in enumerate(zip(transpose(actual_points)[0], transpose(actual_points)[1])):
-        ax.annotate(labels[idx], xy=xy, textcoords='data')
+        ax.annotate(labels[idx], xy=xy, textcoords='data', fontsize=20)
     for idx, xy in enumerate(zip(transpose(data_points)[0], transpose(data_points)[1])):
-        ax.annotate(labels[idx], xy=xy, textcoords='data')
+        ax.annotate(labels[idx], xy=xy, textcoords='data', fontsize=20)
     # Generate a set of interpolated points to animate the transformation
     lerp_data = [[lerp(p1, p2, t) for p1, p2 in zip(min_points, transformed_points)] for t in
                  linspace(0.0, 1.0, animation_ticks)]
+
+    accuracies, threshold = accuracy(actual_points, transformed_points, output_threshold=True)
+
+    for acc, x, y in zip(accuracies, transpose(transformed_points)[0], transpose(transformed_points)[1]):
+        color = 'r'
+        if acc:
+            color = 'g'
+        ax.add_patch(plt.Circle((x, y), threshold, alpha=0.3, edgecolor='none', color=color))
+
+    accuracies, threshold = accuracy(actual_points, min_points, output_threshold=True)
+
+    for acc, x, y in zip(accuracies, transpose(min_points)[0], transpose(min_points)[1]):
+        ax.add_patch(plt.Circle((x, y), threshold, alpha=0.1, edgecolor='none', color='b'))
 
     # An update function which will set the animated scatter plot to the next interpolated points
     def update(i):
@@ -274,7 +303,7 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
         # Compute the new misplacement value for the raw, deanonymized values
         raw_deanonymized_misplacement = min_score / len(actual_coordinates)  # Standard misplacement
     else:
-        min_coordinates = data_coordinates
+        min_coordinates = array(data_coordinates, copy=True)
         raw_deanonymized_misplacement = nan
         min_score_position = 0
 
@@ -283,7 +312,7 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
          num_geometric_transform_points_excluded, transformed_coordinates) = \
             geometric_transform(actual_coordinates, min_coordinates, accuracy_z_value, debug_labels=debug_labels)
     else:
-        transformed_coordinates = min_coordinates
+        transformed_coordinates = array(min_coordinates, copy=True)
         transformation_auto_exclusion = nan
         num_geometric_transform_points_excluded = nan
         rotation_theta = nan
