@@ -16,12 +16,9 @@ from scipy.spatial import distance
 from similarity_transform import similarity_transform
 
 # TODO: Documentation needs an audit/overhaul
-# TODO: Outputting "misassignment" (i.e. item which is accurate but mis-identified) would be useful
-# TODO: Edge and Displacement should be added (the other 2 original metrics)
 # TODO: Metrics which output *which* item is invovled in a swap would be useful to compare between metric types
 # TODO: Addition transformation/de-anonymization methods(see https://en.wikipedia.org/wiki/Point_set_registration)
 # TODO: Debug geometric transform issue causing it to often produce a transform which lowers accuracy (~36% of the time)
-# TODO: Test 3D
 
 
 class PipelineFlags(Enum):
@@ -93,6 +90,32 @@ def axis_swap(actual_points, data_points):
                 axis_swaps += 1
     axis_swaps = float(axis_swaps) / float(comparisons)
     return axis_swaps
+
+
+def edge_resizing(actual_points, data_points):
+    actual_edges = []
+    data_edges = []
+    for idx1 in range(len(actual_points)):
+        for idx2 in range(idx1, len(actual_points)):
+            actual_edges.append(distance.euclidean(actual_points[idx1], actual_points[idx2]))
+            data_edges.append(distance.euclidean(data_points[idx1], data_points[idx2]))
+    resizing = mean(abs(array(actual_edges) - array(data_edges)))
+
+    return resizing
+
+
+def edge_distortion(actual_points, data_points):
+    edge_distortions_count = 0
+    comparisons = 0
+    for idx in range(0, len(actual_points)):
+        for idx2 in range(idx + 1, len(actual_points)):
+            comparisons += 1
+            edge_distortions_count += (list(array(map(sign, array(actual_points[idx]) - array(actual_points[idx2]))) ==
+                                            array(map(sign, array(data_points[idx]) - array(data_points[idx2])))))\
+                .count(False)
+    distortions = float(edge_distortions_count) / float(comparisons)
+
+    return distortions
 
 
 def mask_points(points, keep_indicies):
@@ -199,8 +222,20 @@ def swaps(actual_points, data_points, actual_labels, data_labels, z_value=1.96):
                 cycle_swaps += 1
             else:
                 partial_cycle_swaps += 1
+
+    misassignment = 0
+    accurate_misassignment = 0
+    inaccurate_misassignment = 0
+    for actual_label, data_label, acc in zip(actual_labels, data_labels, dist_accuracy_map):
+        if actual_label != data_label:
+            misassignment += 1
+            if acc:
+                accurate_misassignment += 1
+            else:
+                inaccurate_misassignment += 1
+
     return (accurate_placements, inaccurate_placements, true_swaps, partial_swaps, cycle_swaps, partial_cycle_swaps,
-            components)
+            components, misassignment, accurate_misassignment, inaccurate_misassignment)
 
 
 def deanonymize(actual_points, data_points):
@@ -218,8 +253,11 @@ def deanonymize(actual_points, data_points):
 def visualization(actual_points, data_points, min_points, transformed_points, output_list,
                   animation_duration=2, animation_ticks=20):
 
+    for l, o in zip(get_header_labels(), output_list):
+        print(l + ": " + str(o))
+
     if len(actual_points[0]) != 2:
-        logging.error("the visualization method expects 2D points, found {0}D".format(array(actual_points[0]).shape))
+        logging.error("the visualization method expects 2D points, found {0}D".format(len(actual_points[0])))
         return
 
     # Generate a figure with 3 scatter plots (actual points, data points, and transformed points)
@@ -259,9 +297,6 @@ def visualization(actual_points, data_points, min_points, transformed_points, ou
         scat.set_offsets(lerp_data[i % animation_ticks])
         return scat,
 
-    for l, o in zip(get_header_labels(), output_list):
-        print(l + ": " + str(o))
-
     # Begin the animation/plot
     # noinspection PyUnusedLocal
     anim = animation.FuncAnimation(fig, update, interval=(float(animation_duration)/float(animation_ticks))*1000,
@@ -298,6 +333,8 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
     # the previous script via an MRE data set of 20 individuals
     straight_misplacements = minimization_function(actual_coordinates, data_coordinates) / len(actual_coordinates)
     axis_swaps = axis_swap(actual_coordinates, data_coordinates)
+    edge_resize = edge_resizing(actual_coordinates, data_coordinates)
+    edge_distort = edge_distortion(actual_coordinates, data_coordinates)
 
     # De-anonymization via Global Minimization of Misplacement
     # Try all permutations of the data coordinates to find an ordering which is globally minimal in misplacement
@@ -326,11 +363,13 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
     deanonymized_labels = list(itertools.permutations(range(0, len(actual_coordinates))))[min_score_position]
     actual_labels = range(len(actual_coordinates))
     (accurate_placements, inaccurate_placements, true_swaps, partial_swaps, cycle_swaps, partial_cycle_swaps,
-     components) = swaps(actual_coordinates, transformed_coordinates,
-                         actual_labels, deanonymized_labels, z_value=accuracy_z_value)
+     components, misassignment, accurate_misassignment, inaccurate_misassignment) = \
+        swaps(actual_coordinates, transformed_coordinates, actual_labels, deanonymized_labels, z_value=accuracy_z_value)
 
     output = [straight_misplacements,
               axis_swaps,
+              edge_resize,
+              edge_distort,
               raw_deanonymized_misplacement,
               transformation_auto_exclusion,
               num_geometric_transform_points_excluded,
@@ -343,7 +382,10 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
               true_swaps,
               partial_swaps,
               cycle_swaps,
-              partial_cycle_swaps
+              partial_cycle_swaps,
+              misassignment,
+              accurate_misassignment,
+              inaccurate_misassignment
               ]
 
     # If requested, visualize the data
@@ -355,17 +397,21 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
 
 # This function is responsible for returning the names of the values returned in full_pipeline
 def get_header_labels():
-    return ["Original Misplacement", "Original Swap", "Raw Deanonymized Misplacement", "Transformation Auto-Exclusion",
+    return ["Original Misplacement", "Original Swap", "Original Edge Resizing", "Original Edge Distortion",
+            "Raw Deanonymized Misplacement", "Transformation Auto-Exclusion",
             "Number of Points Excluded From Geometric Transform", "Rotation Theta", "Scaling", "Translation Magnitude",
             "Number of Components", "Accurate Placements", "Inaccurate Placements", "True Swaps",
-            "Partial Swaps", "Cycle Swaps", "Partial Cycle Swaps"]
+            "Partial Swaps", "Cycle Swaps", "Partial Cycle Swaps", "Misassignment", "Accurate Misassignment",
+            "Inaccurate Misassignment"]
 
 
 def get_aggregation_functions():
-    return [nanmean, nanmean, nanmean, nansum,
+    return [nanmean, nanmean, nanmean, nanmean,
+            nanmean, nansum,
             nansum, nanmean, nanmean, nanmean,
             nanmean, nanmean, nanmean, nanmean,
-            nanmean, nanmean, nanmean]
+            nanmean, nanmean, nanmean, nanmean,
+            nanmean, nanmean]
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -402,5 +448,5 @@ if __name__ == "__main__":
     logging.info("No arguments found - assuming running in test mode.")
 
     # Test code
-    a, b = generate_random_test_points()
+    a, b = generate_random_test_points(dimension=3)
     full_pipeline(a, b, visualize=True)
