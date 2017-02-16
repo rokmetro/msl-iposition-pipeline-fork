@@ -15,8 +15,8 @@ from scipy.spatial import distance
 
 from similarity_transform import similarity_transform
 
+
 # TODO: Documentation needs an audit/overhaul
-# TODO: Metrics which output *which* item is invovled in a swap would be useful to compare between metric types
 # TODO: Addition transformation/de-anonymization methods(see https://en.wikipedia.org/wiki/Point_set_registration)
 # TODO: Debug geometric transform issue causing it to often produce a transform which lowers accuracy (~36% of the time)
 
@@ -79,17 +79,26 @@ def accuracy(actual_points, data_points, z_value=1.96, output_threshold=False):
         return dist_accuracy_map
 
 
-def axis_swap(actual_points, data_points):
+def axis_swap(actual_points, data_points, actual_labels=None, data_labels=None, generate_pairs=False):
+    if not actual_labels:
+        actual_labels = range(len(actual_points))
+    if not data_labels:
+        data_labels = range(len(data_points))
     axis_swaps = 0
     comparisons = 0
+    axis_swap_pairs = []
     for idx in range(0, len(actual_points)):
         for idx2 in range(idx + 1, len(actual_points)):
             comparisons += 1
             if all(array(map(sign, array(actual_points[idx]) - array(actual_points[idx2]))) !=
                    array(map(sign, array(data_points[idx]) - array(data_points[idx2])))):
                 axis_swaps += 1
+                axis_swap_pairs.append([actual_labels[idx], data_labels[idx2]])
     axis_swaps = float(axis_swaps) / float(comparisons)
-    return axis_swaps
+    if generate_pairs:
+        return axis_swaps, axis_swap_pairs
+    else:
+        return axis_swaps
 
 
 def edge_resizing(actual_points, data_points):
@@ -111,7 +120,7 @@ def edge_distortion(actual_points, data_points):
         for idx2 in range(idx + 1, len(actual_points)):
             comparisons += 1
             edge_distortions_count += (list(array(map(sign, array(actual_points[idx]) - array(actual_points[idx2]))) ==
-                                            array(map(sign, array(data_points[idx]) - array(data_points[idx2])))))\
+                                            array(map(sign, array(data_points[idx]) - array(data_points[idx2]))))) \
                 .count(False)
     distortions = float(edge_distortions_count) / float(comparisons)
 
@@ -141,6 +150,7 @@ def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=N
     rotation_theta = nan
     scaling = nan
     transformation_auto_exclusion = True
+    translation = [nan, nan]
     transformed_coordinates = array(data_points, copy=True)
     # Confirm there are enough points to perform the transformation
     # (it is meaningless to perform with 0 or 1 points)
@@ -151,6 +161,7 @@ def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=N
         try:
             # Perform the transformation via Umeyama's method
             rotation_matrix, scaling, translation = similarity_transform(from_points, to_points)
+            translation = list(translation)
             # Compute the rotation factor
             theta_matrix = [map(arccos, x) for x in rotation_matrix]
             theta_matrix = [map(abs, x) for x in theta_matrix]
@@ -165,9 +176,9 @@ def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=N
             if new_error > old_error:  # Exclude rotation from transform
                 rotation_theta = nan
                 logging.info(str(debug_labels) + " : " +
-                                ('The transformation function did not reduce the error, removing rotation and retying' +
-                                 ' (old_error={0}, new_error={1}).').format(old_error,
-                                                                            new_error))
+                             ('The transformation function did not reduce the error, removing rotation and retying' +
+                              ' (old_error={0}, new_error={1}).').format(old_error,
+                                                                         new_error))
                 transformed_coordinates = [(array(x) + array(translation)) * scaling for x in data_points]
                 new_error = minimization_function(transformed_coordinates, actual_points)
                 old_error = minimization_function(data_points, actual_points)
@@ -176,17 +187,18 @@ def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=N
                     rotation_theta = nan
                     scaling = nan
                     translation_magnitude = nan
+                    translation = [nan, nan]
                     transformed_coordinates = array(data_points, copy=True)
                     logging.warning(str(debug_labels) + " : " +
                                     ('The transformation function did not reduce the error, removing transform ' +
-                                    '(old_error={0}, new_error={1}).').format(old_error,
-                                                                              new_error))
+                                     '(old_error={0}, new_error={1}).').format(old_error,
+                                                                               new_error))
 
         except ValueError:
             transformed_coordinates = array(data_points, copy=True)
             logging.error(('Finding transformation failed , ' +
                            'from_points={0}, to_points={1}.').format(from_points, to_points))
-    return (translation_magnitude, scaling, rotation_theta, transformation_auto_exclusion,
+    return (translation, translation_magnitude, scaling, rotation_theta, transformation_auto_exclusion,
             num_geometric_transform_points_excluded, transformed_coordinates)
 
 
@@ -251,8 +263,7 @@ def deanonymize(actual_points, data_points):
 # animation length in seconds
 # animation ticks in frames
 def visualization(actual_points, data_points, min_points, transformed_points, output_list,
-                  animation_duration=2, animation_ticks=20):
-
+                  animation_duration=2, animation_ticks=20, debug_labels=""):
     for l, o in zip(get_header_labels(), output_list):
         print(l + ": " + str(o))
 
@@ -262,6 +273,7 @@ def visualization(actual_points, data_points, min_points, transformed_points, ou
 
     # Generate a figure with 3 scatter plots (actual points, data points, and transformed points)
     fig, ax = plt.subplots()
+    plt.title(str(debug_labels))
     ax.set_aspect('equal')
     labels = range(len(actual_points))
     x = [float(v) for v in list(transpose(transformed_points)[0])]
@@ -299,7 +311,7 @@ def visualization(actual_points, data_points, min_points, transformed_points, ou
 
     # Begin the animation/plot
     # noinspection PyUnusedLocal
-    anim = animation.FuncAnimation(fig, update, interval=(float(animation_duration)/float(animation_ticks))*1000,
+    anim = animation.FuncAnimation(fig, update, interval=(float(animation_duration) / float(animation_ticks)) * 1000,
                                    blit=True)
     plt.show()
 
@@ -332,7 +344,7 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
     # First calculate the two primary original metrics, misplacement and axis swaps - this has been validated against
     # the previous script via an MRE data set of 20 individuals
     straight_misplacements = minimization_function(actual_coordinates, data_coordinates) / len(actual_coordinates)
-    axis_swaps = axis_swap(actual_coordinates, data_coordinates)
+    axis_swaps, axis_swap_pairs = axis_swap(actual_coordinates, data_coordinates, generate_pairs=True)
     edge_resize = edge_resizing(actual_coordinates, data_coordinates)
     edge_distort = edge_distortion(actual_coordinates, data_coordinates)
 
@@ -348,10 +360,11 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
         min_score_position = 0
 
     if flags == PipelineFlags.GlobalTransformation:
-        (translation_magnitude, scaling, rotation_theta, transformation_auto_exclusion,
+        (translation, translation_magnitude, scaling, rotation_theta, transformation_auto_exclusion,
          num_geometric_transform_points_excluded, transformed_coordinates) = \
             geometric_transform(actual_coordinates, min_coordinates, accuracy_z_value, debug_labels=debug_labels)
     else:
+        translation = [nan, nan]
         transformed_coordinates = array(min_coordinates, copy=True)
         transformation_auto_exclusion = nan
         num_geometric_transform_points_excluded = nan
@@ -370,12 +383,14 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
               axis_swaps,
               edge_resize,
               edge_distort,
+              axis_swap_pairs,
               raw_deanonymized_misplacement,
               transformation_auto_exclusion,
               num_geometric_transform_points_excluded,
               rotation_theta,
               scaling,
               translation_magnitude,
+              translation,
               len(components),
               accurate_placements,
               inaccurate_placements,
@@ -385,12 +400,14 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
               partial_cycle_swaps,
               misassignment,
               accurate_misassignment,
-              inaccurate_misassignment
+              inaccurate_misassignment,
+              map(list, components)
               ]
 
     # If requested, visualize the data
     if visualize:
-        visualization(actual_coordinates, data_coordinates, min_coordinates, transformed_coordinates, output)
+        visualization(actual_coordinates, data_coordinates, min_coordinates, transformed_coordinates, output,
+                      debug_labels=debug_labels)
 
     return output
 
@@ -398,20 +415,31 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
 # This function is responsible for returning the names of the values returned in full_pipeline
 def get_header_labels():
     return ["Original Misplacement", "Original Swap", "Original Edge Resizing", "Original Edge Distortion",
+            "Axis Swap Pairs",
             "Raw Deanonymized Misplacement", "Transformation Auto-Exclusion",
             "Number of Points Excluded From Geometric Transform", "Rotation Theta", "Scaling", "Translation Magnitude",
+            "Translation",
             "Number of Components", "Accurate Placements", "Inaccurate Placements", "True Swaps",
             "Partial Swaps", "Cycle Swaps", "Partial Cycle Swaps", "Misassignment", "Accurate Misassignment",
-            "Inaccurate Misassignment"]
+            "Inaccurate Misassignment", "Unique Components"]
 
 
+def collapse_unique_components(components_list):
+    return map(list,
+               set(frozenset(i) for i in map(set, [element for sublist in components_list for element in sublist])))
+
+
+# (lambda x: list(array(x).flatten())) for append
 def get_aggregation_functions():
     return [nanmean, nanmean, nanmean, nanmean,
+            collapse_unique_components,
             nanmean, nansum,
             nansum, nanmean, nanmean, nanmean,
+            (lambda xs: [nanmean(x) for x in transpose(xs)]),  # Mean of vectors
             nanmean, nanmean, nanmean, nanmean,
-            nanmean, nanmean, nanmean, nanmean,
-            nanmean, nanmean]
+            nanmean, nanmean, nanmean, nanmean, nanmean,
+            nanmean, collapse_unique_components]
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -442,11 +470,46 @@ if __name__ == "__main__":
         actual = get_coordinates_from_file(args.actual_coordinates, (args.num_trials, args.num_items, args.dimension))
         data = get_coordinates_from_file(args.data_coordinates, (args.num_trials, args.num_items, args.dimension))
         full_pipeline(actual[args.line_number], data[args.line_number],
-                      accuracy_z_value=args.accuracy_z_value, flags=PipelineFlags(args.pipeline_mode), visualize=True)
+                      accuracy_z_value=args.accuracy_z_value, flags=PipelineFlags(args.pipeline_mode), visualize=True,
+                      debug_labels=[get_id_from_file_prefix(args.data_coordinates), args.line_number])
         exit()
 
     logging.info("No arguments found - assuming running in test mode.")
 
     # Test code
-    a, b = generate_random_test_points(dimension=3)
-    full_pipeline(a, b, visualize=True)
+    # a, b = generate_random_test_points(dimension=3)
+    # full_pipeline(a, b, visualize=True)
+
+    root_dir = r"Z:\Kevin\iPosition\Hillary\MRE\\"
+    actual = get_coordinates_from_file(root_dir + r"actual_coordinates.txt", (15, 5, 2))
+    data101 = get_coordinates_from_file(root_dir + r"101\101position_data_coordinates.txt", (15, 5, 2))
+    data104 = get_coordinates_from_file(root_dir + r"104\104position_data_coordinates.txt", (15, 5, 2))
+    data105 = get_coordinates_from_file(root_dir + r"105\105position_data_coordinates.txt", (15, 5, 2))
+    data112 = get_coordinates_from_file(root_dir + r"112\112position_data_coordinates.txt", (15, 5, 2))
+    data113 = get_coordinates_from_file(root_dir + r"113\113position_data_coordinates.txt", (15, 5, 2))
+    data114 = get_coordinates_from_file(root_dir + r"114\114position_data_coordinates.txt", (15, 5, 2))
+    data118 = get_coordinates_from_file(root_dir + r"118\118position_data_coordinates.txt", (15, 5, 2))
+    data119 = get_coordinates_from_file(root_dir + r"119\119position_data_coordinates.txt", (15, 5, 2))
+    data120 = get_coordinates_from_file(root_dir + r"120\120position_data_coordinates.txt", (15, 5, 2))
+
+    # Cycle Agree
+    full_pipeline(actual[10], data101[10], visualize=True, debug_labels=["101", 10])
+    full_pipeline(actual[12], data104[12], visualize=True, debug_labels=["104", 12])
+    full_pipeline(actual[2], data105[2], visualize=True, debug_labels=["105", 2])
+    full_pipeline(actual[6], data112[6], visualize=True, debug_labels=["112", 6])
+
+    # Old Swap, New Cycle (only truly debatable one in my opinion)
+    full_pipeline(actual[2], data104[2], visualize=True, debug_labels=["104", 2])
+
+    # New Single Swap
+    full_pipeline(actual[0], data101[0], visualize=True, debug_labels=["101", 0])
+    full_pipeline(actual[12], data114[12], visualize=True, debug_labels=["114", 12])
+    full_pipeline(actual[10], data118[10], visualize=True, debug_labels=["118", 10])
+    full_pipeline(actual[10], data119[10], visualize=True, debug_labels=["119", 10])
+    full_pipeline(actual[14], data120[14], visualize=True, debug_labels=["120", 14])
+
+    # False Alarms (one or more old swap where new disagrees)
+    full_pipeline(actual[11], data101[11], visualize=True, debug_labels=["101", 11])  # 3 too many
+    full_pipeline(actual[10], data104[10], visualize=True, debug_labels=["104", 10])  # 1 too many
+    full_pipeline(actual[2], data113[2], visualize=True, debug_labels=["113", 2])  # 2 too many
+    full_pipeline(actual[12], data120[12], visualize=True, debug_labels=["120", 12])  # 2 too many

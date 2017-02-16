@@ -256,7 +256,11 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
 
     # Generate the output file and write the header
     out_fp = open(out_filename, 'w')
-    header = "subID,{0}\n".format(','.join(header_labels))
+    if collapse_trials:
+        header = "subID,{0}\n".format(','.join(header_labels))
+    else:
+        header = "subID,trial,{0}\n".format(','.join(header_labels))
+
     out_fp.write(header)
 
     # Iterate through the participants
@@ -279,14 +283,22 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
         if collapse_trials:
             # Apply the aggregation function to each value
             result = []
-            for idx, column in enumerate(transpose(results)):
-                result.append(agg_functions[idx](column))
+            for idx in range(len(results[0])):
+                result.append(agg_functions[idx]([row[idx] for row in results]))
 
             # Write to file
-            out_fp.write('{0},{1}\n'.format(label, ','.join([str(r) for r in result])))
+            out_fp.write(
+                '{0},{1}\n'.format(
+                    label,
+                    ','.join(['"{0}"'.format(str(r)) if ',' in str(r) else str(r) for r in result]))  # Filter commas
+            )
         else:
             for idx, row in enumerate(results):
-                out_fp.write('{0},{1},{2}\n'.format(label, idx, ','.join([str(r) for r in row])))
+                out_fp.write(
+                    '{0},{1},{2}\n'.format(label,
+                                           idx,
+                                           ','.join(['"{0}"'.format(str(r)) if ',' in str(r) else str(r) for r in row]))
+                )
 
     out_fp.close()
 
