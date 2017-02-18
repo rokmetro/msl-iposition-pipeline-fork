@@ -8,6 +8,13 @@ import os
 # noinspection PyUnresolvedReferences
 import sys
 import time
+# noinspection PyCompatibility
+from tkFileDialog import askdirectory
+
+try:
+    import tkinter as tk
+except ImportError:
+    import Tkinter as tk
 
 import numpy
 
@@ -89,6 +96,8 @@ def validate_list_format(l, require_numeric=False, dimension=None, list_name="li
         assert all(isinstance(x, int) or isinstance(x, float) for x in
                    ndarray.flatten(array(l))), "{1} contains some non int or float values: {0}".format(l, list_name)
 
+    return True
+
 
 def validate_equal_list_shapes(l1, l2, expected_shape=None, l1_name="list1", l2_name="list2"):
     """
@@ -116,8 +125,12 @@ def validate_equal_list_shapes(l1, l2, expected_shape=None, l1_name="list1", l2_
         ("shapes of {2} and {3} are not the same, " +
          "actual: {0}, data: {1}").format(shape(l1), shape(l2), l1_name, l2_name)
 
+    return True
 
-def get_single_file_result(actual_coordinates, dat, label="", accuracy_z_value=1.96, flags=PipelineFlags.All):
+
+# threshold values for each process step
+def get_single_file_result(actual_coordinates, dat, label="", accuracy_z_value=1.96, trial_by_trial_accuracy=True,
+                           flags=PipelineFlags.All):
     """
     This function generates the results for a specific file's data structure, usually containing multiple trials
 
@@ -129,7 +142,9 @@ def get_single_file_result(actual_coordinates, dat, label="", accuracy_z_value=1
     :param label: (optional) the label (string) identifying the participant ID for this file, used for debugging
     purposes only (default is empty string)
     :param accuracy_z_value: (optional) a value (float or int) representing the z threshold for counting something as
-    accurate (default is 1.96, i.e. 95% confidence interval)
+    :param trial_by_trial_accuracy: (optional) when True, z_value thresholds are used on a trial-by-trial basis for
+    accuracy calculations, when False, the thresholds are computed then collapsed across an individual's trials
+    (default is True)
     :param flags: (optional) the value (PipelineFlags) describing what pipeline elements should/should not be run on
     the data (default is PipelineFlags.All)
     :return: a list, (Nt, r), where Nt is the number of trials and r is the number of result metrics, of results values
@@ -148,14 +163,12 @@ def get_single_file_result(actual_coordinates, dat, label="", accuracy_z_value=1
     assert isinstance(flags, PipelineFlags), \
         "flags is not of type PipelineFlags: {0}".format(flags)
 
-    results = []
-    # Iterate through the trial lines
-    for idx, (aline, dline) in enumerate(zip(actual_coordinates, dat)):
-        # Process the trial
-        line_result = full_pipeline(aline, dline, accuracy_z_value=accuracy_z_value, flags=flags,
-                                    debug_labels=[label, idx])
-        results.append(line_result)
-    return results
+    # Process the participant
+    return full_pipeline(actual_coordinates, dat,
+                         accuracy_z_value=accuracy_z_value,
+                         trial_by_trial_accuracy=trial_by_trial_accuracy,
+                         flags=flags,
+                         debug_labels=[label])
 
 
 def detect_shape_from_file(path, dimension):
@@ -185,10 +198,12 @@ def detect_shape_from_file(path, dimension):
         assert trial_count > 0, "no trials detected: {0}".format(path)
         assert item_count_list[0] > 0, "no items detected".format(path)
 
-        return trial_count, int(float(item_count_list[0])/float(dimension))
+        return trial_count, int(float(item_count_list[0]) / float(dimension))
 
 
-def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_value=1.96, flags=PipelineFlags.All,
+def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_value=1.96,
+                   trial_by_trial_accuracy=True,
+                   flags=PipelineFlags.All,
                    collapse_trials=True, dimension=2):
     """
     This function allows the easy running of the pipeline on a directory and all of the appropriate files in its
@@ -204,6 +219,9 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     :param out_filename: the filename and path (string) into which the data should be saved
     :param accuracy_z_value: (optional) a value (float or int) representing the z threshold for counting something as
     accurate (default is 1.96, i.e. 95% confidence interval)
+    :param trial_by_trial_accuracy: (optional) when True, z_value thresholds are used on a trial-by-trial basis for
+    accuracy calculations, when False, the thresholds are computed then collapsed across an individual's trials
+    (default is True)
     :param flags: (optional) the value (PipelineFlags) describing what pipeline elements should/should not be run on
     the data (default is PipelineFlags.All)
     :param collapse_trials: (optional) if True, the output file will contain one row per participant, otherwise each
@@ -223,6 +241,8 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     assert isinstance(flags, PipelineFlags), \
         "flags is not of type PipelineFlags: {0}".format(flags)
     assert type(collapse_trials) is BooleanType, "collapse_trials is not a bool: {0}".format(collapse_trials)
+    assert type(trial_by_trial_accuracy) is BooleanType, \
+        "trial_by_trial_accuracy is not a bool: {0}".format(trial_by_trial_accuracy)
 
     logging.info('Finding files in folder {0}.'.format(search_directory))
 
@@ -230,6 +250,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     actual_coordinates_filename = data_coordinates_filenames = None
     try:
         actual_coordinates_filename, data_coordinates_filenames = find_data_files_in_directory(search_directory)
+        data_coordinates_filenames = sort(data_coordinates_filenames)
     except IOError:
         logging.error('The input path was not found.')
         exit()
@@ -264,13 +285,14 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     out_fp.write(header)
 
     # Iterate through the participants
-    for dat, label in zip(data_coordinates, data_labels):
+    for index, (dat, label) in enumerate(zip(data_coordinates, data_labels)):
         logging.debug('Parsing {0}.'.format(label))
-
         # Get results
         results = get_single_file_result(actual_coordinates, dat, label=label,
-                                         accuracy_z_value=accuracy_z_value, flags=flags)
+                                         accuracy_z_value=accuracy_z_value,
+                                         flags=flags, trial_by_trial_accuracy=trial_by_trial_accuracy)
 
+        new_results = []
         # Append the across-trial variables
         # Look for NaNs
         for line in results:
@@ -278,7 +300,8 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
             for item in line:
                 if item is numpy.nan:
                     num_rows_with_nan += 1
-            line.append(num_rows_with_nan)
+            new_results.append(append(line, [num_rows_with_nan]))
+        results = new_results
 
         if collapse_trials:
             # Apply the aggregation function to each value
@@ -304,6 +327,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
 
     logging.info('Done processing all files. Data can be found in {0}.'.format(out_filename))
 
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
@@ -311,9 +335,10 @@ if __name__ == "__main__":
                                                  'compared to a set of correct points. This will not generate an '
                                                  'output file, but will instead print the resulting values and show a '
                                                  'visualizer of the results.')
-    parser.add_argument('search_directory', type=str, help='the root directory in which to search for the actual and '
-                                                           'data coordinate files (actual_coordinates.txt and '
-                                                           '###position_data_coordinates.txt, respectively)')
+    parser.add_argument('--search_directory', type=str, help='the root directory in which to search for the actual and '
+                                                             'data coordinate files (actual_coordinates.txt and '
+                                                             '###position_data_coordinates.txt, respectively)',
+                        default=None)
     parser.add_argument('--num_trials', type=int, help='the number of trials in each file', default=None)
     parser.add_argument('--num_items', type=int, help='the number of items to be analyzed', default=None)
     parser.add_argument('--pipeline_mode', type=int, help='the mode in which the pipeline should process; \n\t0 for '
@@ -329,24 +354,49 @@ if __name__ == "__main__":
                                                             'row per participant will be output (default is 1)',
                         default=1)
     parser.add_argument('--dimension', type=int, help='the dimensionality of the data (default is 2)', default=2)
-
+    parser.add_argument('--trial_by_trial_accuracy', type=int, help='when not 0, z_value thresholds are used on a '
+                                                                    'trial-by-trial basis for accuracy calculations, '
+                                                                    'when 0, the thresholds are computed then '
+                                                                    'collapsed across an individual\'s trials',
+                        default=1)
     if len(sys.argv) > 1:
         args = parser.parse_args()
+        if args.search_directory is None:
+            tk_root = tk.Tk()
+            tk_root.withdraw()
+            selected_directory = str(askdirectory())
+        else:
+            selected_directory = args.search_directory
+        if len(selected_directory) == 0:  # Gracefully exit if cancel is clicked
+            exit()
         if not args.num_trials or not args.num_items:
             logging.warning('Either num_items or num_trials was not provided. The data shape will be automatically ' +
                             'detected from the actual coordinates.')
             d_shape = None
         else:
             d_shape = (args.num_trials, args.num_items, args.dimension)
-        batch_pipeline(args.search_directory,
+        batch_pipeline(selected_directory,
                        datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.csv"),
                        data_shape=d_shape,
-                       accuracy_z_value=args.accuracy_z_value, flags=PipelineFlags(args.pipeline_mode),
+                       accuracy_z_value=args.accuracy_z_value,
+                       trial_by_trial_accuracy=args.trial_by_trial_accuracy != 0,
+                       flags=PipelineFlags(args.pipeline_mode),
                        collapse_trials=args.collapse_trials != 0)
         exit()
 
     logging.info("No arguments found - assuming running in test mode.")
 
-    batch_pipeline("Z:\\Kevin\\iPosition\\Hillary\\MRE",
-                   datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.csv"),
-                   data_shape=(15, 5, 2))
+    tk_root = tk.Tk()
+    tk_root.withdraw()
+    selected_directory = str(askdirectory())
+
+    if os.path.exists(selected_directory):
+        batch_pipeline(selected_directory, datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.csv"))
+    elif selected_directory is not '':
+        logging.error('Directory not found.')
+        exit()
+    else:
+        exit()
+        # batch_pipeline("Z:\\Kevin\\iPosition\\Hillary\\MRE",
+        #                datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.csv"),
+        #                data_shape=(15, 5, 2))

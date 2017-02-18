@@ -5,6 +5,8 @@ import logging
 import sys
 # noinspection PyUnresolvedReferences
 import os
+# noinspection PyUnresolvedReferences
+import warnings
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
@@ -19,7 +21,7 @@ from similarity_transform import similarity_transform
 # TODO: Documentation needs an audit/overhaul
 # TODO: Addition transformation/de-anonymization methods(see https://en.wikipedia.org/wiki/Point_set_registration)
 # TODO: Debug geometric transform issue causing it to often produce a transform which lowers accuracy (~36% of the time)
-
+# TODO: Additional testing needed to confirm that trial_by_trial_accuracy didn't break anything
 
 class PipelineFlags(Enum):
     Unknown = 0
@@ -65,16 +67,39 @@ def lerp(start, finish, t):
     return [(bx - ax) * t + ax for ax, bx in zip(start, finish)]
 
 
-def accuracy(actual_points, data_points, z_value=1.96, output_threshold=False):
-    dists = diag(distance.cdist(data_points, actual_points))
-    mu = mean(dists)
-    sd = std(dists)
-    ste = sd / sqrt(len(dists))
-    ci = ste * z_value
-    exclusion_threshold = ci + mu
-    dist_accuracy_map = [x < exclusion_threshold for x in dists]
+def accuracy(actual_points, data_points, z_value=1.96, output_threshold=False, trial_by_trial_accuracy=True):
+    if z_value is None:
+            logging.error('a z_value was not found for accuracy, using z=1.96')
+            z_value = 1.96
+    if trial_by_trial_accuracy:
+        dist_accuracy_map = []
+        exclusion_thresholds = []
+        for actual_trial, data_trial in zip(actual_points, data_points):
+            dists = diag(distance.cdist(data_trial, actual_trial))
+            mu = mean(dists)
+            sd = std(dists)
+            ste = sd / sqrt(len(dists))
+            ci = ste * z_value
+            exclusion_threshold = ci + mu
+            exclusion_thresholds.append(exclusion_threshold)
+            dist_accuracy_map.append([x < exclusion_threshold for x in dists])
+    else:
+        collapsed_actual_points = array(actual_points).reshape(-1, len(actual_points[0][0]))
+        data_points = [list(x) for x in data_points]
+        collapsed_data_points = array(data_points).reshape(-1, len(data_points[0][0]))
+        dists = diag(distance.cdist(collapsed_actual_points, collapsed_data_points))
+        mu = mean(dists)
+        sd = std(dists)
+        ste = sd / sqrt(len(dists))
+        ci = ste * z_value
+        exclusion_threshold = ci + mu
+        exclusion_thresholds = [exclusion_threshold] * len(actual_points)
+        dist_accuracy_map = []
+        for actual_trial, data_trial in zip(actual_points, data_points):
+            dists = diag(distance.cdist(data_trial, actual_trial))
+            dist_accuracy_map.append([x < exclusion_threshold for x in dists])
     if output_threshold:
-        return dist_accuracy_map, exclusion_threshold
+        return dist_accuracy_map, exclusion_thresholds
     else:
         return dist_accuracy_map
 
@@ -131,10 +156,19 @@ def mask_points(points, keep_indicies):
     return array([points[idx] for idx in keep_indicies])
 
 
-def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=None):
+def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=None, trial_by_trial_accuracy=True):
     # Determine if the points meet the specified accuracy threshold
-    dist_accuracy_map = accuracy(actual_points, data_points, z_value=z_value)
+    dist_accuracy_map, dist_threshold = accuracy(actual_points, data_points,
+                                                 z_value=z_value,
+                                                 output_threshold=True, trial_by_trial_accuracy=trial_by_trial_accuracy)
+    result = []
+    for idx, (a, d, dam, dt) in enumerate(zip(actual_points, data_points, dist_accuracy_map, dist_threshold)):
+        result.append(trial_geometric_transform(a, d, dam, dt, debug_labels=debug_labels+[idx]))
 
+    return transpose(result)
+
+
+def trial_geometric_transform(actual_points, data_points, dist_accuracy_map, dist_threshold, debug_labels=None):
     # Determine which points should be included in the transformation step and generate the point sets
     valid_points_indicies = [x for (x, y) in zip(range(len(actual_points)), dist_accuracy_map) if y]
     from_points = mask_points(data_points, valid_points_indicies)
@@ -199,12 +233,29 @@ def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=N
             logging.error(('Finding transformation failed , ' +
                            'from_points={0}, to_points={1}.').format(from_points, to_points))
     return (translation, translation_magnitude, scaling, rotation_theta, transformation_auto_exclusion,
-            num_geometric_transform_points_excluded, transformed_coordinates)
+            num_geometric_transform_points_excluded, transformed_coordinates, dist_threshold)
 
 
-def swaps(actual_points, data_points, actual_labels, data_labels, z_value=1.96):
-    dist_accuracy_map = accuracy(actual_points, data_points,
-                                 z_value=z_value)
+def swaps(actual_points, data_points, actual_labels, data_labels, z_value=1.96, trial_by_trial_accuracy=True):
+    dist_accuracy_map, dist_threshold = accuracy(actual_points, data_points,
+                                                 z_value=z_value,
+                                                 output_threshold=True, trial_by_trial_accuracy=trial_by_trial_accuracy)
+    result = []
+    for a, d, al, dl, dam, dt in zip(actual_points, data_points, actual_labels, data_labels,
+                                     dist_accuracy_map, dist_threshold):
+        result.append(trial_swaps(a, d, al, dl, dam, dt))
+
+    return transpose(result)
+
+
+def trial_swaps(actual_points, data_points, actual_labels, data_labels, dist_accuracy_map, dist_threshold):
+    assert unique(actual_labels).shape == array(actual_labels).shape, \
+        "swaps actual_labels are not unique: {0}".format(actual_labels)
+    assert unique(data_labels).shape == array(data_labels).shape, \
+        "swaps data_labelsare not unique: {0}".format(data_labels)
+    assert all(sort(actual_labels) == sort(data_labels)), \
+        "swaps actual_labels and data_labels are not unequal: actual, {0}; data, {1}".format(actual_labels, data_labels)
+
     accurate_points_labels = [label for (label, is_accurate) in zip(actual_labels, dist_accuracy_map) if is_accurate]
 
     deanonymized_graph = nx.Graph()
@@ -215,25 +266,58 @@ def swaps(actual_points, data_points, actual_labels, data_labels, z_value=1.96):
     accurate_placements = 0
     inaccurate_placements = 0
     true_swaps = 0
+    true_swap_distances = []
+    true_swap_expected_distances = []
     partial_swaps = 0
+    partial_swap_distances = []
+    partial_swap_expected_distances = []
     cycle_swaps = 0
+    cycle_swap_distances = []
+    cycle_swap_expected_distances = []
     partial_cycle_swaps = 0
+    partial_cycle_swap_distances = []
+    partial_cycle_swap_expected_distances = []
     for component in components:
+        component = list(component)
         if len(component) == 1:
             if all([node in accurate_points_labels for node in component]):
                 accurate_placements += 1
             else:
                 inaccurate_placements += 1
         elif len(component) == 2:
+            swap_actual_idx0 = list(actual_labels).index(component[0])
+            swap_actual_idx1 = list(actual_labels).index(component[1])
+            swap_data_idx0 = list(data_labels).index(component[0])
+            swap_data_idx1 = list(data_labels).index(component[1])
+            dist_actual = distance.euclidean(actual_points[swap_actual_idx0], actual_points[swap_actual_idx1])
+            dist_data = distance.euclidean(data_points[swap_data_idx0], data_points[swap_data_idx1])
             if all([node in accurate_points_labels for node in component]):
                 true_swaps += 1
+                true_swap_distances.append(dist_data)
+                true_swap_expected_distances.append(dist_actual)
             else:
                 partial_swaps += 1
+                partial_swap_distances.append(dist_data)
+                partial_swap_expected_distances.append(dist_actual)
         elif len(component) > 2:
+            swap_actual_idxs = [list(actual_labels).index(c) for c in component]
+            swap_actual_idxs_combinations = [(a, b) for (a, b) in
+                                             list(itertools.product(swap_actual_idxs, swap_actual_idxs)) if a != b]
+            swap_data_idxs = [list(actual_labels).index(c) for c in component]
+            swap_data_idxs_combinations = [(a, b) for (a, b) in
+                                           list(itertools.product(swap_data_idxs, swap_data_idxs)) if a != b]
+            dists_actual = [distance.euclidean(actual_points[a], actual_points[b]) for (a, b) in
+                            swap_actual_idxs_combinations]
+            dists_data = [distance.euclidean(data_points[a], data_points[b]) for (a, b) in
+                          swap_data_idxs_combinations]
             if all([node in accurate_points_labels for node in component]):
                 cycle_swaps += 1
+                cycle_swap_distances.append(mean(dists_data))
+                cycle_swap_expected_distances.append(mean(dists_actual))
             else:
                 partial_cycle_swaps += 1
+                partial_cycle_swap_distances.append(mean(dists_data))
+                partial_cycle_swap_expected_distances.append(mean(dists_actual))
 
     misassignment = 0
     accurate_misassignment = 0
@@ -246,23 +330,38 @@ def swaps(actual_points, data_points, actual_labels, data_labels, z_value=1.96):
             else:
                 inaccurate_misassignment += 1
 
-    return (accurate_placements, inaccurate_placements, true_swaps, partial_swaps, cycle_swaps, partial_cycle_swaps,
-            components, misassignment, accurate_misassignment, inaccurate_misassignment)
+    with warnings.catch_warnings():  # Ignore empty mean warnings
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        return (accurate_placements, inaccurate_placements, true_swaps, partial_swaps, cycle_swaps, partial_cycle_swaps,
+                components, misassignment, accurate_misassignment, inaccurate_misassignment, dist_threshold,
+                nanmean(true_swap_distances), nanmean(true_swap_expected_distances),
+                nanmean(partial_swap_distances), nanmean(partial_swap_expected_distances),
+                nanmean(cycle_swap_distances), nanmean(cycle_swap_expected_distances),
+                nanmean(partial_cycle_swap_distances), nanmean(partial_cycle_swap_expected_distances))
 
 
 def deanonymize(actual_points, data_points):
-    perms = list(itertools.permutations(data_points))
-    scores = [minimization_function(x, actual_points) for x in perms]
-    min_score_position = scores.index(min(scores))
-    min_permutation = perms[min_score_position]
-    min_score = min(scores)
-    min_coordinates = min_permutation
-    return min_coordinates, min_score, min_score_position
+    min_coordinates = []
+    min_score = []
+    min_score_position = []
+    raw_deanonymized_misplacement = []
+    for actual_trial, data_trial in zip(actual_points, data_points):
+        perms = list(itertools.permutations(data_trial))
+        scores = [minimization_function(x, actual_trial) for x in perms]
+        min_score_pos = scores.index(min(scores))
+        min_score_position.append(min_score_pos)
+        min_permutation = perms[min_score_pos]
+        min_s = min(scores)
+        min_score.append(min_s)
+        min_coordinates.append(min_permutation)
+        raw_deanonymized_misplacement.append(min_s / len(actual_trial))
+    return min_coordinates, min_score, min_score_position, raw_deanonymized_misplacement
 
 
 # animation length in seconds
 # animation ticks in frames
 def visualization(actual_points, data_points, min_points, transformed_points, output_list,
+                  z_value=1.96,
                   animation_duration=2, animation_ticks=20, debug_labels=""):
     for l, o in zip(get_header_labels(), output_list):
         print(l + ": " + str(o))
@@ -291,15 +390,20 @@ def visualization(actual_points, data_points, min_points, transformed_points, ou
     lerp_data = [[lerp(p1, p2, t) for p1, p2 in zip(min_points, transformed_points)] for t in
                  linspace(0.0, 1.0, animation_ticks)]
 
-    accuracies, threshold = accuracy(actual_points, transformed_points, output_threshold=True)
-
+    accuracies, threshold = accuracy([actual_points], [transformed_points],
+                                     z_value=z_value, output_threshold=True, trial_by_trial_accuracy=True)
+    accuracies = accuracies[0]
+    threshold = threshold[0]
     for acc, x, y in zip(accuracies, transpose(transformed_points)[0], transpose(transformed_points)[1]):
         color = 'r'
         if acc:
             color = 'g'
         ax.add_patch(plt.Circle((x, y), threshold, alpha=0.3, color=color))
 
-    accuracies, threshold = accuracy(actual_points, min_points, output_threshold=True)
+    accuracies, threshold = accuracy([actual_points], [min_points],
+                                     z_value=z_value, output_threshold=True, trial_by_trial_accuracy=True)
+    accuracies = accuracies[0]
+    threshold = threshold[0]
 
     for acc, x, y in zip(accuracies, transpose(min_points)[0], transpose(min_points)[1]):
         ax.add_patch(plt.Circle((x, y), threshold, alpha=0.1, color='b'))
@@ -340,50 +444,95 @@ def get_id_from_file_prefix(path, prefix_length=3):
 # The coordinates are expected to be equal in length of the for (Nt, Ni, 2) where Nt is the number of trials and Ni is
 # the number of items.
 def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_labels=None,
-                  accuracy_z_value=1.96, flags=PipelineFlags.All):
-    # First calculate the two primary original metrics, misplacement and axis swaps - this has been validated against
-    # the previous script via an MRE data set of 20 individuals
-    straight_misplacements = minimization_function(actual_coordinates, data_coordinates) / len(actual_coordinates)
-    axis_swaps, axis_swap_pairs = axis_swap(actual_coordinates, data_coordinates, generate_pairs=True)
-    edge_resize = edge_resizing(actual_coordinates, data_coordinates)
-    edge_distort = edge_distortion(actual_coordinates, data_coordinates)
+                  accuracy_z_value=1.96, flags=PipelineFlags.All, trial_by_trial_accuracy=True):
+    # If only a single trial worth of points is input, flex the data so it's the right dimension
+    if len(array(actual_coordinates).shape) == 2:
+        actual_coordinates = [actual_coordinates]
+    if len(array(data_coordinates).shape) == 2:
+        data_coordinates = [data_coordinates]
+
+    num_trials = len(actual_coordinates)
+
+    straight_misplacements = []
+    axis_swaps = []
+    axis_swap_pairs = []
+    edge_resize = []
+    edge_distort = []
+    for (actual_trial, data_trial) in zip(actual_coordinates, data_coordinates):
+        # First calculate the two primary original metrics, misplacement and axis swaps - this has been validated
+        # against the previous script via an MRE data set of 20 individuals
+        straight_misplacements.append(minimization_function(actual_trial, data_trial) / len(actual_trial))
+        axis_swaps_element, axis_swap_pairs_element = axis_swap(actual_trial, data_trial, generate_pairs=True)
+        axis_swaps.append(axis_swaps_element)
+        axis_swap_pairs.append(axis_swap_pairs_element)
+        edge_resize.append(edge_resizing(actual_trial, data_trial))
+        edge_distort.append(edge_distortion(actual_trial, data_trial))
+
+    pre_process_accuracies, pre_process_threshold = accuracy(actual_coordinates, data_coordinates,
+                                                             z_value=accuracy_z_value,
+                                                             output_threshold=True,
+                                                             trial_by_trial_accuracy=trial_by_trial_accuracy)
 
     # De-anonymization via Global Minimization of Misplacement
     # Try all permutations of the data coordinates to find an ordering which is globally minimal in misplacement
     if flags == PipelineFlags.Deanonymize:
-        min_coordinates, min_score, min_score_position = deanonymize(actual_coordinates, data_coordinates)
-        # Compute the new misplacement value for the raw, deanonymized values
-        raw_deanonymized_misplacement = min_score / len(actual_coordinates)  # Standard misplacement
+        min_coordinates, min_score, min_score_position, raw_deanonymized_misplacement = \
+            deanonymize(actual_coordinates,
+                        data_coordinates)
+        deanon_accuracies, deanon_threshold = accuracy(actual_coordinates, data_coordinates,
+                                                       z_value=accuracy_z_value,
+                                                       output_threshold=True,
+                                                       trial_by_trial_accuracy=trial_by_trial_accuracy)
     else:
         min_coordinates = array(data_coordinates, copy=True)
-        raw_deanonymized_misplacement = nan
-        min_score_position = 0
+        deanon_threshold = [nan] * num_trials
+        deanon_accuracies = [] * num_trials
+        raw_deanonymized_misplacement = [nan] * num_trials
+        min_score_position = [0] * num_trials
 
     if flags == PipelineFlags.GlobalTransformation:
-        (translation, translation_magnitude, scaling, rotation_theta, transformation_auto_exclusion,
-         num_geometric_transform_points_excluded, transformed_coordinates) = \
-            geometric_transform(actual_coordinates, min_coordinates, accuracy_z_value, debug_labels=debug_labels)
+        (translation, translation_magnitude, scaling, rotation_theta,
+         transformation_auto_exclusion, num_geometric_transform_points_excluded,
+         transformed_coordinates, geo_dist_threshold) = \
+            geometric_transform(actual_coordinates, min_coordinates, z_value=accuracy_z_value,
+                                debug_labels=debug_labels, trial_by_trial_accuracy=trial_by_trial_accuracy)
     else:
-        translation = [nan, nan]
+        translation = [[nan, nan]] * num_trials
         transformed_coordinates = array(min_coordinates, copy=True)
-        transformation_auto_exclusion = nan
-        num_geometric_transform_points_excluded = nan
-        rotation_theta = nan
-        scaling = nan
-        translation_magnitude = nan
+        transformation_auto_exclusion = [nan] * num_trials
+        num_geometric_transform_points_excluded = [nan] * num_trials
+        rotation_theta = [nan] * num_trials
+        scaling = [nan] * num_trials
+        translation_magnitude = [nan] * num_trials
+        geo_dist_threshold = [nan] * num_trials
 
     # Determine if the points meet the specified accuracy threshold
-    deanonymized_labels = list(itertools.permutations(range(0, len(actual_coordinates))))[min_score_position]
-    actual_labels = range(len(actual_coordinates))
+    # noinspection PyTypeChecker
+    deanonymized_labels = [list(itertools.permutations(range(0, len(actual_coordinates[0]))))[position] for position in
+                           min_score_position]
+    actual_labels = [range(len(actual_trial)) for actual_trial in
+                     actual_coordinates]
     (accurate_placements, inaccurate_placements, true_swaps, partial_swaps, cycle_swaps, partial_cycle_swaps,
-     components, misassignment, accurate_misassignment, inaccurate_misassignment) = \
-        swaps(actual_coordinates, transformed_coordinates, actual_labels, deanonymized_labels, z_value=accuracy_z_value)
+     components, misassignment, accurate_misassignment, inaccurate_misassignment, swap_dist_threshold,
+     true_swap_distances, true_swap_expected_distances,
+     partial_swap_distances, partial_swap_expected_distances,
+     cycle_swap_distances, cycle_swap_expected_distances,
+     partial_cycle_swap_distances, partial_cycle_swap_expected_distances) = \
+        swaps(actual_coordinates, transformed_coordinates, actual_labels, deanonymized_labels,
+              z_value=accuracy_z_value, trial_by_trial_accuracy=trial_by_trial_accuracy)
 
-    output = [straight_misplacements,
+    output = transpose(
+             [straight_misplacements,
               axis_swaps,
               edge_resize,
               edge_distort,
               axis_swap_pairs,
+              [list(x).count(True) for x in pre_process_accuracies],
+              [list(x).count(False) for x in pre_process_accuracies],
+              pre_process_threshold,
+              [list(x).count(True) for x in deanon_accuracies],
+              [list(x).count(False) for x in deanon_accuracies],
+              deanon_threshold,
               raw_deanonymized_misplacement,
               transformation_auto_exclusion,
               num_geometric_transform_points_excluded,
@@ -391,7 +540,8 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
               scaling,
               translation_magnitude,
               translation,
-              len(components),
+              geo_dist_threshold,
+              [len(x) for x in components],
               accurate_placements,
               inaccurate_placements,
               true_swaps,
@@ -401,27 +551,45 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
               misassignment,
               accurate_misassignment,
               inaccurate_misassignment,
-              map(list, components)
-              ]
+              swap_dist_threshold,
+              true_swap_distances,
+              true_swap_expected_distances,
+              partial_swap_distances,
+              partial_swap_expected_distances,
+              cycle_swap_distances,
+              cycle_swap_expected_distances,
+              partial_cycle_swap_distances,
+              partial_cycle_swap_expected_distances,
+              [map(list, x) for x in components]
+              ])
 
     # If requested, visualize the data
     if visualize:
-        visualization(actual_coordinates, data_coordinates, min_coordinates, transformed_coordinates, output,
-                      debug_labels=debug_labels)
+        for idx, (actual_trial, data_trial, min_trial, transformed_trial, output_trial) in \
+                enumerate(zip(actual_coordinates, data_coordinates, min_coordinates, transformed_coordinates, output)):
+            visualization(actual_trial, data_trial, min_trial, transformed_trial, output_trial,
+                          z_value=accuracy_z_value, debug_labels=debug_labels + [idx])
 
     return output
 
 
 # This function is responsible for returning the names of the values returned in full_pipeline
 def get_header_labels():
-    return ["Original Misplacement", "Original Swap", "Original Edge Resizing", "Original Edge Distortion",
-            "Axis Swap Pairs",
-            "Raw Deanonymized Misplacement", "Transformation Auto-Exclusion",
-            "Number of Points Excluded From Geometric Transform", "Rotation Theta", "Scaling", "Translation Magnitude",
-            "Translation",
-            "Number of Components", "Accurate Placements", "Inaccurate Placements", "True Swaps",
-            "Partial Swaps", "Cycle Swaps", "Partial Cycle Swaps", "Misassignment", "Accurate Misassignment",
-            "Inaccurate Misassignment", "Unique Components"]
+    return ["Original Misplacement", "Original Swap", "Original Edge Resizing", "Original Edge Distortion",    # 0
+            "Axis Swap Pairs", "Pre-Processed Accurate Placements", "Pre-Processed Inaccurate Placements",     # 1
+            "Pre-Processed Accuracy Threshold", "Deanonymized Accurate Placements",                            # 2
+            "Deanonymized Inaccurate Placements", "Deanonymized Accuracy Threshold",                           # 3
+            "Raw Deanonymized Misplacement", "Transformation Auto-Exclusion",                                  # 4
+            "Number of Points Excluded From Geometric Transform", "Rotation Theta", "Scaling",                 # 5
+            "Translation Magnitude",                                                                           # 6
+            "Translation", "Geometric Distance Threshold",                                                     # 7
+            "Number of Components", "Accurate Placements", "Inaccurate Placements", "True Swaps",              # 8
+            "Partial Swaps", "Cycle Swaps", "Partial Cycle Swaps", "Misassignment", "Accurate Misassignment",  # 9
+            "Inaccurate Misassignment", "Swap Distance Threshold",                                             # 10
+            "True Swap Data Distance", "True Swap Actual Distance", "Partial Swap Data Distance",              # 11
+            "Partial Swap Actual Distance", "Cycle Swap Data Distance", "Cycle Swap Actual Distance",          # 12
+            "Partial Cycle Swap Data Distance", "Partial Cycle Swap Actual Distance",                          # 13
+            "Unique Components"]                                                                               # 14
 
 
 def collapse_unique_components(components_list):
@@ -431,14 +599,21 @@ def collapse_unique_components(components_list):
 
 # (lambda x: list(array(x).flatten())) for append
 def get_aggregation_functions():
-    return [nanmean, nanmean, nanmean, nanmean,
-            collapse_unique_components,
-            nanmean, nansum,
-            nansum, nanmean, nanmean, nanmean,
-            (lambda xs: [nanmean(x) for x in transpose(xs)]),  # Mean of vectors
-            nanmean, nanmean, nanmean, nanmean,
-            nanmean, nanmean, nanmean, nanmean, nanmean,
-            nanmean, collapse_unique_components]
+    return [nanmean, nanmean, nanmean, nanmean,                                                                # 0
+            collapse_unique_components, nanmean, nanmean,                                                      # 1
+            nanmean, nanmean,                                                                                  # 2
+            nanmean, nanmean,                                                                                  # 3
+            nanmean, nansum,                                                                                   # 4
+            nansum, nanmean, nanmean,                                                                          # 5
+            nanmean,                                                                                           # 6
+            (lambda xs: [nanmean(x) for x in transpose(xs)]), nanmean,  # Mean of vectors                      # 7
+            nanmean, nanmean, nanmean, nanmean,                                                                # 8
+            nanmean, nanmean, nanmean, nanmean, nanmean,                                                       # 9
+            nanmean, nanmean,                                                                                  # 10
+            nanmean, nanmean, nanmean,                                                                         # 11
+            nanmean, nanmean, nanmean,                                                                         # 12
+            nanmean, nanmean,                                                                                  # 13
+            collapse_unique_components]                                                                        # 14
 
 
 if __name__ == "__main__":
@@ -458,10 +633,10 @@ if __name__ == "__main__":
                                                           'just accuracy+swaps, \n\t1 for '
                                                           'accuracy+deanonymization+swaps, \n\t2 for accuracy+global '
                                                           'transformations+swaps, \n\t3 for '
-                                                          'accuracy+deanonymization+global transformations+swaps \n('
-                                                          'default is 3)', default=3)
+                                                          'accuracy+deanonymization+global transformations+swaps \n'
+                                                          '(default is 3)', default=3)
     parser.add_argument('--accuracy_z_value', type=float, help='the z value to be used for accuracy exclusion ('
-                                                               'default is 1.96, corresponding to 95% confidence',
+                                                               'default is 1.96), corresponding to 95% confidence; if ',
                         default=1.96)
     parser.add_argument('--dimension', type=int, help='the dimensionality of the data (default is 2)', default=2)
 
@@ -470,7 +645,8 @@ if __name__ == "__main__":
         actual = get_coordinates_from_file(args.actual_coordinates, (args.num_trials, args.num_items, args.dimension))
         data = get_coordinates_from_file(args.data_coordinates, (args.num_trials, args.num_items, args.dimension))
         full_pipeline(actual[args.line_number], data[args.line_number],
-                      accuracy_z_value=args.accuracy_z_value, flags=PipelineFlags(args.pipeline_mode), visualize=True,
+                      accuracy_z_value=args.accuracy_z_value,
+                      flags=PipelineFlags(args.pipeline_mode), visualize=True,
                       debug_labels=[get_id_from_file_prefix(args.data_coordinates), args.line_number])
         exit()
 
