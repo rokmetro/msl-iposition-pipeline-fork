@@ -204,7 +204,7 @@ def detect_shape_from_file(path, dimension):
 def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_value=1.96,
                    trial_by_trial_accuracy=True,
                    flags=PipelineFlags.All,
-                   collapse_trials=True, dimension=2):
+                   collapse_trials=True, dimension=2, prefix_length=3):
     """
     This function allows the easy running of the pipeline on a directory and all of the appropriate files in its
     subdirectories. It will search for the actual coordinates and data files and process them all as specified
@@ -227,6 +227,8 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     :param collapse_trials: (optional) if True, the output file will contain one row per participant, otherwise each
     trial will be output in an individual row
     :param dimension: (optional) the dimensionality of the data (default is 2)
+    :param prefix_length: the number of characters at the beginning of the data filenames which constitute the
+    subject ID (default is 3)
     """
     assert type(search_directory) is StringType, "search_directory must be a string: {0}".format(search_directory)
     assert len(search_directory) > 0, "search_directory must have length greater than 0: {0}".format(search_directory)
@@ -264,7 +266,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     # Parse the files
     actual_coordinates = get_coordinates_from_file(actual_coordinates_filename, data_shape)
     data_coordinates = [get_coordinates_from_file(filename, data_shape) for filename in data_coordinates_filenames]
-    data_labels = [get_id_from_file_prefix(filename) for filename in data_coordinates_filenames]
+    data_labels = [get_id_from_file_prefix(filename, prefix_length=prefix_length) for filename in data_coordinates_filenames]
     logging.info('The following ids were found and are being processed: {0}'.format(data_labels))
 
     # Get the labels and aggregation methods
@@ -359,6 +361,8 @@ if __name__ == "__main__":
                                                                     'when 0, the thresholds are computed then '
                                                                     'collapsed across an individual\'s trials',
                         default=1)
+    parser.add_argument('--prefix-length', type=int, help='the length of the subject ID prefix at the beginning of '
+                                                          'the data filenames (default is 3)', default=3)
     if len(sys.argv) > 1:
         args = parser.parse_args()
         if args.search_directory is None:
@@ -381,7 +385,9 @@ if __name__ == "__main__":
                        accuracy_z_value=args.accuracy_z_value,
                        trial_by_trial_accuracy=args.trial_by_trial_accuracy != 0,
                        flags=PipelineFlags(args.pipeline_mode),
-                       collapse_trials=args.collapse_trials != 0)
+                       collapse_trials=args.collapse_trials != 0,
+                       dimensions=args.dimension,
+                       prefix_length=args.prefix_length)
         exit()
 
     logging.info("No arguments found - assuming running in test mode.")
