@@ -1,5 +1,4 @@
-# msl-iposition-pipeline
-Memory Systems Lab iPosition Data Pipeline
+# Memory Systems Lab iPosition Data Pipeline
 
 This data pipeline is meant for the processing of iPosition data. It will output all the pre-2017 metrics as well as the newer metrics.
 
