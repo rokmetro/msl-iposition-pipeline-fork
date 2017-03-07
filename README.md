@@ -91,6 +91,9 @@ Individual trials can be visualized by calling the full_pipeline.py file with ap
 * num_trials
 * num_items
 * line_number
+
+The optional arguments are:
+
 * --pipeline_mode - the mode in which the pipeline should process (default is 3); 
 ..* 0 for just accuracy+swaps, 
 ..* 1 for accuracy+deanonymization+swaps, 
