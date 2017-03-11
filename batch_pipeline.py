@@ -24,7 +24,7 @@ from full_pipeline import *
 logging.basicConfig(level=logging.INFO)
 
 
-def find_data_files_in_directory(directory):
+def find_data_files_in_directory(directory, actual_coordinate_prefixes=False, prefix_length=3):
     """
     This function crawls the specified directory, recursively looking for the actual coordinate file and data files
 
@@ -42,8 +42,18 @@ def find_data_files_in_directory(directory):
     data_files = []
     actual_coordinate_file = None
     actual_coordinate_contents = None
+    if actual_coordinate_prefixes:
+        actual_coordinate_file = []
+        actual_coordinate_contents = []
+    file_index = []
+    file_roots_index = []
     for root, dirs, files in os.walk(directory):
         for f in files:
+            file_index.append(f)
+            file_roots_index.append(root)
+
+    for root, f in zip(file_roots_index, file_index):
+        if not actual_coordinate_prefixes:
             if os.path.basename(f) == "actual_coordinates.txt":  # If we find an actual coordinate file
                 if actual_coordinate_file is None:  # And we haven't found a coordinate file before
                     actual_coordinate_file = os.path.join(root, f)  # Set the coordinate file
@@ -63,6 +73,32 @@ def find_data_files_in_directory(directory):
             if f.endswith("position_data_coordinates.txt"):  # If we find a data file, save it to the file list
                 logging.debug('Found data file ({0}).'.format(f))
                 data_files.append(os.path.join(root, f))
+        else:
+            if os.path.basename(f).endswith("actual_coordinates.txt"):  # If we find an actual coordinate file
+                if os.path.join(root, f) not in actual_coordinate_file:  # And we haven't found a coordinate file before
+                    actual_coordinate_file.append(os.path.join(root, f))  # Set the coordinate file
+                    with open(os.path.join(root, f)) as fp:  # Save its contents
+                        actual_coordinate_contents.append(fp.read())
+                    logging.debug('Found actual_coordinates.txt ({0}).'.format(actual_coordinate_file))
+                    prefix = get_id_from_file_prefix(f, prefix_length=prefix_length)
+                    for r2, f2 in zip(file_roots_index, file_index):
+                        if f2.endswith(
+                                "position_data_coordinates.txt") and prefix == get_id_from_file_prefix(f2, prefix_length=prefix_length):  # If we find a data file, save it to the file list
+                                logging.debug('Found data file ({0}).'.format(f2))
+                                data_files.append(os.path.join(r2, f2))
+
+                else:
+                    actual_coordinate_file_duplicate_idx = actual_coordinate_file.index(os.path.join(root, f))
+                    assert actual_coordinate_file_duplicate_idx >= len(actual_coordinate_file) or actual_coordinate_file_duplicate_idx < 0, 'indexing error with duplicate actual coordinate file'
+                    with open(os.path.join(root, f)) as fp:  # Get its contents
+                        new_contents = fp.read()
+                    if new_contents != actual_coordinate_contents[actual_coordinate_file_duplicate_idx]:  # Compare its contents to the first found file
+                        # If the contents are not the same, quit - because we don't know which to use.
+                        logging.error(('Found multiple actual_coordinates.txt with different contents, ' +
+                                       'program will now exit (found {0}).').format(actual_coordinate_file[actual_coordinate_file_duplicate_idx]))
+                        exit()
+                    else:  # Otherwise continue and warn the user
+                        logging.warning('Found multiple actual_coordinates.txt but contents were identical ({0}).'.format(actual_coordinate_file[actual_coordinate_file_duplicate_idx]))
     logging.info('Found {0} data files in {1} seconds and {2} actual coordinate file.'.format(len(data_files),
                                                                                               time.time() - start_time,
                                                                                               actual_coordinate_file))
@@ -204,7 +240,7 @@ def detect_shape_from_file(path, dimension):
 def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_value=1.96,
                    trial_by_trial_accuracy=True,
                    flags=PipelineFlags.All,
-                   collapse_trials=True, dimension=2, prefix_length=3):
+                   collapse_trials=True, dimension=2, prefix_length=3, actual_coordinate_prefixes=False):
     """
     This function allows the easy running of the pipeline on a directory and all of the appropriate files in its
     subdirectories. It will search for the actual coordinates and data files and process them all as specified
@@ -251,7 +287,9 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     # Find the files
     actual_coordinates_filename = data_coordinates_filenames = None
     try:
-        actual_coordinates_filename, data_coordinates_filenames = find_data_files_in_directory(search_directory)
+        actual_coordinates_filename, data_coordinates_filenames = \
+            find_data_files_in_directory(search_directory, actual_coordinate_prefixes=actual_coordinate_prefixes,
+                                         prefix_length=prefix_length)
         data_coordinates_filenames = sort(data_coordinates_filenames)
     except IOError:
         logging.error('The input path was not found.')
@@ -259,13 +297,20 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
 
     logging.info('Parsing files with expected shape {0}.'.format(data_shape))
 
-    if data_shape is None:
-        num_trials, num_items = detect_shape_from_file(actual_coordinates_filename, dimension)
-        data_shape = (num_trials, num_items, dimension)
-
     # Parse the files
-    actual_coordinates = get_coordinates_from_file(actual_coordinates_filename, data_shape)
-    data_coordinates = [get_coordinates_from_file(filename, data_shape) for filename in data_coordinates_filenames]
+    if not actual_coordinate_prefixes:
+        if data_shape is None:
+            num_trials, num_items = detect_shape_from_file(actual_coordinates_filename, dimension)
+            data_shape = (num_trials, num_items, dimension)
+        actual_coordinates = get_coordinates_from_file(actual_coordinates_filename, data_shape)
+        data_coordinates = [get_coordinates_from_file(filename, data_shape) for filename in data_coordinates_filenames]
+    else:
+        data_shapes = []
+        for acf in actual_coordinates_filename:
+            num_trials, num_items = detect_shape_from_file(acf, dimension)
+            data_shapes.append((num_trials, num_items, dimension))
+        actual_coordinates = [get_coordinates_from_file(filename, data_shapes[idx]) for idx, filename in enumerate(actual_coordinates_filename)]
+        data_coordinates = [get_coordinates_from_file(filename, data_shapes[idx]) for idx, filename in enumerate(data_coordinates_filenames)]
     data_labels = [get_id_from_file_prefix(filename, prefix_length=prefix_length) for filename in data_coordinates_filenames]
     logging.info('The following ids were found and are being processed: {0}'.format(data_labels))
 
@@ -289,10 +334,16 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     # Iterate through the participants
     for index, (dat, label) in enumerate(zip(data_coordinates, data_labels)):
         logging.debug('Parsing {0}.'.format(label))
-        # Get results
-        results = get_single_file_result(actual_coordinates, dat, label=label,
-                                         accuracy_z_value=accuracy_z_value,
-                                         flags=flags, trial_by_trial_accuracy=trial_by_trial_accuracy)
+        if not actual_coordinate_prefixes:
+            # Get results
+            results = get_single_file_result(actual_coordinates, dat, label=label,
+                                             accuracy_z_value=accuracy_z_value,
+                                             flags=flags, trial_by_trial_accuracy=trial_by_trial_accuracy)
+        else:
+            assert array(actual_coordinates[index]).shape == array(dat).shape, "shape mismatch between {0} and {1}".format(actual_coordinates_filename[index], data_coordinates_filenames[index])
+            results = get_single_file_result(actual_coordinates[index], dat, label=label,
+                                             accuracy_z_value=accuracy_z_value,
+                                             flags=flags, trial_by_trial_accuracy=trial_by_trial_accuracy)
 
         new_results = []
         # Append the across-trial variables
@@ -361,8 +412,19 @@ if __name__ == "__main__":
                                                                     'when 0, the thresholds are computed then '
                                                                     'collapsed across an individual\'s trials',
                         default=1)
-    parser.add_argument('--prefix-length', type=int, help='the length of the subject ID prefix at the beginning of '
+    parser.add_argument('--prefix_length', type=int, help='the length of the subject ID prefix at the beginning of '
                                                           'the data filenames (default is 3)', default=3)
+    parser.add_argument('--actual_coordinate_prefixes', type=int, help='if 0, the normal assumption that all '
+                                                                       'participants used the same '
+                                                                       'actual_coordinates.txt file will be used. if '
+                                                                       'not 0, it is assumed that all '
+                                                                       'actual_coordinates.txt files have a prefix '
+                                                                       'which is matched in the '
+                                                                       'position_data_coordinates.txt prefix. Thus, '
+                                                                       'there should be a one-to-one correspondance '
+                                                                       'between actual_coordinates.txt and '
+                                                                       'position_data_coordinates.txt files and their '
+                                                                       'contents.', default=0)
     if len(sys.argv) > 1:
         args = parser.parse_args()
         if args.search_directory is None:
@@ -386,8 +448,9 @@ if __name__ == "__main__":
                        trial_by_trial_accuracy=args.trial_by_trial_accuracy != 0,
                        flags=PipelineFlags(args.pipeline_mode),
                        collapse_trials=args.collapse_trials != 0,
-                       dimensions=args.dimension,
-                       prefix_length=args.prefix_length)
+                       dimension=args.dimension,
+                       prefix_length=args.prefix_length,
+                       actual_coordinate_prefixes=args.actual_coordinate_prefixes)
         exit()
 
     logging.info("No arguments found - assuming running in test mode.")
