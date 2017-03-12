@@ -40,16 +40,19 @@ class PipelineFlags(Enum):
 # This function is for testing. It generates a set of "correct" and "incorrect" points such that the correct points are
 # randomly placed between (0,0) and (1,1) in R2. Then it generates "incorrect" points which are offset randomly up
 # to 10% in the positive direction, shuffled, and where one point is completely random.
-def generate_random_test_points(number_of_points=5, dimension=2):
+def generate_random_test_points(number_of_points=5, dimension=2, shuffle_points=True, noise=(1.0/20.0), num_rerandomed_points=1):
     correct_points = [[random.random() for _ in range(dimension)] for _ in range(0, number_of_points)]
-    offsets = [[(random.random()) / 20.0 for _ in range(dimension)] for _ in range(0, number_of_points)]
+    offsets = [[(random.random()) * noise for _ in range(dimension)] for _ in range(0, number_of_points)]
     input_points = array(correct_points) + array(offsets)
 
-    perms = list(itertools.permutations(input_points))
-    input_points = perms[random.randint(0, len(perms) - 1)]
-    index = random.randint(0, len(input_points))
-    for idx in range(len(input_points[index])):
-        input_points[index][idx] = random.random()
+    if shuffle_points:
+        perms = list(itertools.permutations(input_points))
+        input_points = perms[random.randint(0, len(perms) - 1)]
+    for i in range(0, num_rerandomed_points):
+        indicies = random.sample(range(0, len(input_points)))
+        for index in indicies:
+            for idx in range(len(input_points[index])):
+                input_points[index][idx] = random.random()
 
     return correct_points, input_points
 
@@ -156,7 +159,7 @@ def mask_points(points, keep_indicies):
     return array([points[idx] for idx in keep_indicies])
 
 
-def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=None, trial_by_trial_accuracy=True):
+def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=[''], trial_by_trial_accuracy=True):
     # Determine if the points meet the specified accuracy threshold
     dist_accuracy_map, dist_threshold = accuracy(actual_points, data_points,
                                                  z_value=z_value,
@@ -168,7 +171,7 @@ def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=N
     return transpose(result)
 
 
-def trial_geometric_transform(actual_points, data_points, dist_accuracy_map, dist_threshold, debug_labels=None):
+def trial_geometric_transform(actual_points, data_points, dist_accuracy_map, dist_threshold, debug_labels=['']):
     # Determine which points should be included in the transformation step and generate the point sets
     valid_points_indicies = [x for (x, y) in zip(range(len(actual_points)), dist_accuracy_map) if y]
     from_points = mask_points(data_points, valid_points_indicies)
@@ -362,7 +365,7 @@ def deanonymize(actual_points, data_points):
 # animation ticks in frames
 def visualization(actual_points, data_points, min_points, transformed_points, output_list,
                   z_value=1.96,
-                  animation_duration=2, animation_ticks=20, debug_labels=""):
+                  animation_duration=2, animation_ticks=20, debug_labels=['']):
     for l, o in zip(get_header_labels(), output_list):
         print(l + ": " + str(o))
 
@@ -443,7 +446,7 @@ def get_id_from_file_prefix(path, prefix_length=3):
 # which participant/trial is being observed when running from an external process (it is appended to the debug info).
 # The coordinates are expected to be equal in length of the for (Nt, Ni, 2) where Nt is the number of trials and Ni is
 # the number of items.
-def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_labels=None,
+def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_labels=[''],
                   accuracy_z_value=1.96, flags=PipelineFlags.All, trial_by_trial_accuracy=True):
     # If only a single trial worth of points is input, flex the data so it's the right dimension
     if len(array(actual_coordinates).shape) == 2:
@@ -653,9 +656,11 @@ if __name__ == "__main__":
     logging.info("No arguments found - assuming running in test mode.")
 
     # Test code
-    # a, b = generate_random_test_points(dimension=3)
-    # full_pipeline(a, b, visualize=True)
-
+    '''
+    a, b = generate_random_test_points(dimension=2, noise=0.2)
+    full_pipeline(a, b, visualize=True)
+    exit()
+    '''
     root_dir = r"Z:\Kevin\iPosition\Hillary\MRE\\"
     actual = get_coordinates_from_file(root_dir + r"actual_coordinates.txt", (15, 5, 2))
     data101 = get_coordinates_from_file(root_dir + r"101\101position_data_coordinates.txt", (15, 5, 2))
