@@ -40,7 +40,8 @@ class PipelineFlags(Enum):
 # This function is for testing. It generates a set of "correct" and "incorrect" points such that the correct points are
 # randomly placed between (0,0) and (1,1) in R2. Then it generates "incorrect" points which are offset randomly up
 # to 10% in the positive direction, shuffled, and where one point is completely random.
-def generate_random_test_points(number_of_points=5, dimension=2, shuffle_points=True, noise=(1.0/20.0), num_rerandomed_points=1):
+def generate_random_test_points(number_of_points=5, dimension=2, shuffle_points=True, noise=(1.0 / 20.0),
+                                num_rerandomed_points=1):
     correct_points = [[random.random() for _ in range(dimension)] for _ in range(0, number_of_points)]
     offsets = [[(random.random()) * noise for _ in range(dimension)] for _ in range(0, number_of_points)]
     input_points = array(correct_points) + array(offsets)
@@ -72,8 +73,8 @@ def lerp(start, finish, t):
 
 def accuracy(actual_points, data_points, z_value=1.96, output_threshold=False, trial_by_trial_accuracy=True):
     if z_value is None:
-            logging.error('a z_value was not found for accuracy, using z=1.96')
-            z_value = 1.96
+        logging.error('a z_value was not found for accuracy, using z=1.96')
+        z_value = 1.96
     if trial_by_trial_accuracy:
         dist_accuracy_map = []
         exclusion_thresholds = []
@@ -119,7 +120,7 @@ def axis_swap(actual_points, data_points, actual_labels=None, data_labels=None, 
         for idx2 in range(idx + 1, len(actual_points)):
             comparisons += 1
             if all(array(map(sign, array(actual_points[idx]) - array(actual_points[idx2]))) !=
-                   array(map(sign, array(data_points[idx]) - array(data_points[idx2])))):
+                           array(map(sign, array(data_points[idx]) - array(data_points[idx2])))):
                 axis_swaps += 1
                 axis_swap_pairs.append([actual_labels[idx], data_labels[idx2]])
     axis_swaps = float(axis_swaps) / float(comparisons)
@@ -166,7 +167,7 @@ def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=[
                                                  output_threshold=True, trial_by_trial_accuracy=trial_by_trial_accuracy)
     result = []
     for idx, (a, d, dam, dt) in enumerate(zip(actual_points, data_points, dist_accuracy_map, dist_threshold)):
-        result.append(trial_geometric_transform(a, d, dam, dt, debug_labels=debug_labels+[idx]))
+        result.append(trial_geometric_transform(a, d, dam, dt, debug_labels=debug_labels + [idx]))
 
     return transpose(result)
 
@@ -426,8 +427,8 @@ def visualization(actual_points, data_points, min_points, transformed_points, ou
 # This function reads a data file and shapes the data into the appropriate expected shape (usually (Nt, Ni, 2) where
 # Nt is the number of trials (rows) and Ni is the number of items (columns / 2), and 2 is the number of dimensions.
 def get_coordinates_from_file(path, expected_shape):
-    with open(path) as tsv:
-        coordinates = zip(*([float(element) for element in line.strip().split('\t')] for line in tsv))
+    with open(path, 'rU') as tsv:
+        coordinates = zip(*([float(element.strip()) for element in line.strip().split('\t')] for line in tsv if line.strip() is not ''))
         coordinates = transpose(coordinates)
     if expected_shape is not None:
         coordinates = reshape(array(coordinates), expected_shape)
@@ -525,46 +526,46 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
               z_value=accuracy_z_value, trial_by_trial_accuracy=trial_by_trial_accuracy)
 
     output = transpose(
-             [straight_misplacements,
-              axis_swaps,
-              edge_resize,
-              edge_distort,
-              axis_swap_pairs,
-              [list(x).count(True) for x in pre_process_accuracies],
-              [list(x).count(False) for x in pre_process_accuracies],
-              pre_process_threshold,
-              [list(x).count(True) for x in deanon_accuracies],
-              [list(x).count(False) for x in deanon_accuracies],
-              deanon_threshold,
-              raw_deanonymized_misplacement,
-              transformation_auto_exclusion,
-              num_geometric_transform_points_excluded,
-              rotation_theta,
-              scaling,
-              translation_magnitude,
-              translation,
-              geo_dist_threshold,
-              [len(x) for x in components],
-              accurate_placements,
-              inaccurate_placements,
-              true_swaps,
-              partial_swaps,
-              cycle_swaps,
-              partial_cycle_swaps,
-              misassignment,
-              accurate_misassignment,
-              inaccurate_misassignment,
-              swap_dist_threshold,
-              true_swap_distances,
-              true_swap_expected_distances,
-              partial_swap_distances,
-              partial_swap_expected_distances,
-              cycle_swap_distances,
-              cycle_swap_expected_distances,
-              partial_cycle_swap_distances,
-              partial_cycle_swap_expected_distances,
-              [map(list, x) for x in components]
-              ])
+        [straight_misplacements,
+         axis_swaps,
+         edge_resize,
+         edge_distort,
+         axis_swap_pairs,
+         [list(x).count(True) for x in pre_process_accuracies],
+         [list(x).count(False) for x in pre_process_accuracies],
+         pre_process_threshold,
+         [list(x).count(True) for x in deanon_accuracies],
+         [list(x).count(False) for x in deanon_accuracies],
+         deanon_threshold,
+         raw_deanonymized_misplacement,
+         transformation_auto_exclusion,
+         num_geometric_transform_points_excluded,
+         rotation_theta,
+         scaling,
+         translation_magnitude,
+         translation,
+         geo_dist_threshold,
+         [len(x) for x in components],
+         accurate_placements,
+         inaccurate_placements,
+         true_swaps,
+         partial_swaps,
+         cycle_swaps,
+         partial_cycle_swaps,
+         misassignment,
+         accurate_misassignment,
+         inaccurate_misassignment,
+         swap_dist_threshold,
+         true_swap_distances,
+         true_swap_expected_distances,
+         partial_swap_distances,
+         partial_swap_expected_distances,
+         cycle_swap_distances,
+         cycle_swap_expected_distances,
+         partial_cycle_swap_distances,
+         partial_cycle_swap_expected_distances,
+         [map(list, x) for x in components]
+         ])
 
     # If requested, visualize the data
     if visualize:
@@ -578,21 +579,21 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
 
 # This function is responsible for returning the names of the values returned in full_pipeline
 def get_header_labels():
-    return ["Original Misplacement", "Original Swap", "Original Edge Resizing", "Original Edge Distortion",    # 0
-            "Axis Swap Pairs", "Pre-Processed Accurate Placements", "Pre-Processed Inaccurate Placements",     # 1
-            "Pre-Processed Accuracy Threshold", "Deanonymized Accurate Placements",                            # 2
-            "Deanonymized Inaccurate Placements", "Deanonymized Accuracy Threshold",                           # 3
-            "Raw Deanonymized Misplacement", "Transformation Auto-Exclusion",                                  # 4
-            "Number of Points Excluded From Geometric Transform", "Rotation Theta", "Scaling",                 # 5
-            "Translation Magnitude",                                                                           # 6
-            "Translation", "Geometric Distance Threshold",                                                     # 7
-            "Number of Components", "Accurate Placements", "Inaccurate Placements", "True Swaps",              # 8
+    return ["Original Misplacement", "Original Swap", "Original Edge Resizing", "Original Edge Distortion",  # 0
+            "Axis Swap Pairs", "Pre-Processed Accurate Placements", "Pre-Processed Inaccurate Placements",  # 1
+            "Pre-Processed Accuracy Threshold", "Deanonymized Accurate Placements",  # 2
+            "Deanonymized Inaccurate Placements", "Deanonymized Accuracy Threshold",  # 3
+            "Raw Deanonymized Misplacement", "Transformation Auto-Exclusion",  # 4
+            "Number of Points Excluded From Geometric Transform", "Rotation Theta", "Scaling",  # 5
+            "Translation Magnitude",  # 6
+            "Translation", "Geometric Distance Threshold",  # 7
+            "Number of Components", "Accurate Placements", "Inaccurate Placements", "True Swaps",  # 8
             "Partial Swaps", "Cycle Swaps", "Partial Cycle Swaps", "Misassignment", "Accurate Misassignment",  # 9
-            "Inaccurate Misassignment", "Swap Distance Threshold",                                             # 10
-            "True Swap Data Distance", "True Swap Actual Distance", "Partial Swap Data Distance",              # 11
-            "Partial Swap Actual Distance", "Cycle Swap Data Distance", "Cycle Swap Actual Distance",          # 12
-            "Partial Cycle Swap Data Distance", "Partial Cycle Swap Actual Distance",                          # 13
-            "Unique Components"]                                                                               # 14
+            "Inaccurate Misassignment", "Swap Distance Threshold",  # 10
+            "True Swap Data Distance", "True Swap Actual Distance", "Partial Swap Data Distance",  # 11
+            "Partial Swap Actual Distance", "Cycle Swap Data Distance", "Cycle Swap Actual Distance",  # 12
+            "Partial Cycle Swap Data Distance", "Partial Cycle Swap Actual Distance",  # 13
+            "Unique Components"]  # 14
 
 
 def collapse_unique_components(components_list):
@@ -602,21 +603,21 @@ def collapse_unique_components(components_list):
 
 # (lambda x: list(array(x).flatten())) for append
 def get_aggregation_functions():
-    return [nanmean, nanmean, nanmean, nanmean,                                                                # 0
-            collapse_unique_components, nanmean, nanmean,                                                      # 1
-            nanmean, nanmean,                                                                                  # 2
-            nanmean, nanmean,                                                                                  # 3
-            nanmean, nansum,                                                                                   # 4
-            nansum, nanmean, nanmean,                                                                          # 5
-            nanmean,                                                                                           # 6
+    return [nanmean, nanmean, nanmean, nanmean,  # 0
+            collapse_unique_components, nanmean, nanmean,  # 1
+            nanmean, nanmean,  # 2
+            nanmean, nanmean,  # 3
+            nanmean, nansum,  # 4
+            nansum, nanmean, nanmean,  # 5
+            nanmean,  # 6
             (lambda xs: [nanmean(x) for x in transpose(xs)]), nanmean,  # Mean of vectors                      # 7
-            nanmean, nanmean, nanmean, nanmean,                                                                # 8
-            nanmean, nanmean, nanmean, nanmean, nanmean,                                                       # 9
-            nanmean, nanmean,                                                                                  # 10
-            nanmean, nanmean, nanmean,                                                                         # 11
-            nanmean, nanmean, nanmean,                                                                         # 12
-            nanmean, nanmean,                                                                                  # 13
-            collapse_unique_components]                                                                        # 14
+            nanmean, nanmean, nanmean, nanmean,  # 8
+            nanmean, nanmean, nanmean, nanmean, nanmean,  # 9
+            nanmean, nanmean,  # 10
+            nanmean, nanmean, nanmean,  # 11
+            nanmean, nanmean, nanmean,  # 12
+            nanmean, nanmean,  # 13
+            collapse_unique_components]  # 14
 
 
 if __name__ == "__main__":
