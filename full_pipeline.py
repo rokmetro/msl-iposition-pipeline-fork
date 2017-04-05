@@ -71,7 +71,7 @@ def lerp(start, finish, t):
     return [(bx - ax) * t + ax for ax, bx in zip(start, finish)]
 
 
-def accuracy(actual_points, data_points, z_value=1.96, output_threshold=False, trial_by_trial_accuracy=True):
+def accuracy(actual_points, data_points, z_value=1.96, output_threshold=False, trial_by_trial_accuracy=True, manual_threshold=None):
     if z_value is None:
         logging.error('a z_value was not found for accuracy, using z=1.96')
         z_value = 1.96
@@ -79,29 +79,41 @@ def accuracy(actual_points, data_points, z_value=1.96, output_threshold=False, t
         dist_accuracy_map = []
         exclusion_thresholds = []
         for actual_trial, data_trial in zip(actual_points, data_points):
-            dists = diag(distance.cdist(data_trial, actual_trial))
+            if manual_threshold is not None:
+                dists = diag(distance.cdist(data_trial, actual_trial))
+                dist_accuracy_map.append([x < manual_threshold for x in dists])
+                exclusion_thresholds.append(manual_threshold)
+            else:
+                dists = diag(distance.cdist(data_trial, actual_trial))
+                mu = mean(dists)
+                sd = std(dists)
+                ste = sd / sqrt(len(dists))
+                ci = ste * z_value
+                exclusion_threshold = ci + mu
+                exclusion_thresholds.append(exclusion_threshold)
+                dist_accuracy_map.append([x < exclusion_threshold for x in dists])
+    else:
+        dist_accuracy_map = []
+        if manual_threshold is not None:
+            for actual_trial, data_trial in zip(actual_points, data_points):
+                dists = diag(distance.cdist(data_trial, actual_trial))
+                dist_accuracy_map.append([x < manual_threshold for x in dists])
+            exclusion_thresholds = [manual_threshold] * len(actual_points)
+        else:
+            collapsed_actual_points = array(actual_points).reshape(-1, len(actual_points[0][0]))
+            data_points = [list(x) for x in data_points]
+            collapsed_data_points = array(data_points).reshape(-1, len(data_points[0][0]))
+            dists = diag(distance.cdist(collapsed_actual_points, collapsed_data_points))
             mu = mean(dists)
             sd = std(dists)
             ste = sd / sqrt(len(dists))
             ci = ste * z_value
             exclusion_threshold = ci + mu
-            exclusion_thresholds.append(exclusion_threshold)
-            dist_accuracy_map.append([x < exclusion_threshold for x in dists])
-    else:
-        collapsed_actual_points = array(actual_points).reshape(-1, len(actual_points[0][0]))
-        data_points = [list(x) for x in data_points]
-        collapsed_data_points = array(data_points).reshape(-1, len(data_points[0][0]))
-        dists = diag(distance.cdist(collapsed_actual_points, collapsed_data_points))
-        mu = mean(dists)
-        sd = std(dists)
-        ste = sd / sqrt(len(dists))
-        ci = ste * z_value
-        exclusion_threshold = ci + mu
-        exclusion_thresholds = [exclusion_threshold] * len(actual_points)
-        dist_accuracy_map = []
-        for actual_trial, data_trial in zip(actual_points, data_points):
-            dists = diag(distance.cdist(data_trial, actual_trial))
-            dist_accuracy_map.append([x < exclusion_threshold for x in dists])
+            exclusion_thresholds = [exclusion_threshold] * len(actual_points)
+
+            for actual_trial, data_trial in zip(actual_points, data_points):
+                dists = diag(distance.cdist(data_trial, actual_trial))
+                dist_accuracy_map.append([x < exclusion_threshold for x in dists])
     if output_threshold:
         return dist_accuracy_map, exclusion_thresholds
     else:
@@ -240,10 +252,11 @@ def trial_geometric_transform(actual_points, data_points, dist_accuracy_map, dis
             num_geometric_transform_points_excluded, transformed_coordinates, dist_threshold)
 
 
-def swaps(actual_points, data_points, actual_labels, data_labels, z_value=1.96, trial_by_trial_accuracy=True):
+def swaps(actual_points, data_points, actual_labels, data_labels, z_value=1.96, trial_by_trial_accuracy=True, manual_threshold=None):
     dist_accuracy_map, dist_threshold = accuracy(actual_points, data_points,
                                                  z_value=z_value,
-                                                 output_threshold=True, trial_by_trial_accuracy=trial_by_trial_accuracy)
+                                                 output_threshold=True, trial_by_trial_accuracy=trial_by_trial_accuracy,
+                                                 manual_threshold=manual_threshold)
     result = []
     for a, d, al, dl, dam, dt in zip(actual_points, data_points, actual_labels, data_labels,
                                      dist_accuracy_map, dist_threshold):
@@ -448,7 +461,7 @@ def get_id_from_file_prefix(path, prefix_length=3):
 # The coordinates are expected to be equal in length of the for (Nt, Ni, 2) where Nt is the number of trials and Ni is
 # the number of items.
 def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_labels=[''],
-                  accuracy_z_value=1.96, flags=PipelineFlags.All, trial_by_trial_accuracy=True):
+                  accuracy_z_value=1.96, flags=PipelineFlags.All, trial_by_trial_accuracy=True, manual_threshold=None):
     # If only a single trial worth of points is input, flex the data so it's the right dimension
     if len(array(actual_coordinates).shape) == 2:
         actual_coordinates = [actual_coordinates]
@@ -523,7 +536,8 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
      cycle_swap_distances, cycle_swap_expected_distances,
      partial_cycle_swap_distances, partial_cycle_swap_expected_distances) = \
         swaps(actual_coordinates, transformed_coordinates, actual_labels, deanonymized_labels,
-              z_value=accuracy_z_value, trial_by_trial_accuracy=trial_by_trial_accuracy)
+              z_value=accuracy_z_value, trial_by_trial_accuracy=trial_by_trial_accuracy,
+              manual_threshold=manual_threshold)
 
     output = transpose(
         [straight_misplacements,

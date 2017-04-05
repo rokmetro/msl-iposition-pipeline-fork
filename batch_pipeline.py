@@ -166,6 +166,7 @@ def validate_equal_list_shapes(l1, l2, expected_shape=None, l1_name="list1", l2_
 
 # threshold values for each process step
 def get_single_file_result(actual_coordinates, dat, label="", accuracy_z_value=1.96, trial_by_trial_accuracy=True,
+                           manual_threshold=None,
                            flags=PipelineFlags.All):
     """
     This function generates the results for a specific file's data structure, usually containing multiple trials
@@ -204,7 +205,7 @@ def get_single_file_result(actual_coordinates, dat, label="", accuracy_z_value=1
                          accuracy_z_value=accuracy_z_value,
                          trial_by_trial_accuracy=trial_by_trial_accuracy,
                          flags=flags,
-                         debug_labels=[label])
+                         debug_labels=[label], manual_threshold=manual_threshold)
 
 
 def detect_shape_from_file(path, dimension):
@@ -240,7 +241,8 @@ def detect_shape_from_file(path, dimension):
 def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_value=1.96,
                    trial_by_trial_accuracy=True,
                    flags=PipelineFlags.All,
-                   collapse_trials=True, dimension=2, prefix_length=3, actual_coordinate_prefixes=False):
+                   collapse_trials=True, dimension=2, prefix_length=3, actual_coordinate_prefixes=False,
+                   manual_threshold=None):
     """
     This function allows the easy running of the pipeline on a directory and all of the appropriate files in its
     subdirectories. It will search for the actual coordinates and data files and process them all as specified
@@ -334,16 +336,24 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     # Iterate through the participants
     for index, (dat, label) in enumerate(zip(data_coordinates, data_labels)):
         logging.debug('Parsing {0}.'.format(label))
+        mt = None
+        if manual_threshold is not None:
+            for id, threshold in manual_threshold:
+                if id == label:
+                    mt = threshold
+                    break
         if not actual_coordinate_prefixes:
             # Get results
             results = get_single_file_result(actual_coordinates, dat, label=label,
                                              accuracy_z_value=accuracy_z_value,
-                                             flags=flags, trial_by_trial_accuracy=trial_by_trial_accuracy)
+                                             flags=flags, trial_by_trial_accuracy=trial_by_trial_accuracy,
+                                             manual_threshold=mt)
         else:
             assert array(actual_coordinates[index]).shape == array(dat).shape, "shape mismatch between {0} and {1}".format(actual_coordinates_filename[index], data_coordinates_filenames[index])
             results = get_single_file_result(actual_coordinates[index], dat, label=label,
                                              accuracy_z_value=accuracy_z_value,
-                                             flags=flags, trial_by_trial_accuracy=trial_by_trial_accuracy)
+                                             flags=flags, trial_by_trial_accuracy=trial_by_trial_accuracy,
+                                             manual_threshold=mt)
 
         new_results = []
         # Append the across-trial variables
@@ -425,6 +435,9 @@ if __name__ == "__main__":
                                                                        'between actual_coordinates.txt and '
                                                                        'position_data_coordinates.txt files and their '
                                                                        'contents.', default=0)
+    parser.add_argument('--manual_swap_accuracy_threshold_list', type=str,
+                        help='if empty string or none, the value is ignored. if a string (path) pointing to a text file containing a new line separated list of id,threshold pairs is provided, any files whose participant id matches the first matching id in the list will have the associated threshold applied instead of being automatically computed.',
+                        default='')
     if len(sys.argv) > 1:
         args = parser.parse_args()
         if args.search_directory is None:
@@ -441,6 +454,17 @@ if __name__ == "__main__":
             d_shape = None
         else:
             d_shape = (args.num_trials, args.num_items, args.dimension)
+        manual_swap_accuracy_threshold_list = None
+        if args.manual_swap_accuracy_threshold_list is not None:
+            try:
+                with open(args.manual_swap_accuracy_threshold_list) as f:
+                    lis = [line.split(',') for line in f]
+                    for idx, (id, threshold) in enumerate(lis):
+                        lis[idx][1] = float(threshold)
+                    manual_swap_accuracy_threshold_list = lis
+            except:
+                logging.warning(
+                    'the provided manual_swap_accuracy_threshold_list was either not found or invalid - it will be skipped')
         batch_pipeline(selected_directory,
                        datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.csv"),
                        data_shape=d_shape,
@@ -450,7 +474,8 @@ if __name__ == "__main__":
                        collapse_trials=args.collapse_trials != 0,
                        dimension=args.dimension,
                        prefix_length=args.prefix_length,
-                       actual_coordinate_prefixes=args.actual_coordinate_prefixes)
+                       actual_coordinate_prefixes=args.actual_coordinate_prefixes,
+                       manual_threshold=manual_swap_accuracy_threshold_list)
         exit()
 
     logging.info("No arguments found - assuming running in test mode.")
