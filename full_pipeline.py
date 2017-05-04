@@ -359,20 +359,28 @@ def trial_swaps(actual_points, data_points, actual_labels, data_labels, dist_acc
 
 def deanonymize(actual_points, data_points):
     min_coordinates = []
-    min_score = []
-    min_score_position = []
-    raw_deanonymized_misplacement = []
+    min_scores = []
+    min_score_positions = []
+    raw_deanonymized_misplacements = []
     for actual_trial, data_trial in zip(actual_points, data_points):
-        perms = list(itertools.permutations(data_trial))
-        scores = [minimization_function(x, actual_trial) for x in perms]
-        min_score_pos = scores.index(min(scores))
-        min_score_position.append(min_score_pos)
-        min_permutation = perms[min_score_pos]
-        min_s = min(scores)
-        min_score.append(min_s)
+        min_score = inf
+        min_score_idx = -1
+        min_permutation = data_trial
+        idx = 0
+        for perm in itertools.permutations(data_trial):
+            score = minimization_function(perm, actual_trial)
+            if score < min_score:
+                min_score = score
+                min_score_idx = idx
+                min_permutation = perm
+                if score == 0:
+                    break
+            idx += 1
+        min_score_positions.append(min_score_idx)
+        min_scores.append(min_score)
         min_coordinates.append(min_permutation)
-        raw_deanonymized_misplacement.append(min_s / len(actual_trial))
-    return min_coordinates, min_score, min_score_position, raw_deanonymized_misplacement
+        raw_deanonymized_misplacements.append(min_score / len(actual_trial))
+    return min_coordinates, min_scores, min_score_positions, raw_deanonymized_misplacements
 
 
 # animation length in seconds
@@ -444,7 +452,11 @@ def get_coordinates_from_file(path, expected_shape):
         coordinates = zip(*([float(element.strip()) for element in line.strip().split('\t')] for line in tsv if line.strip() is not ''))
         coordinates = transpose(coordinates)
     if expected_shape is not None:
-        coordinates = reshape(array(coordinates), expected_shape)
+        try:
+            coordinates = reshape(array(coordinates), expected_shape)
+        except ValueError:
+            logging.error("Data found in path ({0}) cannot be transformed into expected shape ({1}).".format(path, expected_shape))
+            exit()
         assert array(coordinates).shape == expected_shape, \
             "shape {0} does not equal expectation {1}".format(array(coordinates).shape, expected_shape)
     return coordinates
