@@ -141,6 +141,7 @@ $RECYCLE.BIN/
 # Data Files
 *.csv
 *.xlsx
+saved_data/
 
 # PyCharm Files
 .idea/dictionaries

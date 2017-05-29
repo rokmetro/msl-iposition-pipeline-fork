@@ -160,9 +160,11 @@ def edge_distortion(actual_points, data_points):
     for idx in range(0, len(actual_points)):
         for idx2 in range(idx + 1, len(actual_points)):
             comparisons += 1
-            edge_distortions_count += (list(array(map(sign, array(actual_points[idx]) - array(actual_points[idx2]))) ==
-                                            array(map(sign, array(data_points[idx]) - array(data_points[idx2]))))) \
-                .count(False)
+            actual_signs = array(list((map(sign, array(actual_points[idx]) - array(actual_points[idx2])))))
+            data_signs = array(list(map(sign, array(data_points[idx]) - array(data_points[idx2]))))
+            equality_list = list(actual_signs == data_signs)
+            edge_distortions_count += equality_list.count(False)
+
     distortions = float(edge_distortions_count) / float(comparisons)
 
     return distortions
@@ -215,7 +217,7 @@ def trial_geometric_transform(actual_points, data_points, dist_accuracy_map, dis
             # Compute the rotation factor
             theta_matrix = [map(arccos, x) for x in rotation_matrix]
             theta_matrix = [map(abs, x) for x in theta_matrix]
-            rotation_theta = mean(theta_matrix)  # Rotation angle
+            rotation_theta = mean([list(x) for x in theta_matrix])  # Rotation angle
             translation_magnitude = linalg.norm(translation)  # Translation magnitude (direction is in 'translation')
             # Apply the linear transformation to the data coordinates to cancel out global errors if possible
             transformed_coordinates = [(array(x) + array(translation)).dot(rotation_matrix) * scaling
@@ -590,7 +592,7 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
          cycle_swap_expected_distances,
          partial_cycle_swap_distances,
          partial_cycle_swap_expected_distances,
-         [map(list, x) for x in components]
+         [list(map(list, x)) for x in components]
          ])
 
     # If requested, visualize the data
@@ -700,6 +702,8 @@ if __name__ == "__main__":
     data119 = get_coordinates_from_file(root_dir + r"119\119position_data_coordinates.txt", (15, 5, 2))
     data120 = get_coordinates_from_file(root_dir + r"120\120position_data_coordinates.txt", (15, 5, 2))
 
+    print(actual[0])
+    print(data101[0])
     # Cycle Agree
     full_pipeline(actual[10], data101[10], visualize=True, debug_labels=["101", 10])
     full_pipeline(actual[12], data104[12], visualize=True, debug_labels=["104", 12])
