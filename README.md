@@ -1,52 +1,36 @@
 # Memory Systems Lab iPosition Data Pipeline
 
-This data pipeline is meant for the processing of iPosition data. It will output all the pre-2017 metrics as well as the newer metrics.
+This data pipeline is meant for the processing of iPosition data. It will output all the pre-2017 metrics as well as the newer metrics. It has a large number of options which will be enumerated in this readme. It can really run on any spatial/temporal reconstruction data whose outputs are formatted properly (TSV).
 
 # Install
 
-## Windows
+Install [Git](https://git-scm.com/downloads) if you don't already have it.
 
-[Download](https://github.com/kevroy314/msl-iposition-pipeline/archive/master.zip) the repository directly or clone via git:
+Install [Anaconda Python](https://www.continuum.io/downloads) if you don't already have it.
 
-```
-git clone https://github.com/kevroy314/msl-iposition-pipeline/
-```
-
-Run **First Time Setup (Windows).bat**
-
-To run, run either:
-Run **Batch (Collapsed Trials).bat**
-Run **Batch (Non-Collapsed Trials).bat**
-
-Select a folder then hit OK.
-
-## MAC
-
-Run FirstTimeSetupMAC.sh
-
-In the terminal in the main directory, run either:
+In a command prompt/terminal, navigate to/create an **empty directory**, then run:
 
 ```
-python batch_pipeline.py --collapse_trials=1
-```
-
-```
-python batch_pipeline.py --collapse_trials=0
+conda create -n iposition python=2.7 scipy --yes
+activate iposition
+git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
+pip install .
 ```
 
 # Updating
 
-To update the script to the latest version,
+To update the script to the latest version navigate to/create an **empty directory**, then run:
 
-## Windows
+```
+activate iposition
+git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
+pip install --upgrade .
+```
 
-Run **Update.bat**
+# Usage
 
-## MAC
+Note: this section is incomplete and will be updated as new features are added.
 
-Run **UpdateMAC.sh**
-
-# Advanced Usage
 ## Command Line Options
 
 The easiest way to run the program is in batch mode via the command line. Running
