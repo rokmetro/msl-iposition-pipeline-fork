@@ -1,5 +1,4 @@
 import argparse
-import itertools
 import logging
 # noinspection PyUnresolvedReferences
 import sys
@@ -7,20 +6,20 @@ import sys
 import os
 # noinspection PyUnresolvedReferences
 import warnings
-
-import matplotlib.animation as animation
-import matplotlib.pyplot as plt
+import itertools
 import networkx as nx
 from enum import Enum
-from numpy import *
+import numpy as np
 from scipy.spatial import distance
 
 from similarity_transform import similarity_transform
+import io
+import tools
+import visualization as vis
 
 
 # TODO: Documentation needs an audit/overhaul
 # TODO: Addition transformation/de-anonymization methods(see https://en.wikipedia.org/wiki/Point_set_registration)
-# TODO: Debug geometric transform issue causing it to often produce a transform which lowers accuracy (~36% of the time)
 # TODO: Additional testing needed to confirm that trial_by_trial_accuracy didn't break anything
 
 class PipelineFlags(Enum):
@@ -29,6 +28,7 @@ class PipelineFlags(Enum):
     Deanonymize = 1
     GlobalTransformation = 2
     All = 3
+    value = 0
 
     def __or__(self, other):
         return PipelineFlags(self.value | other.value)
@@ -37,41 +37,14 @@ class PipelineFlags(Enum):
         return (self.value & other.value) != 0
 
 
-# This function is for testing. It generates a set of "correct" and "incorrect" points such that the correct points are
-# randomly placed between (0,0) and (1,1) in R2. Then it generates "incorrect" points which are offset randomly up
-# to 10% in the positive direction, shuffled, and where one point is completely random.
-def generate_random_test_points(number_of_points=5, dimension=2, shuffle_points=True, noise=(1.0 / 20.0),
-                                num_rerandomed_points=1):
-    correct_points = [[random.random() for _ in range(dimension)] for _ in range(0, number_of_points)]
-    offsets = [[(random.random()) * noise for _ in range(dimension)] for _ in range(0, number_of_points)]
-    input_points = array(correct_points) + array(offsets)
-
-    if shuffle_points:
-        perms = list(itertools.permutations(input_points))
-        input_points = perms[random.randint(0, len(perms) - 1)]
-    for i in range(0, num_rerandomed_points):
-        indicies = random.sample(range(0, len(input_points)))
-        for index in indicies:
-            for idx in range(len(input_points[index])):
-                input_points[index][idx] = random.random()
-
-    return correct_points, input_points
-
-
 # This function defines the misplacement metric which is used for minimization (in de-anonymization).
 # It is also used to calculate the original misplacement metric.
 def minimization_function(list1, list2):
-    return sum(diag(distance.cdist(list1, list2)))
+    return sum(np.diag(distance.cdist(list1, list2)))
 
 
-# This function performs simple vector linear interpolation on two equal length number lists
-def lerp(start, finish, t):
-    assert len(start) == len(finish), "lerp requires equal length lists as inputs."
-    assert 0.0 <= t <= 1.0, "lerp t must be between 0.0 and 1.0 inclusively."
-    return [(bx - ax) * t + ax for ax, bx in zip(start, finish)]
-
-
-def accuracy(actual_points, data_points, z_value=1.96, output_threshold=False, trial_by_trial_accuracy=True, manual_threshold=None):
+def accuracy(actual_points, data_points, z_value=1.96,
+             output_threshold=False, trial_by_trial_accuracy=True, manual_threshold=None):
     if z_value is None:
         logging.error('a z_value was not found for accuracy, using z=1.96')
         z_value = 1.96
@@ -80,40 +53,41 @@ def accuracy(actual_points, data_points, z_value=1.96, output_threshold=False, t
         exclusion_thresholds = []
         for actual_trial, data_trial in zip(actual_points, data_points):
             if manual_threshold is not None:
-                dists = diag(distance.cdist(data_trial, actual_trial))
-                dist_accuracy_map.append([x < manual_threshold for x in dists])
+                dists = np.diag(distance.cdist(data_trial, actual_trial))
+                dist_accuracy_map.append([xd < manual_threshold for xd in dists])
                 exclusion_thresholds.append(manual_threshold)
             else:
-                dists = diag(distance.cdist(data_trial, actual_trial))
-                mu = mean(dists)
-                sd = std(dists)
-                ste = sd / sqrt(len(dists))
+                dists = np.diag(distance.cdist(data_trial, actual_trial))
+                mu = np.mean(dists)
+                sd = np.std(dists)
+                ste = sd / np.sqrt(len(dists))
                 ci = ste * z_value
                 exclusion_threshold = ci + mu
                 exclusion_thresholds.append(exclusion_threshold)
-                dist_accuracy_map.append([x < exclusion_threshold for x in dists])
+                dist_accuracy_map.append([xd < exclusion_threshold for xd in dists])
     else:
         dist_accuracy_map = []
         if manual_threshold is not None:
             for actual_trial, data_trial in zip(actual_points, data_points):
-                dists = diag(distance.cdist(data_trial, actual_trial))
-                dist_accuracy_map.append([x < manual_threshold for x in dists])
+                dists = np.diag(distance.cdist(data_trial, actual_trial))
+                dist_accuracy_map.append([xd < manual_threshold for xd in dists])
             exclusion_thresholds = [manual_threshold] * len(actual_points)
         else:
-            collapsed_actual_points = array(actual_points).reshape(-1, len(actual_points[0][0]))
-            data_points = [list(x) for x in data_points]
-            collapsed_data_points = array(data_points).reshape(-1, len(data_points[0][0]))
-            dists = diag(distance.cdist(collapsed_actual_points, collapsed_data_points))
-            mu = mean(dists)
-            sd = std(dists)
-            ste = sd / sqrt(len(dists))
+            collapsed_actual_points = np.array(actual_points).reshape(-1, len(actual_points[0][0]))
+            data_points = [list(xd) for xd in data_points]
+            collapsed_data_points = np.array(data_points).reshape(-1, len(data_points[0][0]))
+            dists = np.diag(distance.cdist(collapsed_actual_points, collapsed_data_points))
+            mu = np.mean(dists)
+            sd = np.std(dists)
+            ste = sd / np.sqrt(len(dists))
             ci = ste * z_value
             exclusion_threshold = ci + mu
             exclusion_thresholds = [exclusion_threshold] * len(actual_points)
 
             for actual_trial, data_trial in zip(actual_points, data_points):
-                dists = diag(distance.cdist(data_trial, actual_trial))
-                dist_accuracy_map.append([x < exclusion_threshold for x in dists])
+                # noinspection PyTypeChecker
+                dists = np.diag(distance.cdist(data_trial, actual_trial))
+                dist_accuracy_map.append([xd < exclusion_threshold for xd in dists])
     if output_threshold:
         return dist_accuracy_map, exclusion_thresholds
     else:
@@ -131,8 +105,8 @@ def axis_swap(actual_points, data_points, actual_labels=None, data_labels=None, 
     for idx in range(0, len(actual_points)):
         for idx2 in range(idx + 1, len(actual_points)):
             comparisons += 1
-            if all(array(map(sign, array(actual_points[idx]) - array(actual_points[idx2]))) !=
-                           array(map(sign, array(data_points[idx]) - array(data_points[idx2])))):
+            if all(np.array(map(np.sign, np.array(actual_points[idx]) - np.array(actual_points[idx2]))) !=
+                   np.array(map(np.sign, np.array(data_points[idx]) - np.array(data_points[idx2])))):
                 axis_swaps += 1
                 axis_swap_pairs.append([actual_labels[idx], data_labels[idx2]])
     axis_swaps = float(axis_swaps) / float(comparisons)
@@ -149,7 +123,8 @@ def edge_resizing(actual_points, data_points):
         for idx2 in range(idx1, len(actual_points)):
             actual_edges.append(distance.euclidean(actual_points[idx1], actual_points[idx2]))
             data_edges.append(distance.euclidean(data_points[idx1], data_points[idx2]))
-    resizing = mean(abs(array(actual_edges) - array(data_edges)))
+    # noinspection PyTypeChecker
+    resizing = np.mean(abs(np.array(actual_edges) - np.array(data_edges)))
 
     return resizing
 
@@ -160,8 +135,8 @@ def edge_distortion(actual_points, data_points):
     for idx in range(0, len(actual_points)):
         for idx2 in range(idx + 1, len(actual_points)):
             comparisons += 1
-            actual_signs = array(list((map(sign, array(actual_points[idx]) - array(actual_points[idx2])))))
-            data_signs = array(list(map(sign, array(data_points[idx]) - array(data_points[idx2]))))
+            actual_signs = np.array(list((map(np.sign, np.array(actual_points[idx]) - np.array(actual_points[idx2])))))
+            data_signs = np.array(list(map(np.sign, np.array(data_points[idx]) - np.array(data_points[idx2]))))
             equality_list = list(actual_signs == data_signs)
             edge_distortions_count += equality_list.count(False)
 
@@ -170,10 +145,7 @@ def edge_distortion(actual_points, data_points):
     return distortions
 
 
-def mask_points(points, keep_indicies):
-    return array([points[idx] for idx in keep_indicies])
-
-
+# noinspection PyDefaultArgument
 def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=[''], trial_by_trial_accuracy=True):
     # Determine if the points meet the specified accuracy threshold
     dist_accuracy_map, dist_threshold = accuracy(actual_points, data_points,
@@ -181,16 +153,18 @@ def geometric_transform(actual_points, data_points, z_value=1.96, debug_labels=[
                                                  output_threshold=True, trial_by_trial_accuracy=trial_by_trial_accuracy)
     result = []
     for idx, (a, d, dam, dt) in enumerate(zip(actual_points, data_points, dist_accuracy_map, dist_threshold)):
+        # noinspection PyTypeChecker
         result.append(trial_geometric_transform(a, d, dam, dt, debug_labels=debug_labels + [idx]))
 
-    return transpose(result)
+    return np.transpose(result)
 
 
+# noinspection PyDefaultArgument
 def trial_geometric_transform(actual_points, data_points, dist_accuracy_map, dist_threshold, debug_labels=['']):
     # Determine which points should be included in the transformation step and generate the point sets
     valid_points_indicies = [x for (x, y) in zip(range(len(actual_points)), dist_accuracy_map) if y]
-    from_points = mask_points(data_points, valid_points_indicies)
-    to_points = mask_points(actual_points, valid_points_indicies)
+    from_points = tools.mask_points(data_points, valid_points_indicies)
+    to_points = tools.mask_points(actual_points, valid_points_indicies)
 
     # noinspection PyTypeChecker
     # Number of "inaccurate" points after deanonymizing is number of False in this list
@@ -198,12 +172,12 @@ def trial_geometric_transform(actual_points, data_points, dist_accuracy_map, dis
     # noinspection PyTypeChecker
     num_geometric_transform_points_used = dist_accuracy_map.count(True)
 
-    translation_magnitude = nan
-    rotation_theta = nan
-    scaling = nan
+    translation_magnitude = np.nan
+    rotation_theta = np.nan
+    scaling = np.nan
     transformation_auto_exclusion = True
-    translation = [nan, nan]
-    transformed_coordinates = array(data_points, copy=True)
+    translation = [np.nan, np.nan]
+    transformed_coordinates = np.array(data_points, copy=True)
     # Confirm there are enough points to perform the transformation
     # (it is meaningless to perform with 0 or 1 points)
     if num_geometric_transform_points_used <= 1:
@@ -215,46 +189,47 @@ def trial_geometric_transform(actual_points, data_points, dist_accuracy_map, dis
             rotation_matrix, scaling, translation = similarity_transform(from_points, to_points)
             translation = list(translation)
             # Compute the rotation factor
-            theta_matrix = [map(arccos, x) for x in rotation_matrix]
+            theta_matrix = [map(np.arccos, x) for x in rotation_matrix]
             theta_matrix = [map(abs, x) for x in theta_matrix]
-            rotation_theta = mean([list(x) for x in theta_matrix])  # Rotation angle
-            translation_magnitude = linalg.norm(translation)  # Translation magnitude (direction is in 'translation')
+            rotation_theta = np.mean([list(x) for x in theta_matrix])  # Rotation angle
+            translation_magnitude = np.linalg.norm(translation)  # Translation magnitude (direction is in 'translation')
             # Apply the linear transformation to the data coordinates to cancel out global errors if possible
-            transformed_coordinates = [(array(x) + array(translation)).dot(rotation_matrix) * scaling
+            transformed_coordinates = [(np.array(x) + np.array(translation)).dot(rotation_matrix) * scaling
                                        for x in data_points]
             transformation_auto_exclusion = False
             new_error = minimization_function(transformed_coordinates, actual_points)
             old_error = minimization_function(data_points, actual_points)
             if new_error > old_error:  # Exclude rotation from transform
-                rotation_theta = nan
+                rotation_theta = np.nan
                 logging.info(str(debug_labels) + " : " +
                              ('The transformation function did not reduce the error, removing rotation and retying' +
                               ' (old_error={0}, new_error={1}).').format(old_error,
                                                                          new_error))
-                transformed_coordinates = [(array(x) + array(translation)) * scaling for x in data_points]
+                transformed_coordinates = [(np.array(x) + np.array(translation)) * scaling for x in data_points]
                 new_error = minimization_function(transformed_coordinates, actual_points)
                 old_error = minimization_function(data_points, actual_points)
                 if new_error > old_error:  # Completely exclude transform
                     transformation_auto_exclusion = True
-                    rotation_theta = nan
-                    scaling = nan
-                    translation_magnitude = nan
-                    translation = [nan, nan]
-                    transformed_coordinates = array(data_points, copy=True)
+                    rotation_theta = np.nan
+                    scaling = np.nan
+                    translation_magnitude = np.nan
+                    translation = [np.nan, np.nan]
+                    transformed_coordinates = np.array(data_points, copy=True)
                     logging.warning(str(debug_labels) + " : " +
                                     ('The transformation function did not reduce the error, removing transform ' +
                                      '(old_error={0}, new_error={1}).').format(old_error,
                                                                                new_error))
 
         except ValueError:
-            transformed_coordinates = array(data_points, copy=True)
+            transformed_coordinates = np.array(data_points, copy=True)
             logging.error(('Finding transformation failed , ' +
                            'from_points={0}, to_points={1}.').format(from_points, to_points))
     return (translation, translation_magnitude, scaling, rotation_theta, transformation_auto_exclusion,
             num_geometric_transform_points_excluded, transformed_coordinates, dist_threshold)
 
 
-def swaps(actual_points, data_points, actual_labels, data_labels, z_value=1.96, trial_by_trial_accuracy=True, manual_threshold=None):
+def swaps(actual_points, data_points, actual_labels, data_labels, z_value=1.96,
+          trial_by_trial_accuracy=True, manual_threshold=None):
     dist_accuracy_map, dist_threshold = accuracy(actual_points, data_points,
                                                  z_value=z_value,
                                                  output_threshold=True, trial_by_trial_accuracy=trial_by_trial_accuracy,
@@ -264,15 +239,15 @@ def swaps(actual_points, data_points, actual_labels, data_labels, z_value=1.96, 
                                      dist_accuracy_map, dist_threshold):
         result.append(trial_swaps(a, d, al, dl, dam, dt))
 
-    return transpose(result)
+    return np.transpose(result)
 
 
 def trial_swaps(actual_points, data_points, actual_labels, data_labels, dist_accuracy_map, dist_threshold):
-    assert unique(actual_labels).shape == array(actual_labels).shape, \
+    assert np.unique(actual_labels).shape == np.array(actual_labels).shape, \
         "swaps actual_labels are not unique: {0}".format(actual_labels)
-    assert unique(data_labels).shape == array(data_labels).shape, \
+    assert np.unique(data_labels).shape == np.array(data_labels).shape, \
         "swaps data_labelsare not unique: {0}".format(data_labels)
-    assert all(sort(actual_labels) == sort(data_labels)), \
+    assert all(np.sort(actual_labels) == np.sort(data_labels)), \
         "swaps actual_labels and data_labels are not unequal: actual, {0}; data, {1}".format(actual_labels, data_labels)
 
     accurate_points_labels = [label for (label, is_accurate) in zip(actual_labels, dist_accuracy_map) if is_accurate]
@@ -297,6 +272,7 @@ def trial_swaps(actual_points, data_points, actual_labels, data_labels, dist_acc
     partial_cycle_swap_distances = []
     partial_cycle_swap_expected_distances = []
     for component in components:
+        # noinspection PyTypeChecker
         component = list(component)
         if len(component) == 1:
             if all([node in accurate_points_labels for node in component]):
@@ -331,12 +307,12 @@ def trial_swaps(actual_points, data_points, actual_labels, data_labels, dist_acc
                           swap_data_idxs_combinations]
             if all([node in accurate_points_labels for node in component]):
                 cycle_swaps += 1
-                cycle_swap_distances.append(mean(dists_data))
-                cycle_swap_expected_distances.append(mean(dists_actual))
+                cycle_swap_distances.append(np.mean(dists_data))
+                cycle_swap_expected_distances.append(np.mean(dists_actual))
             else:
                 partial_cycle_swaps += 1
-                partial_cycle_swap_distances.append(mean(dists_data))
-                partial_cycle_swap_expected_distances.append(mean(dists_actual))
+                partial_cycle_swap_distances.append(np.mean(dists_data))
+                partial_cycle_swap_expected_distances.append(np.mean(dists_actual))
 
     misassignment = 0
     accurate_misassignment = 0
@@ -353,10 +329,10 @@ def trial_swaps(actual_points, data_points, actual_labels, data_labels, dist_acc
         warnings.simplefilter("ignore", category=RuntimeWarning)
         return (accurate_placements, inaccurate_placements, true_swaps, partial_swaps, cycle_swaps, partial_cycle_swaps,
                 components, misassignment, accurate_misassignment, inaccurate_misassignment, dist_threshold,
-                nanmean(true_swap_distances), nanmean(true_swap_expected_distances),
-                nanmean(partial_swap_distances), nanmean(partial_swap_expected_distances),
-                nanmean(cycle_swap_distances), nanmean(cycle_swap_expected_distances),
-                nanmean(partial_cycle_swap_distances), nanmean(partial_cycle_swap_expected_distances))
+                np.nanmean(true_swap_distances), np.nanmean(true_swap_expected_distances),
+                np.nanmean(partial_swap_distances), np.nanmean(partial_swap_expected_distances),
+                np.nanmean(cycle_swap_distances), np.nanmean(cycle_swap_expected_distances),
+                np.nanmean(partial_cycle_swap_distances), np.nanmean(partial_cycle_swap_expected_distances))
 
 
 def deanonymize(actual_points, data_points):
@@ -365,7 +341,7 @@ def deanonymize(actual_points, data_points):
     min_score_positions = []
     raw_deanonymized_misplacements = []
     for actual_trial, data_trial in zip(actual_points, data_points):
-        min_score = inf
+        min_score = np.inf
         min_score_idx = -1
         min_permutation = data_trial
         idx = 0
@@ -385,101 +361,18 @@ def deanonymize(actual_points, data_points):
     return min_coordinates, min_scores, min_score_positions, raw_deanonymized_misplacements
 
 
-# animation length in seconds
-# animation ticks in frames
-def visualization(actual_points, data_points, min_points, transformed_points, output_list,
-                  z_value=1.96,
-                  animation_duration=2, animation_ticks=20, debug_labels=['']):
-    for l, o in zip(get_header_labels(), output_list):
-        print(l + ": " + str(o))
-
-    if len(actual_points[0]) != 2:
-        logging.error("the visualization method expects 2D points, found {0}D".format(len(actual_points[0])))
-        return
-
-    # Generate a figure with 3 scatter plots (actual points, data points, and transformed points)
-    fig, ax = plt.subplots()
-    plt.title(str(debug_labels))
-    ax.set_aspect('equal')
-    labels = range(len(actual_points))
-    x = [float(v) for v in list(transpose(transformed_points)[0])]
-    y = [float(v) for v in list(transpose(transformed_points)[1])]
-    ax.scatter(x, y, c='b', alpha=0.5)
-    scat = ax.scatter(x, y, c='b', animated=True)
-    ax.scatter(transpose(actual_points)[0], transpose(actual_points)[1], c='g', s=50)
-    ax.scatter(transpose(data_points)[0], transpose(data_points)[1], c='r', s=50)
-    # Label the stationary points (actual and data)
-    for idx, xy in enumerate(zip(transpose(actual_points)[0], transpose(actual_points)[1])):
-        ax.annotate(labels[idx], xy=xy, textcoords='data', fontsize=20)
-    for idx, xy in enumerate(zip(transpose(data_points)[0], transpose(data_points)[1])):
-        ax.annotate(labels[idx], xy=xy, textcoords='data', fontsize=20)
-    # Generate a set of interpolated points to animate the transformation
-    lerp_data = [[lerp(p1, p2, t) for p1, p2 in zip(min_points, transformed_points)] for t in
-                 linspace(0.0, 1.0, animation_ticks)]
-
-    accuracies, threshold = accuracy([actual_points], [transformed_points],
-                                     z_value=z_value, output_threshold=True, trial_by_trial_accuracy=True)
-    accuracies = accuracies[0]
-    threshold = threshold[0]
-    for acc, x, y in zip(accuracies, transpose(transformed_points)[0], transpose(transformed_points)[1]):
-        color = 'r'
-        if acc:
-            color = 'g'
-        ax.add_patch(plt.Circle((x, y), threshold, alpha=0.3, color=color))
-
-    accuracies, threshold = accuracy([actual_points], [min_points],
-                                     z_value=z_value, output_threshold=True, trial_by_trial_accuracy=True)
-    accuracies = accuracies[0]
-    threshold = threshold[0]
-
-    for acc, x, y in zip(accuracies, transpose(min_points)[0], transpose(min_points)[1]):
-        ax.add_patch(plt.Circle((x, y), threshold, alpha=0.1, color='b'))
-
-    # An update function which will set the animated scatter plot to the next interpolated points
-    def update(i):
-        scat.set_offsets(lerp_data[i % animation_ticks])
-        return scat,
-
-    # Begin the animation/plot
-    # noinspection PyUnusedLocal
-    anim = animation.FuncAnimation(fig, update, interval=(float(animation_duration) / float(animation_ticks)) * 1000,
-                                   blit=True)
-    plt.show()
-
-
-# This function reads a data file and shapes the data into the appropriate expected shape (usually (Nt, Ni, 2) where
-# Nt is the number of trials (rows) and Ni is the number of items (columns / 2), and 2 is the number of dimensions.
-def get_coordinates_from_file(path, expected_shape):
-    with open(path, 'rU') as tsv:
-        coordinates = zip(*([float(element.strip()) for element in line.strip().split('\t')] for line in tsv if line.strip() is not ''))
-        coordinates = transpose(coordinates)
-    if expected_shape is not None:
-        try:
-            coordinates = reshape(array(coordinates), expected_shape)
-        except ValueError:
-            logging.error("Data found in path ({0}) cannot be transformed into expected shape ({1}).".format(path, expected_shape))
-            exit()
-        assert array(coordinates).shape == expected_shape, \
-            "shape {0} does not equal expectation {1}".format(array(coordinates).shape, expected_shape)
-    return coordinates
-
-
-# This function grabs the first 3 characters of the filename which are assumed to be the participant id
-def get_id_from_file_prefix(path, prefix_length=3):
-    return os.path.basename(path)[0:prefix_length]
-
-
 # This function is the main pipeline for the new processing methods. When run alone, it just returns the values
 # for a single trial. With visualize=True it will display the results. debug_labels is used to help specify
 # which participant/trial is being observed when running from an external process (it is appended to the debug info).
 # The coordinates are expected to be equal in length of the for (Nt, Ni, 2) where Nt is the number of trials and Ni is
 # the number of items.
+# noinspection PyDefaultArgument
 def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_labels=[''],
                   accuracy_z_value=1.96, flags=PipelineFlags.All, trial_by_trial_accuracy=True, manual_threshold=None):
     # If only a single trial worth of points is input, flex the data so it's the right dimension
-    if len(array(actual_coordinates).shape) == 2:
+    if len(np.array(actual_coordinates).shape) == 2:
         actual_coordinates = [actual_coordinates]
-    if len(array(data_coordinates).shape) == 2:
+    if len(np.array(data_coordinates).shape) == 2:
         data_coordinates = [data_coordinates]
 
     num_trials = len(actual_coordinates)
@@ -515,10 +408,10 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
                                                        output_threshold=True,
                                                        trial_by_trial_accuracy=trial_by_trial_accuracy)
     else:
-        min_coordinates = array(data_coordinates, copy=True)
-        deanon_threshold = [nan] * num_trials
+        min_coordinates = np.array(data_coordinates, copy=True)
+        deanon_threshold = [np.nan] * num_trials
         deanon_accuracies = [] * num_trials
-        raw_deanonymized_misplacement = [nan] * num_trials
+        raw_deanonymized_misplacement = [np.nan] * num_trials
         min_score_position = [0] * num_trials
 
     if flags == PipelineFlags.GlobalTransformation:
@@ -528,14 +421,14 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
             geometric_transform(actual_coordinates, min_coordinates, z_value=accuracy_z_value,
                                 debug_labels=debug_labels, trial_by_trial_accuracy=trial_by_trial_accuracy)
     else:
-        translation = [[nan, nan]] * num_trials
-        transformed_coordinates = array(min_coordinates, copy=True)
-        transformation_auto_exclusion = [nan] * num_trials
-        num_geometric_transform_points_excluded = [nan] * num_trials
-        rotation_theta = [nan] * num_trials
-        scaling = [nan] * num_trials
-        translation_magnitude = [nan] * num_trials
-        geo_dist_threshold = [nan] * num_trials
+        translation = [[np.nan, np.nan]] * num_trials
+        transformed_coordinates = np.array(min_coordinates, copy=True)
+        transformation_auto_exclusion = [np.nan] * num_trials
+        num_geometric_transform_points_excluded = [np.nan] * num_trials
+        rotation_theta = [np.nan] * num_trials
+        scaling = [np.nan] * num_trials
+        translation_magnitude = [np.nan] * num_trials
+        geo_dist_threshold = [np.nan] * num_trials
 
     # Determine if the points meet the specified accuracy threshold
     # noinspection PyTypeChecker
@@ -553,7 +446,7 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
               z_value=accuracy_z_value, trial_by_trial_accuracy=trial_by_trial_accuracy,
               manual_threshold=manual_threshold)
 
-    output = transpose(
+    output = np.transpose(
         [straight_misplacements,
          axis_swaps,
          edge_resize,
@@ -599,8 +492,9 @@ def full_pipeline(actual_coordinates, data_coordinates, visualize=False, debug_l
     if visualize:
         for idx, (actual_trial, data_trial, min_trial, transformed_trial, output_trial) in \
                 enumerate(zip(actual_coordinates, data_coordinates, min_coordinates, transformed_coordinates, output)):
-            visualization(actual_trial, data_trial, min_trial, transformed_trial, output_trial,
-                          z_value=accuracy_z_value, debug_labels=debug_labels + [idx])
+            # noinspection PyTypeChecker
+            vis.visualization(actual_trial, data_trial, min_trial, transformed_trial, output_trial,
+                              z_value=accuracy_z_value, debug_labels=debug_labels + [idx])
 
     return output
 
@@ -631,20 +525,20 @@ def collapse_unique_components(components_list):
 
 # (lambda x: list(array(x).flatten())) for append
 def get_aggregation_functions():
-    return [nanmean, nanmean, nanmean, nanmean,  # 0
-            collapse_unique_components, nanmean, nanmean,  # 1
-            nanmean, nanmean,  # 2
-            nanmean, nanmean,  # 3
-            nanmean, nansum,  # 4
-            nansum, nanmean, nanmean,  # 5
-            nanmean,  # 6
-            (lambda xs: [nanmean(x) for x in transpose(xs)]), nanmean,  # Mean of vectors                      # 7
-            nanmean, nanmean, nanmean, nanmean,  # 8
-            nanmean, nanmean, nanmean, nanmean, nanmean,  # 9
-            nanmean, nanmean,  # 10
-            nanmean, nanmean, nanmean,  # 11
-            nanmean, nanmean, nanmean,  # 12
-            nanmean, nanmean,  # 13
+    return [np.nanmean, np.nanmean, np.nanmean, np.nanmean,  # 0
+            collapse_unique_components, np.nanmean, np.nanmean,  # 1
+            np.nanmean, np.nanmean,  # 2
+            np.nanmean, np.nanmean,  # 3
+            np.nanmean, np.nansum,  # 4
+            np.nansum, np.nanmean, np.nanmean,  # 5
+            np.nanmean,  # 6
+            (lambda xs: [np.nanmean(x) for x in np.transpose(xs)]), np.nanmean,  # Mean of vectors # 7
+            np.nanmean, np.nanmean, np.nanmean, np.nanmean,  # 8
+            np.nanmean, np.nanmean, np.nanmean, np.nanmean, np.nanmean,  # 9
+            np.nanmean, np.nanmean,  # 10
+            np.nanmean, np.nanmean, np.nanmean,  # 11
+            np.nanmean, np.nanmean, np.nanmean,  # 12
+            np.nanmean, np.nanmean,  # 13
             collapse_unique_components]  # 14
 
 
@@ -674,12 +568,13 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         args = parser.parse_args()
-        actual = get_coordinates_from_file(args.actual_coordinates, (args.num_trials, args.num_items, args.dimension))
-        data = get_coordinates_from_file(args.data_coordinates, (args.num_trials, args.num_items, args.dimension))
+        actual = io.get_coordinates_from_file(args.actual_coordinates,
+                                              (args.num_trials, args.num_items, args.dimension))
+        data = io.get_coordinates_from_file(args.data_coordinates, (args.num_trials, args.num_items, args.dimension))
         full_pipeline(actual[args.line_number], data[args.line_number],
                       accuracy_z_value=args.accuracy_z_value,
                       flags=PipelineFlags(args.pipeline_mode), visualize=True,
-                      debug_labels=[get_id_from_file_prefix(args.data_coordinates), args.line_number])
+                      debug_labels=[io.get_id_from_file_prefix(args.data_coordinates), args.line_number])
         exit()
 
     logging.info("No arguments found - assuming running in test mode.")
@@ -691,16 +586,16 @@ if __name__ == "__main__":
     exit()
     '''
     root_dir = r"Z:\Kevin\iPosition\Hillary\MRE\\"
-    actual = get_coordinates_from_file(root_dir + r"actual_coordinates.txt", (15, 5, 2))
-    data101 = get_coordinates_from_file(root_dir + r"101\101position_data_coordinates.txt", (15, 5, 2))
-    data104 = get_coordinates_from_file(root_dir + r"104\104position_data_coordinates.txt", (15, 5, 2))
-    data105 = get_coordinates_from_file(root_dir + r"105\105position_data_coordinates.txt", (15, 5, 2))
-    data112 = get_coordinates_from_file(root_dir + r"112\112position_data_coordinates.txt", (15, 5, 2))
-    data113 = get_coordinates_from_file(root_dir + r"113\113position_data_coordinates.txt", (15, 5, 2))
-    data114 = get_coordinates_from_file(root_dir + r"114\114position_data_coordinates.txt", (15, 5, 2))
-    data118 = get_coordinates_from_file(root_dir + r"118\118position_data_coordinates.txt", (15, 5, 2))
-    data119 = get_coordinates_from_file(root_dir + r"119\119position_data_coordinates.txt", (15, 5, 2))
-    data120 = get_coordinates_from_file(root_dir + r"120\120position_data_coordinates.txt", (15, 5, 2))
+    actual = io.get_coordinates_from_file(root_dir + r"actual_coordinates.txt", (15, 5, 2))
+    data101 = io.get_coordinates_from_file(root_dir + r"101\101position_data_coordinates.txt", (15, 5, 2))
+    data104 = io.get_coordinates_from_file(root_dir + r"104\104position_data_coordinates.txt", (15, 5, 2))
+    data105 = io.get_coordinates_from_file(root_dir + r"105\105position_data_coordinates.txt", (15, 5, 2))
+    data112 = io.get_coordinates_from_file(root_dir + r"112\112position_data_coordinates.txt", (15, 5, 2))
+    data113 = io.get_coordinates_from_file(root_dir + r"113\113position_data_coordinates.txt", (15, 5, 2))
+    data114 = io.get_coordinates_from_file(root_dir + r"114\114position_data_coordinates.txt", (15, 5, 2))
+    data118 = io.get_coordinates_from_file(root_dir + r"118\118position_data_coordinates.txt", (15, 5, 2))
+    data119 = io.get_coordinates_from_file(root_dir + r"119\119position_data_coordinates.txt", (15, 5, 2))
+    data120 = io.get_coordinates_from_file(root_dir + r"120\120position_data_coordinates.txt", (15, 5, 2))
 
     print(actual[0])
     print(data101[0])

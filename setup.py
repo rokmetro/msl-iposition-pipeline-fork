@@ -23,7 +23,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='msl_iposition_pipeline',
+    name='msl-iposition-pipeline',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
@@ -55,12 +55,13 @@ setup(
         'Intended Audience :: Researchers',
         'Topic :: Scientific/Engineering :: Information Analysis',
 
-        'Programming Language :: Python :: 2',
+        # TODO: Add support for other python versions (Tkinter seems to be the only worriesome library)
+        # 'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
+        # 'Programming Language :: Python :: 3',
+        # 'Programming Language :: Python :: 3.3',
+        # 'Programming Language :: Python :: 3.4',
+        # 'Programming Language :: Python :: 3.5',
     ],
 
     # You can just specify the packages manually here if your project is

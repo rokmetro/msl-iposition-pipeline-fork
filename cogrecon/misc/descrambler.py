@@ -1,5 +1,5 @@
-import numpy as np
-from batch_pipeline import find_data_files_in_directory
+import cogrecon.core.batch_pipeline as bpipe
+
 try:
     import tkinter as tk
 except ImportError:
@@ -12,7 +12,7 @@ tk_root = tk.Tk()
 tk_root.withdraw()
 selected_directory = str(askdirectory())
 
-_, files = find_data_files_in_directory(selected_directory)
+_, files = bpipe.find_data_files_in_directory(selected_directory)
 
 for f in files:
     print("descrambling file {0}".format(f))

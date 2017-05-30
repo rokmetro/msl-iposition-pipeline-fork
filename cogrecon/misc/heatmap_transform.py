@@ -24,7 +24,7 @@ hex_plt = plt.hexbin(x, y, C=z, gridsize=gridsize, cmap=cm.jet, bins=None)
 plt.axis([x.min(), x.max(), y.min(), y.max()])
 
 
-def update(*args):
+def update():
     global fig, ax, drs, hex_plt, x, y, z, gridsize
     Z = ml.bivariate_normal(X, Y, 2, 2, drs[0].point.center[0], drs[0].point.center[1])
     z = Z.ravel()

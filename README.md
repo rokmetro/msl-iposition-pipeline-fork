@@ -27,6 +27,13 @@ git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
 pip install --upgrade .
 ```
 
+If you'd like to update without changing the dependencies you can instead, from an **empty directory**, run:
+```
+activate iposition
+git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
+pip install --upgrade . --no-deps
+```
+
 # Usage
 
 Note: this section is incomplete and will be updated as new features are added.

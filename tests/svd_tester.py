@@ -1,2 +1,0 @@
-
-generate_random_test_points
