@@ -34,3 +34,12 @@ def lerp(start, finish, t):
 
 def mask_points(points, keep_indicies):
     return np.array([points[idx] for idx in keep_indicies])
+
+
+def collapse_unique_components(components_list):
+    return map(list,
+               set(frozenset(i) for i in map(set, [element for sublist in components_list for element in sublist])))
+
+
+def validate_type(obj, t, name, source):
+    assert isinstance(obj, t), "{2} expects type {3} for {1}, found {0}".format(type(obj), name, source, t.__name__)
