@@ -6,15 +6,15 @@ This data pipeline is meant for the processing of iPosition data. It will output
 Install
 --------
 
-Install [Git](https://git-scm.com/downloads) if you don't already have it.
+Install `Git<https://git-scm.com/downloads>`_ if you don't already have it.
 
-Install [Anaconda Python](https://www.continuum.io/downloads) if you don't already have it.
+Install `Anaconda Python<https://www.continuum.io/downloads>`_ if you don't already have it.
 
 In a command prompt/terminal, navigate to/create an **empty directory**, then run:
 
-    conda create -n iposition python=2.7 scipy --yes
-    activate iposition
-    git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
+    conda create -n iposition python=2.7 scipy --yes \
+    activate iposition \
+    git clone https://github.com/kevroy314/msl-iposition-pipeline/ . \
     pip install .
 
 Updating
@@ -22,14 +22,14 @@ Updating
 
 To update the script to the latest version navigate to/create an **empty directory**, then run:
 
-    activate iposition
-    git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
+    activate iposition \
+    git clone https://github.com/kevroy314/msl-iposition-pipeline/ . \
     pip install --upgrade .
 
 If you'd like to update without changing the dependencies you can instead, from an **empty directory**, run:
 
-    activate iposition
-    git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
+    activate iposition \
+    git clone https://github.com/kevroy314/msl-iposition-pipeline/ . \
     pip install --upgrade . --no-deps
 
 Usage
@@ -53,10 +53,10 @@ Command Line Arguments
 * --num_trials - the number of trials in each file (will be detected automatically if left empty)
 * --num_items - the number of items in each trial (will be detected automatically if left empty)
 * --pipeline_mode - the mode in which the pipeline should process (default is 3); 
-..* 0 for just accuracy+swaps, 
-..* 1 for accuracy+deanonymization+swaps, 
-..* 2 for accuracy+global transformations+swaps, 
-..* 3 for accuracy+deanonymization+global transformations+swaps
+   * 0 for just accuracy+swaps, 
+   * 1 for accuracy+deanonymization+swaps, 
+   * 2 for accuracy+global transformations+swaps, 
+   * 3 for accuracy+deanonymization+global transformations+swaps
 * --accuracy_z_value - the z value to be used for accuracy exclusion (default is 1.96, corresponding to 95% confidence)
 * --collapse_trials - if 0, one row per trial will be output, otherwise one row per participant will be output (default is 1)
 * --dimension - the dimensionality of the data (default is 2)
@@ -84,10 +84,10 @@ Individual trials can be visualized by calling the full_pipeline.py file with ap
 The optional arguments are:
 
 * --pipeline_mode - the mode in which the pipeline should process (default is 3); 
-..* 0 for just accuracy+swaps, 
-..* 1 for accuracy+deanonymization+swaps, 
-..* 2 for accuracy+global transformations+swaps, 
-..* 3 for accuracy+deanonymization+global transformations+swaps
+   * 0 for just accuracy+swaps, 
+   * 1 for accuracy+deanonymization+swaps, 
+   * 2 for accuracy+global transformations+swaps, 
+   * 3 for accuracy+deanonymization+global transformations+swaps
 * --accuracy_z_value - the z value to be used for accuracy exclusion (default is 1.96, corresponding to 95% confidence)
 * --dimension - the dimensionality of the data (default is 2)
 
