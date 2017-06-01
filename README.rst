@@ -11,7 +11,7 @@ Install Git: https://git-scm.com/downloads if you don't already have it.
 Install Anaconda Python: https://www.continuum.io/downloads if you don't already have it.
 
 In a command prompt/terminal, navigate to/create an **empty directory**, then run:
-.. code-block:: bash
+::
     conda create -n iposition python=2.7 scipy --yes \
     activate iposition \
     git clone https://github.com/kevroy314/msl-iposition-pipeline/ . \
