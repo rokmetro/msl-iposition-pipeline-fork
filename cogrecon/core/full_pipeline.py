@@ -8,35 +8,19 @@ import os
 import warnings
 import itertools
 import networkx as nx
-from enum import Enum
 import numpy as np
 from scipy.spatial import distance
 
 from similarity_transform import similarity_transform
-import io
+import file_io
 import tools
 import visualization as vis
-from data import TrialData, ParticipantData, AnalysisConfiguration
+from data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
 
 
 # TODO: Documentation needs an audit/overhaul
 # TODO: Addition transformation/de-anonymization methods(see https://en.wikipedia.org/wiki/Point_set_registration)
 # TODO: Additional testing needed to confirm that trial_by_trial_accuracy didn't break anything
-
-class PipelineFlags(Enum):
-    Unknown = 0
-    Simple = 0
-    Deanonymize = 1
-    GlobalTransformation = 2
-    All = 3
-    value = 0
-
-    def __or__(self, other):
-        return PipelineFlags(self.value | other.value)
-
-    def __eq__(self, other):
-        return (self.value & other.value) != 0
-
 
 # This function defines the misplacement metric which is used for minimization (in de-anonymization).
 # It is also used to calculate the original misplacement metric.
@@ -45,8 +29,8 @@ def minimization_function(list1, list2):
 
 
 def accuracy(participant_data, analysis_configuration):
-    tools.validate_type(participant_data, type(ParticipantData), "participant_data", "edge_resizing")
-    tools.validate_type(analysis_configuration, type(AnalysisConfiguration),
+    tools.validate_type(participant_data, ParticipantData, "participant_data", "edge_resizing")
+    tools.validate_type(analysis_configuration, AnalysisConfiguration,
                         "analysis_configuration", "trial_geometric_transform")
 
     actual_points = participant_data.actual_points
@@ -105,13 +89,13 @@ def accuracy(participant_data, analysis_configuration):
     return participant_data
 
 
-def axis_swap(participant_data):
-    tools.validate_type(participant_data, type(ParticipantData), "participant_data", "axis_swap")
+def axis_swap(trial_data):
+    tools.validate_type(trial_data, TrialData, "trial_data", "axis_swap")
 
-    actual_points = participant_data.actual_points
-    data_points = participant_data.data_points
-    actual_labels = participant_data.actual_labels
-    data_labels = participant_data.data_labels
+    actual_points = trial_data.actual_points
+    data_points = trial_data.data_points
+    actual_labels = trial_data.actual_labels
+    data_labels = trial_data.data_labels
 
     if not actual_labels:
         actual_labels = range(len(actual_points))
@@ -131,11 +115,11 @@ def axis_swap(participant_data):
     return axis_swaps, axis_swap_pairs
 
 
-def edge_resizing(participant_data):
-    tools.validate_type(participant_data, type(ParticipantData), "participant_data", "edge_resizing")
+def edge_resizing(trial_data):
+    tools.validate_type(trial_data, TrialData, "trial_data", "edge_resizing")
 
-    actual_points = participant_data.actual_points
-    data_points = participant_data.data_points
+    actual_points = trial_data.actual_points
+    data_points = trial_data.data_points
 
     actual_edges = []
     data_edges = []
@@ -149,11 +133,11 @@ def edge_resizing(participant_data):
     return resizing
 
 
-def edge_distortion(participant_data):
-    tools.validate_type(participant_data, type(ParticipantData), "participant_data", "edge_distortion")
+def edge_distortion(trial_data):
+    tools.validate_type(trial_data, TrialData, "trial_data", "edge_resizing")
 
-    actual_points = participant_data.actual_points
-    data_points = participant_data.data_points
+    actual_points = trial_data.actual_points
+    data_points = trial_data.data_points
 
     edge_distortions_count = 0
     comparisons = 0
@@ -172,8 +156,8 @@ def edge_distortion(participant_data):
 
 # noinspection PyDefaultArgument
 def geometric_transform(participant_data, analysis_configuration):
-    tools.validate_type(participant_data, type(ParticipantData), "participant_data", "geometric_transform")
-    tools.validate_type(analysis_configuration, type(AnalysisConfiguration),
+    tools.validate_type(participant_data, ParticipantData, "participant_data", "geometric_transform")
+    tools.validate_type(analysis_configuration, AnalysisConfiguration,
                         "analysis_configuration", "geometric_transform")
 
     # Determine if the points meet the specified accuracy threshold
@@ -188,8 +172,8 @@ def geometric_transform(participant_data, analysis_configuration):
 
 # noinspection PyDefaultArgument
 def trial_geometric_transform(trial_data, analysis_configuration):
-    tools.validate_type(trial_data, type(TrialData), "trial_data", "trial_geometric_transform")
-    tools.validate_type(analysis_configuration, type(AnalysisConfiguration),
+    tools.validate_type(trial_data, TrialData, "trial_data", "trial_geometric_transform")
+    tools.validate_type(analysis_configuration, AnalysisConfiguration,
                         "analysis_configuration", "trial_geometric_transform")
 
     actual_points = trial_data.actual_points
@@ -266,8 +250,8 @@ def trial_geometric_transform(trial_data, analysis_configuration):
 
 
 def swaps(participant_data, analysis_configuration):
-    tools.validate_type(participant_data, type(ParticipantData), "participant_data", "swaps")
-    tools.validate_type(analysis_configuration, type(AnalysisConfiguration), "analysis_configuration", "swaps")
+    tools.validate_type(participant_data, ParticipantData, "participant_data", "swaps")
+    tools.validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "swaps")
 
     participant_data = accuracy(participant_data, analysis_configuration)
 
@@ -288,7 +272,7 @@ def trial_swaps(trial_data):
     #     ("swaps actual_labels and data_labels are " +
     #      "not unequal: actual, {0}; data, {1}").format(actual_labels, data_labels)
 
-    tools.validate_type(trial_data, type(TrialData), "trial_data", "trial_swaps")
+    tools.validate_type(trial_data, TrialData, "trial_data", "trial_swaps")
 
     actual_points = trial_data.actual_points
     data_points = trial_data.data_points
@@ -383,7 +367,7 @@ def trial_swaps(trial_data):
 
 
 def deanonymize(participant_data):
-    tools.validate_type(participant_data, type(ParticipantData), "participant_data", "deanonymize")
+    tools.validate_type(participant_data, ParticipantData, "participant_data", "deanonymize")
 
     actual_points = participant_data.actual_points
     data_points = participant_data.data_points
@@ -420,8 +404,8 @@ def deanonymize(participant_data):
 # the number of items.
 # noinspection PyDefaultArgument
 def full_pipeline(participant_data, analysis_configuration, visualize=False):
-    tools.validate_type(participant_data, type(ParticipantData), "participant_data", "full_pipeline")
-    tools.validate_type(analysis_configuration, type(AnalysisConfiguration), "analysis_configuration", "full_pipeline")
+    tools.validate_type(participant_data, ParticipantData, "participant_data", "full_pipeline")
+    tools.validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "full_pipeline")
 
     actual_coordinates = participant_data.actual_points
     data_coordinates = participant_data.data_points
@@ -439,15 +423,16 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False):
     axis_swap_pairs = []
     edge_resize = []
     edge_distort = []
-    for (actual_trial, data_trial) in zip(actual_coordinates, data_coordinates):
+    for trial in participant_data.trials:
         # First calculate the two primary original metrics, misplacement and axis swaps - this has been validated
         # against the previous script via an MRE data set of 20 individuals
-        straight_misplacements.append(minimization_function(actual_trial, data_trial) / len(actual_trial))
-        axis_swaps_element, axis_swap_pairs_element = axis_swap(participant_data)
+        straight_misplacements.append(minimization_function(trial.actual_points,
+                                                            trial.data_points) / len(trial.actual_points))
+        axis_swaps_element, axis_swap_pairs_element = axis_swap(trial)
         axis_swaps.append(axis_swaps_element)
         axis_swap_pairs.append(axis_swap_pairs_element)
-        edge_resize.append(edge_resizing(participant_data))
-        edge_distort.append(edge_distortion(participant_data))
+        edge_resize.append(edge_resizing(trial))
+        edge_distort.append(edge_distortion(trial))
 
     pre_processed_accuracy = accuracy(participant_data, analysis_configuration)
     pre_process_accuracies = pre_processed_accuracy.distance_accuracy_map
@@ -547,10 +532,10 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False):
 
     # If requested, visualize the data
     if visualize:
-        for idx, (actual_trial, data_trial, min_trial, transformed_trial, output_trial) in \
-                enumerate(zip(actual_coordinates, data_coordinates, min_coordinates, transformed_coordinates, output)):
+        for idx, (actual_trial, data_trial, min_trial, transformed_trial) in \
+                enumerate(zip(actual_coordinates, data_coordinates, min_coordinates, transformed_coordinates)):
             # noinspection PyTypeChecker
-            vis.visualization(actual_trial, data_trial, min_trial, transformed_trial, output_trial,
+            vis.visualization(actual_trial, data_trial, min_trial, transformed_trial, output,
                               z_value=accuracy_z_value, debug_labels=debug_labels + [idx])
 
     return output
@@ -620,13 +605,15 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         args = parser.parse_args()
-        actual = io.get_coordinates_from_file(args.actual_coordinates,
-                                              (args.num_trials, args.num_items, args.dimension))
-        data = io.get_coordinates_from_file(args.data_coordinates, (args.num_trials, args.num_items, args.dimension))
+        actual = file_io.get_coordinates_from_file(args.actual_coordinates,
+                                                   (args.num_trials, args.num_items, args.dimension))
+        data = file_io.get_coordinates_from_file(args.data_coordinates,
+                                                 (args.num_trials, args.num_items, args.dimension))
         _analysis_configuration = AnalysisConfiguration(z_value=args.accuracy_z_value,
                                                         flags=PipelineFlags(args.pipeline_mode),
-                                                        debug_labels=[io.get_id_from_file_prefix(args.data_coordinates),
-                                                                      args.line_number])
+                                                        debug_labels=[file_io.get_id_from_file_prefix(
+                                                            args.data_coordinates),
+                                                            args.line_number])
         _participant_data = ParticipantData([TrialData(_a, _d) for _a, _d in zip([actual[args.line_number]],
                                                                                  [data[args.line_number]])])
         full_pipeline(_participant_data, _analysis_configuration, visualize=True)
@@ -641,16 +628,16 @@ if __name__ == "__main__":
     exit()
     '''
     root_dir = r"Z:\Kevin\iPosition\Hillary\MRE\\"
-    actual = io.get_coordinates_from_file(root_dir + r"actual_coordinates.txt", (15, 5, 2))
-    data101 = io.get_coordinates_from_file(root_dir + r"101\101position_data_coordinates.txt", (15, 5, 2))
-    data104 = io.get_coordinates_from_file(root_dir + r"104\104position_data_coordinates.txt", (15, 5, 2))
-    data105 = io.get_coordinates_from_file(root_dir + r"105\105position_data_coordinates.txt", (15, 5, 2))
-    data112 = io.get_coordinates_from_file(root_dir + r"112\112position_data_coordinates.txt", (15, 5, 2))
-    data113 = io.get_coordinates_from_file(root_dir + r"113\113position_data_coordinates.txt", (15, 5, 2))
-    data114 = io.get_coordinates_from_file(root_dir + r"114\114position_data_coordinates.txt", (15, 5, 2))
-    data118 = io.get_coordinates_from_file(root_dir + r"118\118position_data_coordinates.txt", (15, 5, 2))
-    data119 = io.get_coordinates_from_file(root_dir + r"119\119position_data_coordinates.txt", (15, 5, 2))
-    data120 = io.get_coordinates_from_file(root_dir + r"120\120position_data_coordinates.txt", (15, 5, 2))
+    actual = file_io.get_coordinates_from_file(root_dir + r"actual_coordinates.txt", (15, 5, 2))
+    data101 = file_io.get_coordinates_from_file(root_dir + r"101\101position_data_coordinates.txt", (15, 5, 2))
+    data104 = file_io.get_coordinates_from_file(root_dir + r"104\104position_data_coordinates.txt", (15, 5, 2))
+    data105 = file_io.get_coordinates_from_file(root_dir + r"105\105position_data_coordinates.txt", (15, 5, 2))
+    data112 = file_io.get_coordinates_from_file(root_dir + r"112\112position_data_coordinates.txt", (15, 5, 2))
+    data113 = file_io.get_coordinates_from_file(root_dir + r"113\113position_data_coordinates.txt", (15, 5, 2))
+    data114 = file_io.get_coordinates_from_file(root_dir + r"114\114position_data_coordinates.txt", (15, 5, 2))
+    data118 = file_io.get_coordinates_from_file(root_dir + r"118\118position_data_coordinates.txt", (15, 5, 2))
+    data119 = file_io.get_coordinates_from_file(root_dir + r"119\119position_data_coordinates.txt", (15, 5, 2))
+    data120 = file_io.get_coordinates_from_file(root_dir + r"120\120position_data_coordinates.txt", (15, 5, 2))
 
     # Cycle Agree
     full_pipeline(ParticipantData([TrialData(actual[10], data101[10])]),

@@ -20,8 +20,8 @@ import numpy as np
 import types
 
 import full_pipeline as pipe
-import io
-from data import TrialData, ParticipantData, AnalysisConfiguration
+import file_io
+from data_structures import TrialData, ParticipantData, AnalysisConfiguration
 
 logging.basicConfig(level=logging.INFO)
 
@@ -218,8 +218,8 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     actual_coordinates_filename = data_coordinates_filenames = None
     try:
         actual_coordinates_filename, data_coordinates_filenames = \
-            io.find_data_files_in_directory(search_directory, actual_coordinate_prefixes=actual_coordinate_prefixes,
-                                            prefix_length=prefix_length)
+            file_io.find_data_files_in_directory(search_directory, actual_coordinate_prefixes=actual_coordinate_prefixes,
+                                                 prefix_length=prefix_length)
         data_coordinates_filenames = np.sort(data_coordinates_filenames)
     except IOError:
         logging.error('The input path was not found.')
@@ -232,19 +232,19 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
         if data_shape is None:
             num_trials, num_items = detect_shape_from_file(actual_coordinates_filename, dimension)
             data_shape = (num_trials, num_items, dimension)
-        actual_coordinates = io.get_coordinates_from_file(actual_coordinates_filename, data_shape)
-        data_coordinates = [io.get_coordinates_from_file(filename,
-                                                         data_shape) for filename in data_coordinates_filenames]
+        actual_coordinates = file_io.get_coordinates_from_file(actual_coordinates_filename, data_shape)
+        data_coordinates = [file_io.get_coordinates_from_file(filename,
+                                                              data_shape) for filename in data_coordinates_filenames]
     else:
         data_shapes = []
         for acf in actual_coordinates_filename:
             num_trials, num_items = detect_shape_from_file(acf, dimension)
             data_shapes.append((num_trials, num_items, dimension))
-        actual_coordinates = [io.get_coordinates_from_file(filename, data_shapes[iidx]) for iidx, filename in
+        actual_coordinates = [file_io.get_coordinates_from_file(filename, data_shapes[iidx]) for iidx, filename in
                               enumerate(actual_coordinates_filename)]
-        data_coordinates = [io.get_coordinates_from_file(filename, data_shapes[iidx]) for iidx, filename in
+        data_coordinates = [file_io.get_coordinates_from_file(filename, data_shapes[iidx]) for iidx, filename in
                             enumerate(data_coordinates_filenames)]
-    data_labels = [io.get_id_from_file_prefix(filename, prefix_length=prefix_length) for filename in
+    data_labels = [file_io.get_id_from_file_prefix(filename, prefix_length=prefix_length) for filename in
                    data_coordinates_filenames]
     logging.info('The following ids were found and are being processed: {0}'.format(data_labels))
 

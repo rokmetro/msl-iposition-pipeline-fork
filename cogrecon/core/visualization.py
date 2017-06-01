@@ -4,6 +4,7 @@ import matplotlib.animation as animation
 import logging
 import full_pipeline as pipe
 import tools as tools
+from data_structures import TrialData, ParticipantData, AnalysisConfiguration
 
 
 # animation length in seconds
@@ -39,8 +40,12 @@ def visualization(actual_points, data_points, min_points, transformed_points, ou
     lerp_data = [[tools.lerp(p1, p2, t) for p1, p2 in zip(min_points, transformed_points)] for t in
                  np.linspace(0.0, 1.0, animation_ticks)]
 
-    accuracies, threshold = pipe.accuracy([actual_points], [transformed_points],
-                                          z_value=z_value, output_threshold=True, trial_by_trial_accuracy=True)
+    _analysis_configuration = AnalysisConfiguration(z_value=z_value, trial_by_trial_accuracy=True)
+    _participant_data = ParticipantData([TrialData(actual_points, transformed_points)])
+    participant_data = pipe.accuracy(_participant_data, _analysis_configuration)
+    accuracies = participant_data.distance_accuracy_map
+    print(participant_data.distance_accuracy_map)
+    threshold = participant_data.distance_threshold
     accuracies = accuracies[0]
     threshold = threshold[0]
     for acc, x, y in zip(accuracies, np.transpose(transformed_points)[0], np.transpose(transformed_points)[1]):
@@ -49,8 +54,10 @@ def visualization(actual_points, data_points, min_points, transformed_points, ou
             color = 'g'
         ax.add_patch(plt.Circle((x, y), threshold, alpha=0.3, color=color))
 
-    accuracies, threshold = pipe.accuracy([actual_points], [min_points],
-                                          z_value=z_value, output_threshold=True, trial_by_trial_accuracy=True)
+    _participant_data = ParticipantData([TrialData(actual_points, min_points)])
+    participant_data = pipe.accuracy(_participant_data, _analysis_configuration)
+    accuracies = participant_data.distance_accuracy_map
+    threshold = participant_data.distance_threshold
     accuracies = accuracies[0]
     threshold = threshold[0]
 

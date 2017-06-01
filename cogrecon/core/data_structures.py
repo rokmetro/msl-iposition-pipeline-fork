@@ -1,5 +1,20 @@
-from full_pipeline import PipelineFlags
+from enum import Enum
 from operator import attrgetter
+
+
+class PipelineFlags(Enum):
+    Unknown = 0
+    Simple = 0
+    Deanonymize = 1
+    GlobalTransformation = 2
+    All = 3
+    value = 0
+
+    def __or__(self, other):
+        return PipelineFlags(self.value | other.value)
+
+    def __eq__(self, other):
+        return (self.value & other.value) != 0
 
 
 class TrialData:
@@ -20,7 +35,7 @@ class TrialData:
         self.distance_threshold = None
 
 
-class ParticipantData:
+class ParticipantData(object):
     def __init__(self, trials, identity=None):
         self.trials = trials
         self.id = identity
