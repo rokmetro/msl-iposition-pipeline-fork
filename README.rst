@@ -12,30 +12,25 @@ Install [Anaconda Python](https://www.continuum.io/downloads) if you don't alrea
 
 In a command prompt/terminal, navigate to/create an **empty directory**, then run:
 
-```
-conda create -n iposition python=2.7 scipy --yes
-activate iposition
-git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
-pip install .
-```
+    conda create -n iposition python=2.7 scipy --yes
+    activate iposition
+    git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
+    pip install .
 
 Updating
 --------
 
 To update the script to the latest version navigate to/create an **empty directory**, then run:
 
-```
-activate iposition
-git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
-pip install --upgrade .
-```
+    activate iposition
+    git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
+    pip install --upgrade .
 
 If you'd like to update without changing the dependencies you can instead, from an **empty directory**, run:
-```
-activate iposition
-git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
-pip install --upgrade . --no-deps
-```
+
+    activate iposition
+    git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
+    pip install --upgrade . --no-deps
 
 Usage
 --------
@@ -47,9 +42,7 @@ Command Line Options
 
 The easiest way to run the program is in batch mode via the command line. Running
 
-```
-python batch_pipeline.py
-```
+    python batch_pipeline.py
 
 runs the program in default mode (with a directory selection dialog popup).
 
@@ -75,9 +68,7 @@ Advanced usage example
 
 In this example, the "C:\Users Folder\Data" folder and its subfolders will be searched for actual_coordinates.txt and files with length 5 participant IDs followed by position_data_coordinates.txt. Each file will be expected to have 15 trials and 6 items/trial with 3 dimensions each. The accuracy will be computed on a trial by trial basis using a 90% confidence interval. Each trial will be output independently (one per row).
 
-```
-python batch_pipeline.py --search_directory="C:\User Folder\Data" --num_trials=15 --num_items=6 --accuracy_z_value=1.64 --collapse_trials=0 --dimension=3 --trial_by_trial_accuracy=1 --prefix_length=5
-```
+    python batch_pipeline.py --search_directory="C:\User Folder\Data" --num_trials=15 --num_items=6 --accuracy_z_value=1.64 --collapse_trials=0 --dimension=3 --trial_by_trial_accuracy=1 --prefix_length=5
 
 Visualization of Single Trials
 --------
@@ -105,9 +96,7 @@ Visualization Usage Example
 
 To visualize the second of participant 101's data (assuming 15 trials and 5 items), the command line should be:
 
-```
-python full_pipeline.py "actual_coordinates.txt" "101position_data_coordinates.txt" 15 5 1
-```
+    python full_pipeline.py "actual_coordinates.txt" "101position_data_coordinates.txt" 15 5 1
 
 Scripted Usage
 --------
