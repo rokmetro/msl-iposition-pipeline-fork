@@ -54,10 +54,10 @@ Command Line Arguments
 * --num_items - the number of items in each trial (will be detected automatically if left empty)
 * --pipeline_mode - the mode in which the pipeline should process (default is 3); 
 
-   * 0 for just accuracy+swaps, 
-   * 1 for accuracy+deanonymization+swaps, 
-   * 2 for accuracy+global transformations+swaps, 
-   * 3 for accuracy+deanonymization+global transformations+swaps
+ * 0 for just accuracy+swaps, 
+ * 1 for accuracy+deanonymization+swaps, 
+ * 2 for accuracy+global transformations+swaps, 
+ * 3 for accuracy+deanonymization+global transformations+swaps
 * --accuracy_z_value - the z value to be used for accuracy exclusion (default is 1.96, corresponding to 95% confidence)
 * --collapse_trials - if 0, one row per trial will be output, otherwise one row per participant will be output (default is 1)
 * --dimension - the dimensionality of the data (default is 2)
@@ -86,10 +86,10 @@ The optional arguments are:
 
 * --pipeline_mode - the mode in which the pipeline should process (default is 3); 
 
-   * 0 for just accuracy+swaps, 
-   * 1 for accuracy+deanonymization+swaps, 
-   * 2 for accuracy+global transformations+swaps, 
-   * 3 for accuracy+deanonymization+global transformations+swaps
+ * 0 for just accuracy+swaps, 
+ * 1 for accuracy+deanonymization+swaps, 
+ * 2 for accuracy+global transformations+swaps, 
+ * 3 for accuracy+deanonymization+global transformations+swaps
 * --accuracy_z_value - the z value to be used for accuracy exclusion (default is 1.96, corresponding to 95% confidence)
 * --dimension - the dimensionality of the data (default is 2)
 
