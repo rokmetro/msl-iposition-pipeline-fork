@@ -19,9 +19,9 @@ import numpy as np
 
 import types
 
-import full_pipeline as pipe
-import file_io
-from data_structures import TrialData, ParticipantData, AnalysisConfiguration
+from .full_pipeline import full_pipeline, get_aggregation_functions, get_header_labels
+from .file_io import get_coordinates_from_file, get_id_from_file_prefix, find_data_files_in_directory
+from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
 
 logging.basicConfig(level=logging.INFO)
 
@@ -88,7 +88,7 @@ def validate_equal_list_shapes(l1, l2, expected_shape=None, l1_name="list1", l2_
 # threshold values for each process step
 def get_single_file_result(actual_coordinates, dat, label="", accuracy_z_value=1.96,
                            trial_by_trial_accuracy=True, manual_threshold=None,
-                           flags=pipe.PipelineFlags.All):
+                           flags=PipelineFlags.All):
     """
     This function generates the results for a specific file's data structure, usually containing multiple trials
 
@@ -119,7 +119,7 @@ def get_single_file_result(actual_coordinates, dat, label="", accuracy_z_value=1
         "accuracy_z_value must be int or float: {0}".format(accuracy_z_value)
     assert accuracy_z_value > 0, \
         "accuracy_z_value must be greater than 0: {0}".format(accuracy_z_value)
-    assert isinstance(flags, pipe.PipelineFlags), \
+    assert isinstance(flags, PipelineFlags), \
         "flags is not of type PipelineFlags: {0}".format(flags)
 
     _analysis_configuration = AnalysisConfiguration(z_value=accuracy_z_value,
@@ -130,7 +130,7 @@ def get_single_file_result(actual_coordinates, dat, label="", accuracy_z_value=1
     _participant_data = ParticipantData([TrialData(_a, _d) for _a, _d in zip(actual_coordinates, dat)])
 
     # Process the participant
-    return pipe.full_pipeline(_participant_data, _analysis_configuration)
+    return full_pipeline(_participant_data, _analysis_configuration)
 
 
 def detect_shape_from_file(path, dimension):
@@ -165,7 +165,7 @@ def detect_shape_from_file(path, dimension):
 
 def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_value=1.96,
                    trial_by_trial_accuracy=True,
-                   flags=pipe.PipelineFlags.All,
+                   flags=PipelineFlags.All,
                    collapse_trials=True, dimension=2, prefix_length=3,
                    actual_coordinate_prefixes=False, manual_threshold=None):
     """
@@ -206,7 +206,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
         "accuracy_z_value must be int or float: {0}".format(accuracy_z_value)
     assert accuracy_z_value > 0, \
         "accuracy_z_value must be greater than 0: {0}".format(accuracy_z_value)
-    assert isinstance(flags, pipe.PipelineFlags), \
+    assert isinstance(flags, PipelineFlags), \
         "flags is not of type PipelineFlags: {0}".format(flags)
     assert isinstance(collapse_trials, types.BooleanType), "collapse_trials is not a bool: {0}".format(collapse_trials)
     assert isinstance(trial_by_trial_accuracy, types.BooleanType), \
@@ -218,8 +218,9 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     actual_coordinates_filename = data_coordinates_filenames = None
     try:
         actual_coordinates_filename, data_coordinates_filenames = \
-            file_io.find_data_files_in_directory(search_directory, actual_coordinate_prefixes=actual_coordinate_prefixes,
-                                                 prefix_length=prefix_length)
+            find_data_files_in_directory(search_directory,
+                                         actual_coordinate_prefixes=actual_coordinate_prefixes,
+                                         prefix_length=prefix_length)
         data_coordinates_filenames = np.sort(data_coordinates_filenames)
     except IOError:
         logging.error('The input path was not found.')
@@ -232,25 +233,24 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
         if data_shape is None:
             num_trials, num_items = detect_shape_from_file(actual_coordinates_filename, dimension)
             data_shape = (num_trials, num_items, dimension)
-        actual_coordinates = file_io.get_coordinates_from_file(actual_coordinates_filename, data_shape)
-        data_coordinates = [file_io.get_coordinates_from_file(filename,
-                                                              data_shape) for filename in data_coordinates_filenames]
+        actual_coordinates = get_coordinates_from_file(actual_coordinates_filename, data_shape)
+        data_coordinates = [get_coordinates_from_file(filename, data_shape) for filename in data_coordinates_filenames]
     else:
         data_shapes = []
         for acf in actual_coordinates_filename:
             num_trials, num_items = detect_shape_from_file(acf, dimension)
             data_shapes.append((num_trials, num_items, dimension))
-        actual_coordinates = [file_io.get_coordinates_from_file(filename, data_shapes[iidx]) for iidx, filename in
+        actual_coordinates = [get_coordinates_from_file(filename, data_shapes[iidx]) for iidx, filename in
                               enumerate(actual_coordinates_filename)]
-        data_coordinates = [file_io.get_coordinates_from_file(filename, data_shapes[iidx]) for iidx, filename in
+        data_coordinates = [get_coordinates_from_file(filename, data_shapes[iidx]) for iidx, filename in
                             enumerate(data_coordinates_filenames)]
-    data_labels = [file_io.get_id_from_file_prefix(filename, prefix_length=prefix_length) for filename in
+    data_labels = [get_id_from_file_prefix(filename, prefix_length=prefix_length) for filename in
                    data_coordinates_filenames]
     logging.info('The following ids were found and are being processed: {0}'.format(data_labels))
 
     # Get the labels and aggregation methods
-    agg_functions = pipe.get_aggregation_functions()
-    header_labels = pipe.get_header_labels()
+    agg_functions = get_aggregation_functions()
+    header_labels = get_header_labels()
 
     # Add cross-trial labels and aggregation methods
     agg_functions.append(np.nansum)
@@ -409,7 +409,7 @@ if __name__ == "__main__":
                        data_shape=d_shape,
                        accuracy_z_value=args.accuracy_z_value,
                        trial_by_trial_accuracy=args.trial_by_trial_accuracy != 0,
-                       flags=pipe.PipelineFlags(args.pipeline_mode),
+                       flags=PipelineFlags(args.pipeline_mode),
                        collapse_trials=args.collapse_trials != 0,
                        dimension=args.dimension,
                        prefix_length=args.prefix_length,

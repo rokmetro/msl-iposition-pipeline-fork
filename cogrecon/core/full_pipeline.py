@@ -7,20 +7,20 @@ import os
 # noinspection PyUnresolvedReferences
 import warnings
 import itertools
+import copy
 import networkx as nx
 import numpy as np
 from scipy.spatial import distance
 
-from similarity_transform import similarity_transform
-import file_io
-import tools
-import visualization as vis
-from data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
+from .similarity_transform import similarity_transform
+from .file_io import get_id_from_file_prefix
+from .tools import validate_type, mask_points, collapse_unique_components
+from .visualization import visualization
+from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
 
 
 # TODO: Documentation needs an audit/overhaul
 # TODO: Addition transformation/de-anonymization methods(see https://en.wikipedia.org/wiki/Point_set_registration)
-# TODO: Additional testing needed to confirm that trial_by_trial_accuracy didn't break anything
 
 # This function defines the misplacement metric which is used for minimization (in de-anonymization).
 # It is also used to calculate the original misplacement metric.
@@ -29,9 +29,8 @@ def minimization_function(list1, list2):
 
 
 def accuracy(participant_data, analysis_configuration):
-    tools.validate_type(participant_data, ParticipantData, "participant_data", "edge_resizing")
-    tools.validate_type(analysis_configuration, AnalysisConfiguration,
-                        "analysis_configuration", "trial_geometric_transform")
+    validate_type(participant_data, ParticipantData, "participant_data", "edge_resizing")
+    validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "trial_geometric_transform")
 
     actual_points = participant_data.actual_points
     data_points = participant_data.data_points
@@ -81,7 +80,7 @@ def accuracy(participant_data, analysis_configuration):
             for actual_trial, data_trial in zip(actual_points, data_points):
                 # noinspection PyTypeChecker
                 dists = np.diag(distance.cdist(data_trial, actual_trial))
-                dist_accuracy_map.append([xd < exclusion_threshold for xd in dists])
+                dist_accuracy_map.append([bool(xd < exclusion_threshold) for xd in dists])
 
     participant_data.distance_accuracy_map = dist_accuracy_map
     participant_data.distance_threshold = exclusion_thresholds
@@ -89,8 +88,8 @@ def accuracy(participant_data, analysis_configuration):
     return participant_data
 
 
-def axis_swap(trial_data):
-    tools.validate_type(trial_data, TrialData, "trial_data", "axis_swap")
+def trial_axis_swap(trial_data):
+    validate_type(trial_data, TrialData, "trial_data", "axis_swap")
 
     actual_points = trial_data.actual_points
     data_points = trial_data.data_points
@@ -115,8 +114,8 @@ def axis_swap(trial_data):
     return axis_swaps, axis_swap_pairs
 
 
-def edge_resizing(trial_data):
-    tools.validate_type(trial_data, TrialData, "trial_data", "edge_resizing")
+def trial_edge_resizing(trial_data):
+    validate_type(trial_data, TrialData, "trial_data", "edge_resizing")
 
     actual_points = trial_data.actual_points
     data_points = trial_data.data_points
@@ -133,8 +132,8 @@ def edge_resizing(trial_data):
     return resizing
 
 
-def edge_distortion(trial_data):
-    tools.validate_type(trial_data, TrialData, "trial_data", "edge_resizing")
+def trial_edge_distortion(trial_data):
+    validate_type(trial_data, TrialData, "trial_data", "edge_resizing")
 
     actual_points = trial_data.actual_points
     data_points = trial_data.data_points
@@ -156,9 +155,8 @@ def edge_distortion(trial_data):
 
 # noinspection PyDefaultArgument
 def geometric_transform(participant_data, analysis_configuration):
-    tools.validate_type(participant_data, ParticipantData, "participant_data", "geometric_transform")
-    tools.validate_type(analysis_configuration, AnalysisConfiguration,
-                        "analysis_configuration", "geometric_transform")
+    validate_type(participant_data, ParticipantData, "participant_data", "geometric_transform")
+    validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "geometric_transform")
 
     # Determine if the points meet the specified accuracy threshold
     participant_data = accuracy(participant_data, analysis_configuration)
@@ -172,20 +170,19 @@ def geometric_transform(participant_data, analysis_configuration):
 
 # noinspection PyDefaultArgument
 def trial_geometric_transform(trial_data, analysis_configuration):
-    tools.validate_type(trial_data, TrialData, "trial_data", "trial_geometric_transform")
-    tools.validate_type(analysis_configuration, AnalysisConfiguration,
-                        "analysis_configuration", "trial_geometric_transform")
+    validate_type(trial_data, TrialData, "trial_data", "trial_geometric_transform")
+    validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "trial_geometric_transform")
 
     actual_points = trial_data.actual_points
     data_points = trial_data.data_points
-    dist_accuracy_map = trial_data.dist_accuracy_map
-    dist_threshold = trial_data.dist_threshold
+    dist_accuracy_map = trial_data.distance_accuracy_map
+    dist_threshold = trial_data.distance_threshold
     debug_labels = analysis_configuration.debug_labels
 
     # Determine which points should be included in the transformation step and generate the point sets
     valid_points_indicies = [x for (x, y) in zip(range(len(actual_points)), dist_accuracy_map) if y]
-    from_points = tools.mask_points(data_points, valid_points_indicies)
-    to_points = tools.mask_points(actual_points, valid_points_indicies)
+    from_points = mask_points(data_points, valid_points_indicies)
+    to_points = mask_points(actual_points, valid_points_indicies)
 
     # noinspection PyTypeChecker
     # Number of "inaccurate" points after deanonymizing is number of False in this list
@@ -198,7 +195,7 @@ def trial_geometric_transform(trial_data, analysis_configuration):
     scaling = np.nan
     transformation_auto_exclusion = True
     translation = [np.nan, np.nan]
-    transformed_coordinates = np.array(data_points, copy=True)
+    transformed_coordinates = np.array(data_points, copy=True).tolist()
     # Confirm there are enough points to perform the transformation
     # (it is meaningless to perform with 0 or 1 points)
     if num_geometric_transform_points_used <= 1:
@@ -215,8 +212,8 @@ def trial_geometric_transform(trial_data, analysis_configuration):
             rotation_theta = np.mean([list(x) for x in theta_matrix])  # Rotation angle
             translation_magnitude = np.linalg.norm(translation)  # Translation magnitude (direction is in 'translation')
             # Apply the linear transformation to the data coordinates to cancel out global errors if possible
-            transformed_coordinates = [(np.array(x) + np.array(translation)).dot(rotation_matrix) * scaling
-                                       for x in data_points]
+            transformed_coordinates = np.array([(np.array(x) + np.array(translation)).dot(rotation_matrix) * scaling
+                                               for x in data_points]).tolist()
             transformation_auto_exclusion = False
             new_error = minimization_function(transformed_coordinates, actual_points)
             old_error = minimization_function(data_points, actual_points)
@@ -226,7 +223,8 @@ def trial_geometric_transform(trial_data, analysis_configuration):
                              ('The transformation function did not reduce the error, removing rotation and retying' +
                               ' (old_error={0}, new_error={1}).').format(old_error,
                                                                          new_error))
-                transformed_coordinates = [(np.array(x) + np.array(translation)) * scaling for x in data_points]
+                transformed_coordinates = np.array([(np.array(x) + np.array(translation)) * scaling
+                                                    for x in data_points]).tolist()
                 new_error = minimization_function(transformed_coordinates, actual_points)
                 old_error = minimization_function(data_points, actual_points)
                 if new_error > old_error:  # Completely exclude transform
@@ -235,14 +233,14 @@ def trial_geometric_transform(trial_data, analysis_configuration):
                     scaling = np.nan
                     translation_magnitude = np.nan
                     translation = [np.nan, np.nan]
-                    transformed_coordinates = np.array(data_points, copy=True)
+                    transformed_coordinates = np.array(data_points, copy=True).tolist()
                     logging.warning(str(debug_labels) + " : " +
                                     ('The transformation function did not reduce the error, removing transform ' +
                                      '(old_error={0}, new_error={1}).').format(old_error,
                                                                                new_error))
 
         except ValueError:
-            transformed_coordinates = np.array(data_points, copy=True)
+            transformed_coordinates = np.array(data_points, copy=True).tolist()
             logging.error(('Finding transformation failed , ' +
                            'from_points={0}, to_points={1}.').format(from_points, to_points))
     return (translation, translation_magnitude, scaling, rotation_theta, transformation_auto_exclusion,
@@ -250,8 +248,8 @@ def trial_geometric_transform(trial_data, analysis_configuration):
 
 
 def swaps(participant_data, analysis_configuration):
-    tools.validate_type(participant_data, ParticipantData, "participant_data", "swaps")
-    tools.validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "swaps")
+    validate_type(participant_data, ParticipantData, "participant_data", "swaps")
+    validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "swaps")
 
     participant_data = accuracy(participant_data, analysis_configuration)
 
@@ -263,16 +261,7 @@ def swaps(participant_data, analysis_configuration):
 
 
 def trial_swaps(trial_data):
-    # TODO: include this error checking in the ParticipantData object
-    # assert np.unique(actual_labels).shape == np.array(actual_labels).shape, \
-    #     "swaps actual_labels are not unique: {0}".format(actual_labels)
-    # assert np.unique(data_labels).shape == np.array(data_labels).shape, \
-    #     "swaps data_labelsare not unique: {0}".format(data_labels)
-    # assert all(np.sort(actual_labels) == np.sort(data_labels)), \
-    #     ("swaps actual_labels and data_labels are " +
-    #      "not unequal: actual, {0}; data, {1}").format(actual_labels, data_labels)
-
-    tools.validate_type(trial_data, TrialData, "trial_data", "trial_swaps")
+    validate_type(trial_data, TrialData, "trial_data", "trial_swaps")
 
     actual_points = trial_data.actual_points
     data_points = trial_data.data_points
@@ -281,7 +270,7 @@ def trial_swaps(trial_data):
     dist_accuracy_map = trial_data.distance_accuracy_map
     dist_threshold = trial_data.distance_threshold
 
-    accurate_points_labels = [label for (label, is_accurate) in zip(actual_labels, dist_accuracy_map) if is_accurate]
+    accurate_points_labels = [l for (l, is_accurate) in zip(actual_labels, dist_accuracy_map) if is_accurate]
 
     deanonymized_graph = nx.Graph()
     deanonymized_graph.add_nodes_from(actual_labels)
@@ -367,7 +356,7 @@ def trial_swaps(trial_data):
 
 
 def deanonymize(participant_data):
-    tools.validate_type(participant_data, ParticipantData, "participant_data", "deanonymize")
+    validate_type(participant_data, ParticipantData, "participant_data", "deanonymize")
 
     actual_points = participant_data.actual_points
     data_points = participant_data.data_points
@@ -392,7 +381,7 @@ def deanonymize(participant_data):
             idx += 1
         min_score_positions.append(min_score_idx)
         min_scores.append(min_score)
-        min_coordinates.append(min_permutation)
+        min_coordinates.append(list(min_permutation))
         raw_deanonymized_misplacements.append(min_score / len(actual_trial))
     return min_coordinates, min_scores, min_score_positions, raw_deanonymized_misplacements
 
@@ -404,16 +393,15 @@ def deanonymize(participant_data):
 # the number of items.
 # noinspection PyDefaultArgument
 def full_pipeline(participant_data, analysis_configuration, visualize=False):
-    tools.validate_type(participant_data, ParticipantData, "participant_data", "full_pipeline")
-    tools.validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "full_pipeline")
+    validate_type(participant_data, ParticipantData, "participant_data", "full_pipeline")
+    validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "full_pipeline")
+
+    original_participant_data = copy.deepcopy(participant_data)
 
     actual_coordinates = participant_data.actual_points
-    data_coordinates = participant_data.data_points
     min_coordinates = participant_data.data_points  # For visualization
     transformed_coordinates = participant_data.data_points  # For visualization
 
-    debug_labels = analysis_configuration.debug_labels
-    accuracy_z_value = analysis_configuration.z_value
     flags = analysis_configuration.flags
 
     num_trials = len(participant_data.trials)
@@ -428,11 +416,11 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False):
         # against the previous script via an MRE data set of 20 individuals
         straight_misplacements.append(minimization_function(trial.actual_points,
                                                             trial.data_points) / len(trial.actual_points))
-        axis_swaps_element, axis_swap_pairs_element = axis_swap(trial)
+        axis_swaps_element, axis_swap_pairs_element = trial_axis_swap(trial)
         axis_swaps.append(axis_swaps_element)
         axis_swap_pairs.append(axis_swap_pairs_element)
-        edge_resize.append(edge_resizing(trial))
-        edge_distort.append(edge_distortion(trial))
+        edge_resize.append(trial_edge_resizing(trial))
+        edge_distort.append(trial_edge_distortion(trial))
 
     pre_processed_accuracy = accuracy(participant_data, analysis_configuration)
     pre_process_accuracies = pre_processed_accuracy.distance_accuracy_map
@@ -447,8 +435,8 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False):
         deanon_accuracies = deanon_processed_accuracy.distance_accuracy_map
         deanon_threshold = deanon_processed_accuracy.distance_threshold
         # noinspection PyTypeChecker
-        deanonymized_labels = [list(itertools.permutations(
-            range(0, len(participant_data.actual_points[0]))))[position] for position in min_score_position]
+        deanonymized_labels = [list(list(itertools.permutations(
+            range(0, len(participant_data.actual_points[0]))))[position]) for position in min_score_position]
         participant_data.data_labels = deanonymized_labels
         actual_labels = [range(len(actual_trial)) for actual_trial in
                          actual_coordinates]
@@ -532,11 +520,10 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False):
 
     # If requested, visualize the data
     if visualize:
-        for idx, (actual_trial, data_trial, min_trial, transformed_trial) in \
-                enumerate(zip(actual_coordinates, data_coordinates, min_coordinates, transformed_coordinates)):
+        for idx, (trial, min_trial, transformed_trial, output_trial) in \
+                enumerate(zip(original_participant_data.trials, min_coordinates, transformed_coordinates, output)):
             # noinspection PyTypeChecker
-            vis.visualization(actual_trial, data_trial, min_trial, transformed_trial, output,
-                              z_value=accuracy_z_value, debug_labels=debug_labels + [idx])
+            visualization(trial, analysis_configuration, min_trial, transformed_trial, output_trial)
 
     return output
 
@@ -563,7 +550,7 @@ def get_header_labels():
 # (lambda x: list(array(x).flatten())) for append
 def get_aggregation_functions():
     return [np.nanmean, np.nanmean, np.nanmean, np.nanmean,  # 0
-            tools.collapse_unique_components, np.nanmean, np.nanmean,  # 1
+            collapse_unique_components, np.nanmean, np.nanmean,  # 1
             np.nanmean, np.nanmean,  # 2
             np.nanmean, np.nanmean,  # 3
             np.nanmean, np.nansum,  # 4
@@ -576,7 +563,7 @@ def get_aggregation_functions():
             np.nanmean, np.nanmean, np.nanmean,  # 11
             np.nanmean, np.nanmean, np.nanmean,  # 12
             np.nanmean, np.nanmean,  # 13
-            tools.collapse_unique_components]  # 14
+            collapse_unique_components]  # 14
 
 
 if __name__ == "__main__":
@@ -605,72 +592,47 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         args = parser.parse_args()
-        actual = file_io.get_coordinates_from_file(args.actual_coordinates,
-                                                   (args.num_trials, args.num_items, args.dimension))
-        data = file_io.get_coordinates_from_file(args.data_coordinates,
-                                                 (args.num_trials, args.num_items, args.dimension))
+
+        # Generate configuration for analysis from args
         _analysis_configuration = AnalysisConfiguration(z_value=args.accuracy_z_value,
                                                         flags=PipelineFlags(args.pipeline_mode),
-                                                        debug_labels=[file_io.get_id_from_file_prefix(
+                                                        debug_labels=[get_id_from_file_prefix(
                                                             args.data_coordinates),
                                                             args.line_number])
-        _participant_data = ParticipantData([TrialData(_a, _d) for _a, _d in zip([actual[args.line_number]],
-                                                                                 [data[args.line_number]])])
+        # Load participant data
+        _participant_data = ParticipantData.load_from_file(args.actual_coordinates, args.data_coordinates,
+                                                           (args.num_trials, args.num_items, args.dimension))
+        # Because we're just visualizing one trial, strip away all but the requested trial
+        _participant_data.trials = [_participant_data.trials[args.line_number]]
+
+        # Run the pipeline
         full_pipeline(_participant_data, _analysis_configuration, visualize=True)
+
         exit()
 
     logging.info("No arguments found - assuming running in test mode.")
 
     # Test code
+
     '''
     a, b = generate_random_test_points(dimension=2, noise=0.2)
     full_pipeline(a, b, visualize=True)
     exit()
     '''
-    root_dir = r"Z:\Kevin\iPosition\Hillary\MRE\\"
-    actual = file_io.get_coordinates_from_file(root_dir + r"actual_coordinates.txt", (15, 5, 2))
-    data101 = file_io.get_coordinates_from_file(root_dir + r"101\101position_data_coordinates.txt", (15, 5, 2))
-    data104 = file_io.get_coordinates_from_file(root_dir + r"104\104position_data_coordinates.txt", (15, 5, 2))
-    data105 = file_io.get_coordinates_from_file(root_dir + r"105\105position_data_coordinates.txt", (15, 5, 2))
-    data112 = file_io.get_coordinates_from_file(root_dir + r"112\112position_data_coordinates.txt", (15, 5, 2))
-    data113 = file_io.get_coordinates_from_file(root_dir + r"113\113position_data_coordinates.txt", (15, 5, 2))
-    data114 = file_io.get_coordinates_from_file(root_dir + r"114\114position_data_coordinates.txt", (15, 5, 2))
-    data118 = file_io.get_coordinates_from_file(root_dir + r"118\118position_data_coordinates.txt", (15, 5, 2))
-    data119 = file_io.get_coordinates_from_file(root_dir + r"119\119position_data_coordinates.txt", (15, 5, 2))
-    data120 = file_io.get_coordinates_from_file(root_dir + r"120\120position_data_coordinates.txt", (15, 5, 2))
 
-    # Cycle Agree
-    full_pipeline(ParticipantData([TrialData(actual[10], data101[10])]),
-                  AnalysisConfiguration(debug_labels=["101", 10]), visualize=True)
-    full_pipeline(ParticipantData([TrialData(actual[12], data104[12])]),
-                  AnalysisConfiguration(debug_labels=["104", 12]), visualize=True)
-    full_pipeline(ParticipantData([TrialData(actual[2], data105[2])]),
-                  AnalysisConfiguration(debug_labels=["105", 2]), visualize=True)
-    full_pipeline(ParticipantData([TrialData(actual[6], data112[6])]),
-                  AnalysisConfiguration(debug_labels=["112", 6]), visualize=True)
+    actual_coordinates_filepath = r"Z:\Kevin\iPosition\Hillary\MRE\actual_coordinates.txt"
+    filepath_template = r"Z:\Kevin\iPosition\Hillary\MRE\{0}\{0}position_data_coordinates.txt"
+    participant_ids = ['101', '104', '105', '112', '104', '101', '114', '118', '119', '120', '101', '104', '113', '120']
+    labels = ['Cycle Agree - 101', 'Cycle Agree - 104', 'Cycle Agree - 105', 'Cycle Agree - 112',
+              'Debatable - 104',
+              'New Single Swap - 101', 'New Single Swap - 114',
+              'New Single Swap - 118', 'New Single Swap - 119', 'New Single Swap - 120',
+              'Old False Positive - 101', 'Old False Positive - 104',
+              'Old False Positive - 113', 'Old False Positive - 120']
+    trial_nums = [10, 12, 2, 6, 2, 0, 12, 10, 10, 14, 11, 10, 2, 12]
 
-    # Old Swap, New Cycle (only truly debatable one in my opinion)
-    full_pipeline(ParticipantData([TrialData(actual[2], data104[2])]),
-                  AnalysisConfiguration(debug_labels=["104", 2]), visualize=True)
-
-    # New Single Swap
-    full_pipeline(ParticipantData([TrialData(actual[0], data101[0])]),
-                  AnalysisConfiguration(debug_labels=["101", 0]), visualize=True)
-    full_pipeline(ParticipantData([TrialData(actual[12], data114[12])]),
-                  AnalysisConfiguration(debug_labels=["114", 12]), visualize=True)
-    full_pipeline(ParticipantData([TrialData(actual[10], data118[10])]),
-                  AnalysisConfiguration(debug_labels=["118", 10]), visualize=True)
-    full_pipeline(ParticipantData([TrialData(actual[10], data119[10])]),
-                  AnalysisConfiguration(debug_labels=["119", 10]), visualize=True)
-    full_pipeline(ParticipantData([TrialData(actual[14], data120[14])]),
-                  AnalysisConfiguration(debug_labels=["120", 14]), visualize=True)
-
-    # False Alarms (one or more old swap where new disagrees)
-    full_pipeline(ParticipantData([TrialData(actual[11], data101[11])]),
-                  AnalysisConfiguration(debug_labels=["101", 11]), visualize=True)
-    full_pipeline(ParticipantData([TrialData(actual[10], data104[10])]),
-                  AnalysisConfiguration(debug_labels=["104", 10]), visualize=True)
-    full_pipeline(ParticipantData([TrialData(actual[2], data113[2])]),
-                  AnalysisConfiguration(debug_labels=["113", 2]), visualize=True)
-    full_pipeline(ParticipantData([TrialData(actual[12], data120[12])]),
-                  AnalysisConfiguration(debug_labels=["120", 12]), visualize=True)
+    for pid, label, trial_n in zip(participant_ids, labels, trial_nums):
+        data = ParticipantData.load_from_file(actual_coordinates_filepath, filepath_template.format(pid), (15, 5, 2))
+        data.trials = [data.trials[trial_n]]
+        config = AnalysisConfiguration(debug_labels=[label, trial_n])
+        full_pipeline(data, config, visualize=True)

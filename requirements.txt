@@ -2,7 +2,7 @@ argparse
 logging
 matplotlib
 networkx
-enum
+enum34
 scipy
 numpy
 matplotlib_venn
