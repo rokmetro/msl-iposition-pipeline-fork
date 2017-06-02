@@ -5,6 +5,8 @@ import inspect
 
 from .file_io import get_coordinates_from_file
 
+# TODO: Documentation needs an audit/overhaul
+
 
 class PipelineFlags(Enum):
     Unknown = 0

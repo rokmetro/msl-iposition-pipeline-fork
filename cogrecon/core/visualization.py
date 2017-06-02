@@ -6,6 +6,8 @@ import logging
 from .tools import lerp
 from .data_structures import TrialData, ParticipantData, AnalysisConfiguration
 
+# TODO: Documentation needs an audit/overhaul
+
 
 # animation length in seconds
 # animation ticks in frames

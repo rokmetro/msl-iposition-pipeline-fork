@@ -6,3 +6,4 @@ enum34
 scipy
 numpy
 matplotlib_venn
+easygui

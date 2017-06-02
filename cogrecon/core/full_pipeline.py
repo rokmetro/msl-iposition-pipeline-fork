@@ -1,10 +1,4 @@
-import argparse
 import logging
-# noinspection PyUnresolvedReferences
-import sys
-# noinspection PyUnresolvedReferences
-import os
-# noinspection PyUnresolvedReferences
 import warnings
 import itertools
 import copy
@@ -13,14 +7,12 @@ import numpy as np
 from scipy.spatial import distance
 
 from .similarity_transform import similarity_transform
-from .file_io import get_id_from_file_prefix
 from .tools import validate_type, mask_points, collapse_unique_components
 from .visualization import visualization
 from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
 
 
 # TODO: Documentation needs an audit/overhaul
-# TODO: Addition transformation/de-anonymization methods(see https://en.wikipedia.org/wiki/Point_set_registration)
 
 # This function defines the misplacement metric which is used for minimization (in de-anonymization).
 # It is also used to calculate the original misplacement metric.
@@ -168,6 +160,7 @@ def geometric_transform(participant_data, analysis_configuration):
     return np.transpose(result)
 
 
+# TODO: Addition transformation/de-anonymization methods(see https://en.wikipedia.org/wiki/Point_set_registration)
 # noinspection PyDefaultArgument
 def trial_geometric_transform(trial_data, analysis_configuration):
     validate_type(trial_data, TrialData, "trial_data", "trial_geometric_transform")
@@ -564,75 +557,3 @@ def get_aggregation_functions():
             np.nanmean, np.nanmean, np.nanmean,  # 12
             np.nanmean, np.nanmean,  # 13
             collapse_unique_components]  # 14
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-
-    parser = argparse.ArgumentParser(description='Process a single set of points from a single trial in iPosition '
-                                                 'compared to a set of correct points. This will not generate an '
-                                                 'output file, but will instead print the resulting values and show a '
-                                                 'visualizer of the results.')
-    parser.add_argument('actual_coordinates', type=str, help='the path to the file containing the actual coordinates')
-    parser.add_argument('data_coordinates', type=str, help='the path to the file containing the data coordinates')
-    parser.add_argument('num_trials', type=int, help='the number of trials in the file')
-    parser.add_argument('num_items', type=int, help='the number of items to be analyzed')
-    parser.add_argument('line_number', type=int, help='the line number to be processed (starting with 0) - typically '
-                                                      'the trial number minus 1.')
-    parser.add_argument('--pipeline_mode', type=int, help='the mode in which the pipeline should process; \n\t0 for '
-                                                          'just accuracy+swaps, \n\t1 for '
-                                                          'accuracy+deanonymization+swaps, \n\t2 for accuracy+global '
-                                                          'transformations+swaps, \n\t3 for '
-                                                          'accuracy+deanonymization+global transformations+swaps \n'
-                                                          '(default is 3)', default=3)
-    parser.add_argument('--accuracy_z_value', type=float, help='the z value to be used for accuracy exclusion ('
-                                                               'default is 1.96), corresponding to 95% confidence; if ',
-                        default=1.96)
-    parser.add_argument('--dimension', type=int, help='the dimensionality of the data (default is 2)', default=2)
-
-    if len(sys.argv) > 1:
-        args = parser.parse_args()
-
-        # Generate configuration for analysis from args
-        _analysis_configuration = AnalysisConfiguration(z_value=args.accuracy_z_value,
-                                                        flags=PipelineFlags(args.pipeline_mode),
-                                                        debug_labels=[get_id_from_file_prefix(
-                                                            args.data_coordinates),
-                                                            args.line_number])
-        # Load participant data
-        _participant_data = ParticipantData.load_from_file(args.actual_coordinates, args.data_coordinates,
-                                                           (args.num_trials, args.num_items, args.dimension))
-        # Because we're just visualizing one trial, strip away all but the requested trial
-        _participant_data.trials = [_participant_data.trials[args.line_number]]
-
-        # Run the pipeline
-        full_pipeline(_participant_data, _analysis_configuration, visualize=True)
-
-        exit()
-
-    logging.info("No arguments found - assuming running in test mode.")
-
-    # Test code
-
-    '''
-    a, b = generate_random_test_points(dimension=2, noise=0.2)
-    full_pipeline(a, b, visualize=True)
-    exit()
-    '''
-
-    actual_coordinates_filepath = r"Z:\Kevin\iPosition\Hillary\MRE\actual_coordinates.txt"
-    filepath_template = r"Z:\Kevin\iPosition\Hillary\MRE\{0}\{0}position_data_coordinates.txt"
-    participant_ids = ['101', '104', '105', '112', '104', '101', '114', '118', '119', '120', '101', '104', '113', '120']
-    labels = ['Cycle Agree - 101', 'Cycle Agree - 104', 'Cycle Agree - 105', 'Cycle Agree - 112',
-              'Debatable - 104',
-              'New Single Swap - 101', 'New Single Swap - 114',
-              'New Single Swap - 118', 'New Single Swap - 119', 'New Single Swap - 120',
-              'Old False Positive - 101', 'Old False Positive - 104',
-              'Old False Positive - 113', 'Old False Positive - 120']
-    trial_nums = [10, 12, 2, 6, 2, 0, 12, 10, 10, 14, 11, 10, 2, 12]
-
-    for pid, label, trial_n in zip(participant_ids, labels, trial_nums):
-        data = ParticipantData.load_from_file(actual_coordinates_filepath, filepath_template.format(pid), (15, 5, 2))
-        data.trials = [data.trials[trial_n]]
-        config = AnalysisConfiguration(debug_labels=[label, trial_n])
-        full_pipeline(data, config, visualize=True)

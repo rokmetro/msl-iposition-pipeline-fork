@@ -10,6 +10,7 @@ import numpy as np
 """
 Modified by Kevin Horecka Feb 11, 2017
 """
+# TODO: Documentation needs an audit/overhaul
 
 
 def similarity_transform(from_points, to_points):

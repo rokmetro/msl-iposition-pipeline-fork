@@ -7,14 +7,15 @@ class DraggablePoint:
 
     def __init__(self, point, move_callback=None):
         self.move_callback = move_callback
+        self.point = point
         self.cidmotion = self.point.figure.canvas.mpl_connect('motion_notify_event', self.on_motion)
         self.cidrelease = self.point.figure.canvas.mpl_connect('button_release_event', self.on_release)
         self.cidpress = self.point.figure.canvas.mpl_connect('button_press_event', self.on_press)
-        self.point = point
         self.press = None
         self.background = None
 
     def connect(self, move_callback=None):
+        self.move_callback = move_callback
         # connect to all the events we need
         pass
 
@@ -43,9 +44,6 @@ class DraggablePoint:
         canvas.blit(axes.bbox)
 
     def on_motion(self, event):
-        if self.move_callback:
-            self.move_callback()
-
         if DraggablePoint.lock is not self:
             return
         if event.inaxes != self.point.axes:
@@ -67,7 +65,11 @@ class DraggablePoint:
         # blit just the redrawn area
         canvas.blit(axes.bbox)
 
-    def on_release(self):
+    # noinspection PyUnusedLocal
+    def on_release(self, e):
+        if self.move_callback:
+            self.move_callback()
+
         # on release we reset the press data
         if DraggablePoint.lock is not self:
             return
@@ -88,7 +90,8 @@ class DraggablePoint:
         self.point.figure.canvas.mpl_disconnect(self.cidrelease)
         self.point.figure.canvas.mpl_disconnect(self.cidmotion)
 
-if __name__ == "__main__":
+
+def test_draggable_points():
     fig = plt.figure()
     ax = fig.add_subplot(111)
     drs = []

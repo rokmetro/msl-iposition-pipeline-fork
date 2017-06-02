@@ -2,6 +2,8 @@ import numpy as np
 import itertools
 import random
 
+# TODO: Documentation needs an audit/overhaul
+
 
 # This function is for testing. It generates a set of "correct" and "incorrect" points such that the correct points are
 # randomly placed between (0,0) and (1,1) in R2. Then it generates "incorrect" points which are offset randomly up
@@ -15,13 +17,17 @@ def generate_random_test_points(number_of_points=5, dimension=2, shuffle_points=
     if shuffle_points:
         perms = list(itertools.permutations(input_points))
         input_points = perms[random.randint(0, len(perms) - 1)]
-    for i in range(0, num_rerandomed_points):
-        indicies = random.sample(range(0, len(input_points)))
-        for index in indicies:
-            for idx in range(len(input_points[index])):
-                input_points[index][idx] = random.random()
 
-    return correct_points, input_points
+    if num_rerandomed_points > len(input_points):  # Bound the number of randomized points to the number of points
+        num_rerandomed_points = len(input_points)
+    # Generate a random sampling of point indicies
+    indicies = random.sample(range(0, len(input_points)), num_rerandomed_points)
+    # Loop through each index and re-randomize each element in the point
+    for index in indicies:
+        for idx in range(len(input_points[index])):
+            input_points[index][idx] = random.random()
+
+    return np.array(correct_points).tolist(), np.array(input_points).tolist()
 
 
 # This function performs simple vector linear interpolation on two equal length number lists

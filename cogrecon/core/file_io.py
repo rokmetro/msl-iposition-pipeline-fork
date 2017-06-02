@@ -1,8 +1,9 @@
 import numpy as np
 import logging
 import os
-import types
 import time
+
+# TODO: Documentation needs an audit/overhaul
 
 
 # This function reads a data file and shapes the data into the appropriate expected shape (usually (Nt, Ni, 2) where
@@ -40,7 +41,7 @@ def find_data_files_in_directory(directory, actual_coordinate_prefixes=False, pr
     :return: the actual coordinate filename/path (None if no file was found), a list of the data filenames/paths
     (empty list if no files were found)
     """
-    assert isinstance(directory, types.StringType), "directory is not a string: {0}".format(directory)
+    assert isinstance(directory, str), "directory is not a string: {0}".format(directory)
 
     if not os.path.exists(directory):
         raise IOError('The input path was not found.')

@@ -1,27 +1,12 @@
-# noinspection PyUnresolvedReferences
-import argparse
-import datetime
-# noinspection PyUnresolvedReferences
 import logging
-# noinspection PyUnresolvedReferences
 import os
-# noinspection PyUnresolvedReferences
-import sys
-# noinspection PyCompatibility
-from tkFileDialog import askdirectory
-
-try:
-    import tkinter as tk
-except ImportError:
-    import Tkinter as tk
-
 import numpy as np
-
-import types
 
 from .full_pipeline import full_pipeline, get_aggregation_functions, get_header_labels
 from .file_io import get_coordinates_from_file, get_id_from_file_prefix, find_data_files_in_directory
 from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
+
+# TODO: Documentation needs an audit/overhaul
 
 logging.basicConfig(level=logging.INFO)
 
@@ -38,12 +23,12 @@ def validate_list_format(l, require_numeric=False, dimension=None, list_name="li
     (default is None, meaning it is not checked)
     :param list_name: (optional) the name (string) of the list for debugging purposes (default is "list")
     """
-    assert isinstance(require_numeric, types.BooleanType), "require_numeric is not a bool: {0}".format(require_numeric)
-    assert isinstance(list_name, types.StringType), "list_name is not string: {0}".format(list_name)
-    assert isinstance(l, types.ListType) or isinstance(l, types.TupleType) or isinstance(l, np.ndarray), \
+    assert isinstance(require_numeric, bool), "require_numeric is not a bool: {0}".format(require_numeric)
+    assert isinstance(list_name, str), "list_name is not string: {0}".format(list_name)
+    assert isinstance(l, list) or isinstance(l, tuple) or isinstance(l, np.ndarray), \
         "{1} should be list or numpy array: {0}".format(l, list_name)
     if dimension:
-        assert isinstance(dimension, types.IntType), "dimension is not an integer: {0}".format(dimension)
+        assert isinstance(dimension, int), "dimension is not an integer: {0}".format(dimension)
         assert dimension > 0, "dimension is not greater than 0: {0}".format(dimension)
         assert len(np.array(l).shape) == dimension, \
             ("{1} should be a 3d list or numpy array of form (Nt, Ni, d) where Nt is the number of " +
@@ -68,8 +53,8 @@ def validate_equal_list_shapes(l1, l2, expected_shape=None, l1_name="list1", l2_
     :param l1_name: (optional) the name (string) of l1 for debugging
     :param l2_name: (optional) the name (string) of l2 for debugging
     """
-    assert isinstance(l1_name, types.StringType), "l1_name is not string: {0}".format(l1_name)
-    assert isinstance(l2_name, types.StringType), "l2_name is not string: {0}".format(l2_name)
+    assert isinstance(l1_name, str), "l1_name is not string: {0}".format(l1_name)
+    assert isinstance(l2_name, str), "l2_name is not string: {0}".format(l2_name)
     validate_list_format(l1)
     validate_list_format(l2)
     if expected_shape:
@@ -114,8 +99,8 @@ def get_single_file_result(actual_coordinates, dat, label="", accuracy_z_value=1
 
     validate_equal_list_shapes(actual_coordinates, dat, l1_name="actual_coordinates", l2_name="dat")
 
-    assert isinstance(label, types.StringType), "label must be a string: {0}".format(label)
-    assert isinstance(accuracy_z_value, types.IntType) or isinstance(accuracy_z_value, types.FloatType), \
+    assert isinstance(label, str), "label must be a string: {0}".format(label)
+    assert isinstance(accuracy_z_value, int) or isinstance(accuracy_z_value, float), \
         "accuracy_z_value must be int or float: {0}".format(accuracy_z_value)
     assert accuracy_z_value > 0, \
         "accuracy_z_value must be greater than 0: {0}".format(accuracy_z_value)
@@ -141,7 +126,7 @@ def detect_shape_from_file(path, dimension):
     :param dimension: a value (integer) which represents the dimensionality of the data
     :return: the trial count, the item count
     """
-    assert isinstance(path, types.StringType), 'path is not string: {0}'.format(path)
+    assert isinstance(path, str), 'path is not string: {0}'.format(path)
     assert os.path.exists(path), 'path does not exist: {0}'.format(path)
 
     with open(path) as tsv:
@@ -195,21 +180,21 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     :param prefix_length: the number of characters at the beginning of the data filenames which constitute the
     subject ID (default is 3)
     """
-    assert isinstance(search_directory, types.StringType), \
+    assert isinstance(search_directory, str), \
         "search_directory must be a string: {0}".format(search_directory)
     assert len(search_directory) > 0, "search_directory must have length greater than 0: {0}".format(search_directory)
     if data_shape:
         validate_list_format(data_shape, dimension=1, require_numeric=True, list_name="data_shape")
-    assert isinstance(out_filename, types.StringType), "out_filename is not string: {0}".format(out_filename)
+    assert isinstance(out_filename, str), "out_filename is not string: {0}".format(out_filename)
     assert len(out_filename) > 0, "out_filename must have length greater than 0: {0}".format(out_filename)
-    assert isinstance(accuracy_z_value, types.IntType) or isinstance(accuracy_z_value, types.FloatType), \
+    assert isinstance(accuracy_z_value, int) or isinstance(accuracy_z_value, float), \
         "accuracy_z_value must be int or float: {0}".format(accuracy_z_value)
     assert accuracy_z_value > 0, \
         "accuracy_z_value must be greater than 0: {0}".format(accuracy_z_value)
     assert isinstance(flags, PipelineFlags), \
         "flags is not of type PipelineFlags: {0}".format(flags)
-    assert isinstance(collapse_trials, types.BooleanType), "collapse_trials is not a bool: {0}".format(collapse_trials)
-    assert isinstance(trial_by_trial_accuracy, types.BooleanType), \
+    assert isinstance(collapse_trials, bool), "collapse_trials is not a bool: {0}".format(collapse_trials)
+    assert isinstance(trial_by_trial_accuracy, bool), \
         "trial_by_trial_accuracy is not a bool: {0}".format(trial_by_trial_accuracy)
 
     logging.info('Finding files in folder {0}.'.format(search_directory))
@@ -323,113 +308,3 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     out_fp.close()
 
     logging.info('Done processing all files. Data can be found in {0}.'.format(out_filename))
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-
-    parser = argparse.ArgumentParser(description='Process a single set of points from a single trial in iPosition '
-                                                 'compared to a set of correct points. This will not generate an '
-                                                 'output file, but will instead print the resulting values and show a '
-                                                 'visualizer of the results.')
-    parser.add_argument('--search_directory', type=str, help='the root directory in which to search for the actual and '
-                                                             'data coordinate files (actual_coordinates.txt and '
-                                                             '###position_data_coordinates.txt, respectively)',
-                        default=None)
-    parser.add_argument('--num_trials', type=int, help='the number of trials in each file', default=None)
-    parser.add_argument('--num_items', type=int, help='the number of items to be analyzed', default=None)
-    parser.add_argument('--pipeline_mode', type=int, help='the mode in which the pipeline should process; \n\t0 for '
-                                                          'just accuracy+swaps, \n\t1 for '
-                                                          'accuracy+deanonymization+swaps, \n\t2 for accuracy+global '
-                                                          'transformations+swaps, \n\t3 for '
-                                                          'accuracy+deanonymization+global transformations+swaps \n('
-                                                          'default is 3)', default=3)
-    parser.add_argument('--accuracy_z_value', type=float, help='the z value to be used for accuracy exclusion ('
-                                                               'default is 1.96, corresponding to 95% confidence',
-                        default=1.96)
-    parser.add_argument('--collapse_trials', type=int, help='if 0, one row per trial will be output, otherwise one '
-                                                            'row per participant will be output (default is 1)',
-                        default=1)
-    parser.add_argument('--dimension', type=int, help='the dimensionality of the data (default is 2)', default=2)
-    parser.add_argument('--trial_by_trial_accuracy', type=int, help='when not 0, z_value thresholds are used on a '
-                                                                    'trial-by-trial basis for accuracy calculations, '
-                                                                    'when 0, the thresholds are computed then '
-                                                                    'collapsed across an individual\'s trials',
-                        default=1)
-    parser.add_argument('--prefix_length', type=int, help='the length of the subject ID prefix at the beginning of '
-                                                          'the data filenames (default is 3)', default=3)
-    parser.add_argument('--actual_coordinate_prefixes', type=int, help='if 0, the normal assumption that all '
-                                                                       'participants used the same '
-                                                                       'actual_coordinates.txt file will be used. if '
-                                                                       'not 0, it is assumed that all '
-                                                                       'actual_coordinates.txt files have a prefix '
-                                                                       'which is matched in the '
-                                                                       'position_data_coordinates.txt prefix. Thus, '
-                                                                       'there should be a one-to-one correspondance '
-                                                                       'between actual_coordinates.txt and '
-                                                                       'position_data_coordinates.txt files and their '
-                                                                       'contents.', default=0)
-    parser.add_argument('--manual_swap_accuracy_threshold_list', type=str,
-                        help='if empty string or none, the value is ignored. if a string (path) pointing to a text '
-                             'file containing a new line separated list of id,threshold pairs is provided, '
-                             'any files whose participant id matches the first matching id in the list will have the '
-                             'associated threshold applied instead of being automatically computed.',
-                        default='')
-    if len(sys.argv) > 1:
-        args = parser.parse_args()
-        if args.search_directory is None:
-            tk_root = tk.Tk()
-            tk_root.withdraw()
-            selected_directory = str(askdirectory())
-        else:
-            selected_directory = args.search_directory
-        if len(selected_directory) == 0:  # Gracefully exit if cancel is clicked
-            exit()
-        if not args.num_trials or not args.num_items:
-            logging.warning('Either num_items or num_trials was not provided. The data shape will be automatically ' +
-                            'detected from the actual coordinates.')
-            d_shape = None
-        else:
-            d_shape = (args.num_trials, args.num_items, args.dimension)
-        manual_swap_accuracy_threshold_list = None
-        if args.manual_swap_accuracy_threshold_list is not None:
-            # noinspection PyBroadException
-            try:
-                with open(args.manual_swap_accuracy_threshold_list) as f:
-                    lis = [line.split(',') for line in f]
-                    for idx, (_, d_threshold) in enumerate(lis):
-                        lis[idx][1] = float(d_threshold)
-                    manual_swap_accuracy_threshold_list = lis
-            except:
-                logging.warning(
-                    'the provided manual_swap_accuracy_threshold_list was either not found or invalid - it will be '
-                    'skipped')
-        batch_pipeline(selected_directory,
-                       datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.csv"),
-                       data_shape=d_shape,
-                       accuracy_z_value=args.accuracy_z_value,
-                       trial_by_trial_accuracy=args.trial_by_trial_accuracy != 0,
-                       flags=PipelineFlags(args.pipeline_mode),
-                       collapse_trials=args.collapse_trials != 0,
-                       dimension=args.dimension,
-                       prefix_length=args.prefix_length,
-                       actual_coordinate_prefixes=args.actual_coordinate_prefixes,
-                       manual_threshold=manual_swap_accuracy_threshold_list)
-        exit()
-
-    logging.info("No arguments found - assuming running in test mode.")
-
-    tk_root = tk.Tk()
-    tk_root.withdraw()
-    selected_directory = str(askdirectory())
-
-    if os.path.exists(selected_directory):
-        batch_pipeline(selected_directory, datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.csv"))
-    elif selected_directory is not '':
-        logging.error('Directory not found.')
-        exit()
-    else:
-        exit()
-        # batch_pipeline("Z:\\Kevin\\iPosition\\Hillary\\MRE",
-        #                datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.csv"),
-        #                data_shape=(15, 5, 2))
