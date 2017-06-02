@@ -7,7 +7,7 @@ import numpy as np
 from scipy.spatial import distance
 
 from .similarity_transform import similarity_transform
-from .tools import validate_type, mask_points, collapse_unique_components
+from .tools import validate_type, mask_points, collapse_unique_components, find_minimal_mapping
 from .visualization import visualization
 from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
 
@@ -359,19 +359,9 @@ def deanonymize(participant_data):
     min_score_positions = []
     raw_deanonymized_misplacements = []
     for actual_trial, data_trial in zip(actual_points, data_points):
-        min_score = np.inf
-        min_score_idx = -1
-        min_permutation = data_trial
-        idx = 0
-        for perm in itertools.permutations(data_trial):
-            score = minimization_function(perm, actual_trial)
-            if score < min_score:
-                min_score = score
-                min_score_idx = idx
-                min_permutation = perm
-                if score == 0:
-                    break
-            idx += 1
+
+        min_score, min_score_idx, min_permutation = find_minimal_mapping(actual_points, data_points)
+
         min_score_positions.append(min_score_idx)
         min_scores.append(min_score)
         min_coordinates.append(list(min_permutation))
