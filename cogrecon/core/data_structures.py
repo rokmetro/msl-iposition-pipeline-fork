@@ -24,7 +24,8 @@ class PipelineFlags(Enum):
 
 
 class TrialData(object):
-    def __init__(self, actual_points=None, data_points=None, actual_labels=None, data_labels=None):
+    def __init__(self, actual_points=None, data_points=None, actual_labels=None, data_labels=None,
+                 cateogry_labels=None, data_order=None):
         if data_labels is None:
             data_labels = []
         if actual_labels is None:
@@ -44,6 +45,8 @@ class TrialData(object):
         self._data_labels = None
         self._distance_accuracy_map = None
         self._distance_threshold = None
+        self._category_labels = None
+        self._data_order = None
 
         self.actual_points = actual_points
         self.data_points = data_points
@@ -55,6 +58,19 @@ class TrialData(object):
             self.data_labels = range(0, len(self.data_points))
         else:
             self.data_labels = data_labels
+
+        if cateogry_labels is not None:
+            self.category_labels = cateogry_labels
+        if data_order is not None:
+            self.data_order = data_order
+
+    @property
+    def category_labels(self):
+        return self._category_labels
+
+    @property
+    def data_order(self):
+        return self._data_order
 
     @property
     def distance_accuracy_map(self):
@@ -122,6 +138,17 @@ class TrialData(object):
         assert isinstance(value, float), "TrialData distance_threshold must be type float"
         self._distance_threshold = value
 
+    @category_labels.setter
+    def category_labels(self, value):
+        assert isinstance(value, list), "TrialData category_labels must be type list"
+        self._category_labels = value
+
+    @data_order.setter
+    def data_order(self, value):
+        assert isinstance(value, list), "TrialData data_order must be type list"
+        assert all([isinstance(x, int) for x in value]), "TrialData data_order must only contain int"
+        self._data_order = value
+
 
 class ParticipantData(object):
     def __init__(self, trials, identity=None):
@@ -156,11 +183,38 @@ class ParticipantData(object):
         else:
             self.__dict__[attribute] = value
 
+    # noinspection PyUnusedLocal
     @staticmethod
-    def load_from_file(actual_coordinates_filepath, data_coordinates_filepath, expected_shape):
+    def category_split_participant(original_participant_data, unique_categories):
+        # TODO: Implement this
+        # verify category uniqueness
+        # extract data from each category
+        # data from categories returned as list sorted by unique_categories order
+        # data from unknown categories should be returned as well as separate tuple value
+        category_data = []
+        unknown_categories_data = []
+        raise NotImplementedError
+        # return category_data, unknown_categories_data
+
+    @staticmethod
+    def load_from_file(actual_coordinates_filepath, data_coordinates_filepath, expected_shape,
+                       category_filepath=None, order_filepath=None):
         actual = get_coordinates_from_file(actual_coordinates_filepath, expected_shape)
         data = get_coordinates_from_file(data_coordinates_filepath, expected_shape)
-        _participant_data = ParticipantData([TrialData(_a, _d) for _a, _d in zip(actual, data)])
+        category = [None] * len(actual)
+        order = [None] * len(actual)
+        if category_filepath is not None:
+            # categories are always 1D, so we strip the dimensionality and add a [1] to the list
+            # categories can be any type, so we set type to None
+            category = get_coordinates_from_file(category_filepath, tuple(list(expected_shape[:2]) + [1]),
+                                                 data_type=None)
+        if order_filepath is not None:
+            # order is always 1D, so we strip the dimensionality and add a [1] to the list
+            # order should be an integer, so we set type to int
+            order = get_coordinates_from_file(order_filepath, tuple(list(expected_shape[:2]) + [1]),
+                                              data_type=int)
+        _participant_data = ParticipantData([TrialData(_a, _d, cateogry_labels=_c, data_order=_o)
+                                             for _a, _d, _o, _c in zip(actual, data, category, order)])
 
         return _participant_data
 
@@ -170,12 +224,19 @@ class AnalysisConfiguration:
     def __init__(self, z_value=1.96,
                  trial_by_trial_accuracy=True, manual_threshold=None,
                  flags=PipelineFlags(PipelineFlags.All),
+                 greedy_order_deanonymization=False,
+                 process_categories_independently=False, is_category=False, category_label=None,
                  debug_labels=['']):
         self.z_value = float(z_value)
         self.trial_by_trial_accuracy = bool(trial_by_trial_accuracy)
         if manual_threshold is not None:
             assert isinstance(manual_threshold, float), "AnalysisConfiguration manual_threshold must be of type float"
         self.manual_threshold = manual_threshold
+
+        self.greedy_order_deanonymization = bool(greedy_order_deanonymization)
+        self.category_independence = bool(process_categories_independently)
+        self.is_category = bool(is_category)
+        self.category_label = category_label
         self.debug_labels = list(debug_labels)
 
         assert isinstance(flags, PipelineFlags), 'AnalysisConfiguration flags must be of type PipelineFlags'

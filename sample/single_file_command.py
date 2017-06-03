@@ -3,7 +3,7 @@ import argparse
 import sys
 from cogrecon.core.full_pipeline import full_pipeline
 from cogrecon.core.data_structures import ParticipantData, AnalysisConfiguration, PipelineFlags
-from cogrecon.core.file_io import get_id_from_file_prefix
+from cogrecon.core.file_io import get_id_from_file_prefix_via_suffix
 
 # TODO: Documentation needs an audit/overhaul
 
@@ -31,18 +31,27 @@ if __name__ == "__main__":
                         default=1.96)
     parser.add_argument('--dimension', type=int, help='the dimensionality of the data (default is 2)', default=2)
 
+    parser.add_argument('--order_file', type=str, help='the path to the file containing the order information with '
+                                                       'respect to data_coordinates',
+                        default=None)
+    parser.add_argument('--category_file', type=str, help='the path to the file containing the category data with '
+                                                          'respect to both actual_coordinates and data_coordinates',
+                        default=None)
+
     if len(sys.argv) > 1:
         args = parser.parse_args()
 
         # Generate configuration for analysis from args
         _analysis_configuration = AnalysisConfiguration(z_value=args.accuracy_z_value,
                                                         flags=PipelineFlags(args.pipeline_mode),
-                                                        debug_labels=[get_id_from_file_prefix(
-                                                            args.data_coordinates),
+                                                        debug_labels=[get_id_from_file_prefix_via_suffix(
+                                                            args.data_coordinates, "position_data_coordinates.txt"),
                                                             args.line_number])
         # Load participant data
         _participant_data = ParticipantData.load_from_file(args.actual_coordinates, args.data_coordinates,
-                                                           (args.num_trials, args.num_items, args.dimension))
+                                                           (args.num_trials, args.num_items, args.dimension),
+                                                           order_filepath=args.order_file,
+                                                           category_filepath=args.category_file)
         # Because we're just visualizing one trial, strip away all but the requested trial
         _participant_data.trials = [_participant_data.trials[args.line_number]]
 

@@ -1,14 +1,21 @@
 import numpy as np
 import itertools
 import random
+import sys
 
+import scipy.spatial.distance as distance
 from scipy.spatial.distance import cdist
 from scipy.optimize import linear_sum_assignment
 from math import factorial
 
-from .full_pipeline import minimization_function
 
 # TODO: Documentation needs an audit/overhaul
+
+
+# This function defines the misplacement metric which is used for minimization (in de-anonymization).
+# It is also used to calculate the original misplacement metric.
+def sum_of_distance(list1, list2):
+    return sum(np.diag(distance.cdist(list1, list2)))
 
 
 # This function is for testing. It generates a set of "correct" and "incorrect" points such that the correct points are
@@ -64,7 +71,7 @@ def brute_force_find_minimal_mapping(p0, p1):
     min_permutation = p1
     idx = 0
     for perm in itertools.permutations(p1):
-        score = minimization_function(perm, p0)
+        score = sum_of_distance(perm, p0)
         if score < min_score:
             min_score = score
             min_score_idx = idx
@@ -104,4 +111,34 @@ def find_minimal_mapping(p0, p1):
     _, assignment = linear_sum_assignment(C)
     print(assignment)
     p1_reordered = [p1[idx] for idx in assignment]
-    return minimization_function(p0, p1_reordered), lexicographic_index(assignment), p1_reordered
+    return sum_of_distance(p0, p1_reordered), lexicographic_index(assignment), p1_reordered
+
+
+# noinspection PyUnusedLocal
+def greedy_find_minimal_mapping(p0, p1, order):
+    assert len(p0) == len(p1) and len(p0) == len(order), "greedy_find_minimal_mapping requires all list to be equal " \
+                                                         "in length "
+    assert sorted(list(set(order))) == list(range(len(order))), "greedy_find_minimal_mapping order should contain " \
+                                                                "unique values between 0 and n-1, inclusively, " \
+                                                                "where n is the number of items "
+    # Sort by order
+    indices = list(range(len(order)))
+    indices.sort(key=order.__getitem__)
+    sorted_p0 = list(map(p0.__getitem__, indices))
+    sorted_p1 = list(map(p1.__getitem__, indices))
+
+    map_order = []
+    for idx, p in enumerate(sorted_p1):
+        min_dist = sys.float_info.max
+        min_idx = -1
+        for idxx, pp in enumerate(sorted_p0):
+            dist = distance.euclidean(p, pp)
+            if dist < min_dist:
+                min_dist = dist
+                min_idx = idx
+        map_order.append(min_idx)
+        del sorted_p1[min_idx]
+
+    p1_reordered = [p1[idx] for idx in map_order]
+
+    return sum_of_distance(p0, p1_reordered), lexicographic_index(map_order), p1_reordered

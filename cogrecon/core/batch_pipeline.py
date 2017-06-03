@@ -1,9 +1,10 @@
 import logging
 import os
 import numpy as np
+import copy
 
 from .full_pipeline import full_pipeline, get_aggregation_functions, get_header_labels
-from .file_io import get_coordinates_from_file, get_id_from_file_prefix, find_data_files_in_directory
+from .file_io import get_coordinates_from_file, get_id_from_file_prefix_via_suffix, find_data_files_in_directory
 from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
 
 # TODO: Documentation needs an audit/overhaul
@@ -71,13 +72,16 @@ def validate_equal_list_shapes(l1, l2, expected_shape=None, l1_name="list1", l2_
 
 
 # threshold values for each process step
-def get_single_file_result(actual_coordinates, dat, label="", accuracy_z_value=1.96,
+def get_single_file_result(actual_coordinates, dat, categories=None, data_orders=None,
+                           label="", accuracy_z_value=1.96,
                            trial_by_trial_accuracy=True, manual_threshold=None,
                            flags=PipelineFlags.All):
     """
     This function generates the results for a specific file's data structure, usually containing multiple trials
 
-    :param manual_threshold: 
+    :param data_orders:
+    :param categories:
+    :param manual_threshold:
     :rtype: list (or empty list)
     :param actual_coordinates: the correct coordinates for the points - an (Nt, Ni, d) sized list of floats where Nt is
     the number of trials, Ni is the number of items, and d is the dimensionality of the points
@@ -112,7 +116,18 @@ def get_single_file_result(actual_coordinates, dat, label="", accuracy_z_value=1
                                                     debug_labels=[label],
                                                     trial_by_trial_accuracy=trial_by_trial_accuracy,
                                                     manual_threshold=manual_threshold)
-    _participant_data = ParticipantData([TrialData(_a, _d) for _a, _d in zip(actual_coordinates, dat)])
+    if categories is None:
+        categories = [None] * len(actual_coordinates)
+    else:
+        validate_list_format(categories, require_numeric=False, dimension=3, list_name="categories")
+        assert len(categories) == len(actual_coordinates), "categories must be same length as actual_coordinates"
+    if data_orders is None:
+        data_orders = [None] * len(actual_coordinates)
+    else:
+        validate_list_format(data_orders, require_numeric=False, dimension=3, list_name="data_orders")
+        assert len(categories) == len(dat), "data_orders must be same length as data_coordinates"
+    _participant_data = ParticipantData([TrialData(_a, _d, cateogry_labels=_c, data_order=_o)
+                                         for _a, _d, _c, _o in zip(actual_coordinates, dat, categories, data_orders)])
 
     # Process the participant
     return full_pipeline(_participant_data, _analysis_configuration)
@@ -145,20 +160,27 @@ def detect_shape_from_file(path, dimension):
         assert trial_count > 0, "no trials detected: {0}".format(path)
         assert item_count_list[0] > 0, "no items detected".format(path)
 
-        return trial_count, int(float(item_count_list[0]) / float(dimension))
+        return trial_count, int(float(item_count_list[0]) / float(dimension)), dimension
 
 
-def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_value=1.96,
+def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=2, accuracy_z_value=1.96,
                    trial_by_trial_accuracy=True,
                    flags=PipelineFlags.All,
-                   collapse_trials=True, dimension=2, prefix_length=3,
-                   actual_coordinate_prefixes=False, manual_threshold=None):
+                   collapse_trials=True, manual_threshold=None,
+                   actual_coordinate_prefixes=False,
+                   category_independence_enabled=False, category_prefixes=False,
+                   order_greedy_deanonymization_enabled=False, order_prefxies=True):
     """
     This function allows the easy running of the pipeline on a directory and all of the appropriate files in its
     subdirectories. It will search for the actual coordinates and data files and process them all as specified
     by the other parameters.
 
-    :param manual_threshold: 
+    :param dimension:
+    :param order_prefxies:
+    :param category_prefixes:
+    :param order_greedy_deanonymization_enabled:
+    :param category_independence_enabled:
+    :param manual_threshold:
     :param actual_coordinate_prefixes: 
     :rtype: None
     :param search_directory: the directory (string) in which to recursively search for data files
@@ -176,61 +198,102 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     the data (default is PipelineFlags.All)
     :param collapse_trials: (optional) if True, the output file will contain one row per participant, otherwise each
     trial will be output in an individual row
-    :param dimension: (optional) the dimensionality of the data (default is 2)
-    :param prefix_length: the number of characters at the beginning of the data filenames which constitute the
-    subject ID (default is 3)
     """
     assert isinstance(search_directory, str), \
         "search_directory must be a string: {0}".format(search_directory)
     assert len(search_directory) > 0, "search_directory must have length greater than 0: {0}".format(search_directory)
     if data_shape:
         validate_list_format(data_shape, dimension=1, require_numeric=True, list_name="data_shape")
-    assert isinstance(out_filename, str), "out_filename is not string: {0}".format(out_filename)
-    assert len(out_filename) > 0, "out_filename must have length greater than 0: {0}".format(out_filename)
+    assert isinstance(out_filename, str), \
+        "out_filename is not string: {0}".format(out_filename)
+    assert len(out_filename) > 0, \
+        "out_filename must have length greater than 0: {0}".format(out_filename)
     assert isinstance(accuracy_z_value, int) or isinstance(accuracy_z_value, float), \
         "accuracy_z_value must be int or float: {0}".format(accuracy_z_value)
     assert accuracy_z_value > 0, \
         "accuracy_z_value must be greater than 0: {0}".format(accuracy_z_value)
     assert isinstance(flags, PipelineFlags), \
         "flags is not of type PipelineFlags: {0}".format(flags)
-    assert isinstance(collapse_trials, bool), "collapse_trials is not a bool: {0}".format(collapse_trials)
+    assert isinstance(collapse_trials, bool), \
+        "collapse_trials is not a bool: {0}".format(collapse_trials)
     assert isinstance(trial_by_trial_accuracy, bool), \
         "trial_by_trial_accuracy is not a bool: {0}".format(trial_by_trial_accuracy)
+    assert isinstance(category_independence_enabled, bool), \
+        "category_independence_enabled is not a bool {0}".format(category_independence_enabled)
+    assert isinstance(order_greedy_deanonymization_enabled, bool), \
+        "order_greedy_deanonymization_enabled is not a bool {0}".format(order_greedy_deanonymization_enabled)
 
     logging.info('Finding files in folder {0}.'.format(search_directory))
 
     # Find the files
-    actual_coordinates_filename = data_coordinates_filenames = None
+    actual_coordinates_filename = data_coordinates_filenames = category_filenames = order_filenames = None
     try:
-        actual_coordinates_filename, data_coordinates_filenames = \
+        actual_coordinates_filename, data_coordinates_filenames, category_filenames, order_filenames = \
             find_data_files_in_directory(search_directory,
                                          actual_coordinate_prefixes=actual_coordinate_prefixes,
-                                         prefix_length=prefix_length)
-        data_coordinates_filenames = np.sort(data_coordinates_filenames)
+                                         category_independence_enabled=category_independence_enabled,
+                                         order_greedy_deanonymization_enabled=order_greedy_deanonymization_enabled,
+                                         category_prefixes=category_prefixes,
+                                         order_prefixes=order_prefxies)
     except IOError:
         logging.error('The input path was not found.')
         exit()
 
+    if data_shape is None:
+        data_shape = detect_shape_from_file(data_coordinates_filenames[0], dimension)
+
     logging.info('Parsing files with expected shape {0}.'.format(data_shape))
 
-    # Parse the files
-    if not actual_coordinate_prefixes:
-        if data_shape is None:
-            num_trials, num_items = detect_shape_from_file(actual_coordinates_filename, dimension)
-            data_shape = (num_trials, num_items, dimension)
-        actual_coordinates = get_coordinates_from_file(actual_coordinates_filename, data_shape)
-        data_coordinates = [get_coordinates_from_file(filename, data_shape) for filename in data_coordinates_filenames]
-    else:
-        data_shapes = []
-        for acf in actual_coordinates_filename:
-            num_trials, num_items = detect_shape_from_file(acf, dimension)
-            data_shapes.append((num_trials, num_items, dimension))
-        actual_coordinates = [get_coordinates_from_file(filename, data_shapes[iidx]) for iidx, filename in
-                              enumerate(actual_coordinates_filename)]
-        data_coordinates = [get_coordinates_from_file(filename, data_shapes[iidx]) for iidx, filename in
-                            enumerate(data_coordinates_filenames)]
-    data_labels = [get_id_from_file_prefix(filename, prefix_length=prefix_length) for filename in
+    data_coordinates = []
+    for f in data_coordinates_filenames:
+        if f is None or f == "":
+            data_coordinates.append(None)
+        else:
+            data_coordinates.append(get_coordinates_from_file(f, data_shape))
+
+    actual_coordinates = []
+    for idx, f in enumerate(actual_coordinates_filename):
+        if f is None or f == "":
+            actual_coordinates.append(None)
+        else:
+            try:
+                index_check = actual_coordinates_filename.index(f)
+            except ValueError:
+                index_check = len(actual_coordinates) + 1
+            if index_check < idx:
+                actual_coordinates.append(copy.copy(actual_coordinates[index_check]))
+            else:
+                actual_coordinates.append(get_coordinates_from_file(f, data_shape))
+
+    categories = []
+    for idx, f in enumerate(category_filenames):
+        if f is None or f == "" or f == []:
+            categories.append(None)
+        else:
+            try:
+                index_check = category_filenames.index(f)
+            except ValueError:
+                index_check = len(categories) + 1
+            if index_check < idx:
+                categories.append(copy.copy(categories[index_check]))
+                categories.append(get_coordinates_from_file(f, data_shape))
+
+    data_orders = []
+    for idx, f in enumerate(order_filenames):
+        if f is None or f == "" or f == []:
+            data_orders.append(None)
+        else:
+            try:
+                index_check = order_filenames.index(f)
+            except ValueError:
+                index_check = len(data_orders) + 1
+            if index_check < idx:
+                data_orders.append(copy.copy(data_orders[index_check]))
+                data_orders.append(get_coordinates_from_file(f, data_shape))
+
+    data_labels = [get_id_from_file_prefix_via_suffix(filename, "position_data_coordinates.txt") for filename in
                    data_coordinates_filenames]
+
     logging.info('The following ids were found and are being processed: {0}'.format(data_labels))
 
     # Get the labels and aggregation methods
@@ -251,7 +314,8 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
     out_fp.write(header)
 
     # Iterate through the participants
-    for index, (dat, label) in enumerate(zip(data_coordinates, data_labels)):
+    for index, (label, actual, data, category, order) \
+            in enumerate(zip(data_labels, actual_coordinates, data_coordinates, categories, data_orders)):
         logging.debug('Parsing {0}.'.format(label))
         mt = None
         if manual_threshold is not None:
@@ -259,20 +323,14 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
                 if dat_id == label:
                     mt = dat_threshold
                     break
-        if not actual_coordinate_prefixes:
-            # Get results
-            results = get_single_file_result(actual_coordinates, dat, label=label,
-                                             accuracy_z_value=accuracy_z_value,
-                                             flags=flags, trial_by_trial_accuracy=trial_by_trial_accuracy,
-                                             manual_threshold=mt)
-        else:
-            assert np.array(actual_coordinates[index]).shape == np.array(
-                dat).shape, "shape mismatch between {0} and {1}".format(actual_coordinates_filename[index],
-                                                                        data_coordinates_filenames[index])
-            results = get_single_file_result(actual_coordinates[index], dat, label=label,
-                                             accuracy_z_value=accuracy_z_value,
-                                             flags=flags, trial_by_trial_accuracy=trial_by_trial_accuracy,
-                                             manual_threshold=mt)
+
+        assert np.array(actual_coordinates[index]).shape == np.array(data).shape, \
+            "shape mismatch between {0} and {1}".format(actual_coordinates_filename[index],
+                                                        data_coordinates_filenames[index])
+        results = get_single_file_result(actual, data, categories=category, data_orders=order,
+                                         label=label, accuracy_z_value=accuracy_z_value,
+                                         flags=flags, trial_by_trial_accuracy=trial_by_trial_accuracy,
+                                         manual_threshold=mt)
 
         new_results = []
         # Append the across-trial variables
@@ -289,7 +347,11 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, accuracy_z_v
             # Apply the aggregation function to each value
             result = []
             for iidx in range(len(results[0])):
-                result.append(agg_functions[iidx]([row[iidx] for row in results]))
+                try:
+                    result.append(agg_functions[iidx]([row[iidx] for row in results]))
+                except Exception:
+                    print(iidx)
+                    print(result)
 
             # Write to file
             out_fp.write(

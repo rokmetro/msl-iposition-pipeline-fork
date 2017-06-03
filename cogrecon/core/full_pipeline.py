@@ -7,17 +7,13 @@ import numpy as np
 from scipy.spatial import distance
 
 from .similarity_transform import similarity_transform
-from .tools import validate_type, mask_points, collapse_unique_components, find_minimal_mapping
+from .tools import validate_type, mask_points, collapse_unique_components, \
+    find_minimal_mapping, greedy_find_minimal_mapping, sum_of_distance
 from .visualization import visualization
 from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
 
 
 # TODO: Documentation needs an audit/overhaul
-
-# This function defines the misplacement metric which is used for minimization (in de-anonymization).
-# It is also used to calculate the original misplacement metric.
-def minimization_function(list1, list2):
-    return sum(np.diag(distance.cdist(list1, list2)))
 
 
 def accuracy(participant_data, analysis_configuration):
@@ -208,8 +204,8 @@ def trial_geometric_transform(trial_data, analysis_configuration):
             transformed_coordinates = np.array([(np.array(x) + np.array(translation)).dot(rotation_matrix) * scaling
                                                for x in data_points]).tolist()
             transformation_auto_exclusion = False
-            new_error = minimization_function(transformed_coordinates, actual_points)
-            old_error = minimization_function(data_points, actual_points)
+            new_error = sum_of_distance(transformed_coordinates, actual_points)
+            old_error = sum_of_distance(data_points, actual_points)
             if new_error > old_error:  # Exclude rotation from transform
                 rotation_theta = np.nan
                 logging.info(str(debug_labels) + " : " +
@@ -218,8 +214,8 @@ def trial_geometric_transform(trial_data, analysis_configuration):
                                                                          new_error))
                 transformed_coordinates = np.array([(np.array(x) + np.array(translation)) * scaling
                                                     for x in data_points]).tolist()
-                new_error = minimization_function(transformed_coordinates, actual_points)
-                old_error = minimization_function(data_points, actual_points)
+                new_error = sum_of_distance(transformed_coordinates, actual_points)
+                old_error = sum_of_distance(data_points, actual_points)
                 if new_error > old_error:  # Completely exclude transform
                     transformation_auto_exclusion = True
                     rotation_theta = np.nan
@@ -348,19 +344,25 @@ def trial_swaps(trial_data):
                 np.nanmean(partial_cycle_swap_distances), np.nanmean(partial_cycle_swap_expected_distances))
 
 
-def deanonymize(participant_data):
+def deanonymize(participant_data, analysis_configuration):
     validate_type(participant_data, ParticipantData, "participant_data", "deanonymize")
+    validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "deanonymize")
 
     actual_points = participant_data.actual_points
     data_points = participant_data.data_points
+    data_order = participant_data.data_order
 
     min_coordinates = []
     min_scores = []
     min_score_positions = []
     raw_deanonymized_misplacements = []
-    for actual_trial, data_trial in zip(actual_points, data_points):
+    for actual_trial, data_trial, order_trial in zip(actual_points, data_points, data_order):
 
-        min_score, min_score_idx, min_permutation = find_minimal_mapping(actual_points, data_points)
+        if analysis_configuration.greedy_order_deanonymization:
+            min_score, min_score_idx, min_permutation = greedy_find_minimal_mapping(actual_trial,
+                                                                                    data_trial, order_trial)
+        else:
+            min_score, min_score_idx, min_permutation = find_minimal_mapping(actual_trial, data_trial)
 
         min_score_positions.append(min_score_idx)
         min_scores.append(min_score)
@@ -381,6 +383,24 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False):
 
     original_participant_data = copy.deepcopy(participant_data)
 
+    if analysis_configuration.category_independence:
+        if visualize:
+            logging.warning('Visualization is not supported for category data at the moment.')
+        categories = participant_data.category_labels
+        unique_categories = list(set(categories))
+        _category_participant_data, _ = ParticipantData.category_split_participant(participant_data,
+                                                                                   unique_categories)
+        _category_analysis_configuration = copy.deepcopy(analysis_configuration)
+        _category_analysis_configuration.category_independence = False
+        _category_analysis_configuration.is_category = True
+
+        cat_outputs = []
+        for cat, cat_label in zip(_category_participant_data, unique_categories):
+            _category_analysis_configuration.category_label = cat_label
+            cat_outputs.append(full_pipeline(cat, _category_analysis_configuration))
+
+        return cat_outputs
+
     actual_coordinates = participant_data.actual_points
     min_coordinates = participant_data.data_points  # For visualization
     transformed_coordinates = participant_data.data_points  # For visualization
@@ -397,8 +417,8 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False):
     for trial in participant_data.trials:
         # First calculate the two primary original metrics, misplacement and axis swaps - this has been validated
         # against the previous script via an MRE data set of 20 individuals
-        straight_misplacements.append(minimization_function(trial.actual_points,
-                                                            trial.data_points) / len(trial.actual_points))
+        straight_misplacements.append(sum_of_distance(trial.actual_points,
+                                                      trial.data_points) / len(trial.actual_points))
         axis_swaps_element, axis_swap_pairs_element = trial_axis_swap(trial)
         axis_swaps.append(axis_swaps_element)
         axis_swap_pairs.append(axis_swap_pairs_element)
@@ -412,7 +432,8 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False):
     # De-anonymization via Global Minimization of Misplacement
     # Try all permutations of the data coordinates to find an ordering which is globally minimal in misplacement
     if flags == PipelineFlags.Deanonymize:
-        min_coordinates, min_score, min_score_position, raw_deanonymized_misplacement = deanonymize(participant_data)
+        min_coordinates, min_score, min_score_position, \
+            raw_deanonymized_misplacement = deanonymize(participant_data, analysis_configuration)
         participant_data.data_points = min_coordinates
         deanon_processed_accuracy = accuracy(participant_data, analysis_configuration)
         deanon_accuracies = deanon_processed_accuracy.distance_accuracy_map
@@ -498,7 +519,9 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False):
          cycle_swap_expected_distances,
          partial_cycle_swap_distances,
          partial_cycle_swap_expected_distances,
-         [list(map(list, x)) for x in components]
+         [list(map(list, x)) for x in components],
+         [analysis_configuration.is_category] * len(participant_data.trials),
+         [analysis_configuration.category_label] * len(participant_data.trials)
          ])
 
     # If requested, visualize the data
@@ -527,7 +550,7 @@ def get_header_labels():
             "True Swap Data Distance", "True Swap Actual Distance", "Partial Swap Data Distance",  # 11
             "Partial Swap Actual Distance", "Cycle Swap Data Distance", "Cycle Swap Actual Distance",  # 12
             "Partial Cycle Swap Data Distance", "Partial Cycle Swap Actual Distance",  # 13
-            "Unique Components"]  # 14
+            "Unique Components", "Contains Category Data", "Category Label"]  # 14
 
 
 # (lambda x: list(array(x).flatten())) for append
@@ -546,4 +569,4 @@ def get_aggregation_functions():
             np.nanmean, np.nanmean, np.nanmean,  # 11
             np.nanmean, np.nanmean, np.nanmean,  # 12
             np.nanmean, np.nanmean,  # 13
-            collapse_unique_components]  # 14
+            collapse_unique_components, np.logical_or, collapse_unique_components]  # 14

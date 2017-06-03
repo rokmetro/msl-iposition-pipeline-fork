@@ -7,6 +7,7 @@ from cogrecon.core.batch_pipeline import batch_pipeline
 from cogrecon.core.data_structures import PipelineFlags
 
 # TODO: Documentation needs an audit/overhaul
+# TODO: Modify for category and order data
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -19,6 +20,25 @@ if __name__ == "__main__":
                                                              'data coordinate files (actual_coordinates.txt and '
                                                              '###position_data_coordinates.txt, respectively)',
                         default=None)
+
+    parser.add_argument('--category_independence_enabled', type=int,
+                        help='if 0, the program will run without an assumption of categories. if 1, the program will '
+                             'search the search_directory for a category file (categories.txt) with the appropriate '
+                             'shape (same as actual_coordinates.txt), and the category data will be used to break up '
+                             'the analysis such that item categories will be processed independently from one '
+                             'another.',
+                        default=0)
+    parser.add_argument('--order_greedy_deanonymization_enabled', type=int,
+                        help='if 0, the program will run without using order information in deanonymization (a global '
+                             'minimum will be used). if 1, the program will take a greedy approach to '
+                             'deanonymization. First it will search for ###order.txt files which should be associated '
+                             'with the ###position_data_coordinates.txt files in a 1-to-1 fashion. Then the item '
+                             'being placed first will be associated with its minimum-distance true value, '
+                             'then the second will be associated with the minimum distance remaining values, '
+                             'etc until all values are associated. This effectively weights the importance of '
+                             'deanonymization minimization in accordance with the placement order.',
+                        default=0)
+
     parser.add_argument('--num_trials', type=int, help='the number of trials in each file', default=None)
     parser.add_argument('--num_items', type=int, help='the number of items to be analyzed', default=None)
     parser.add_argument('--pipeline_mode', type=int, help='the mode in which the pipeline should process; \n\t0 for '
@@ -93,9 +113,11 @@ if __name__ == "__main__":
                        flags=PipelineFlags(args.pipeline_mode),
                        collapse_trials=args.collapse_trials != 0,
                        dimension=args.dimension,
-                       prefix_length=args.prefix_length,
                        actual_coordinate_prefixes=args.actual_coordinate_prefixes,
-                       manual_threshold=manual_swap_accuracy_threshold_list)
+                       manual_threshold=manual_swap_accuracy_threshold_list,
+                       category_independence_enabled=args.category_independence_enabled != 0,
+                       order_greedy_deanonymization_enabled=args.order_greedy_deanonymization_enabled != 0
+                       )
         exit()
 
     logging.info("No arguments found - quitting.")
