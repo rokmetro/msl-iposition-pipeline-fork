@@ -3,11 +3,16 @@ import argparse
 import sys
 import easygui
 import datetime
+
+import numpy as np
+import scipy.stats as st
+
 from cogrecon.core.batch_pipeline import batch_pipeline
 from cogrecon.core.data_structures import PipelineFlags
+from cogrecon.core.globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, order_file_suffix, \
+    category_file_suffix, default_dimensions, default_z_value, default_pipeline_flags
 
 # TODO: Documentation needs an audit/overhaul
-# TODO: Modify for category and order data
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -16,29 +21,38 @@ if __name__ == "__main__":
                                                  'compared to a set of correct points. This will not generate an '
                                                  'output file, but will instead print the resulting values and show a '
                                                  'visualizer of the results.')
-    parser.add_argument('--search_directory', type=str, help='the root directory in which to search for the actual and '
-                                                             'data coordinate files (actual_coordinates.txt and '
-                                                             '###position_data_coordinates.txt, respectively)',
+    parser.add_argument('--search_directory', type=str, help='the root directory in which to search for the actual '
+                                                             'and data coordinate files ({1} and ###{0}, '
+                                                             'respectively)'.format(data_coordinates_file_suffix,
+                                                                                    actual_coordinates_file_suffix),
                         default=None)
 
     parser.add_argument('--category_independence_enabled', type=int,
                         help='if 0, the program will run without an assumption of categories. if 1, the program will '
-                             'search the search_directory for a category file (categories.txt) with the appropriate '
-                             'shape (same as actual_coordinates.txt), and the category data will be used to break up '
+                             'search the search_directory for a category file ({1}) with the appropriate '
+                             'shape (same as {0}), and the category data will be used to break up '
                              'the analysis such that item categories will be processed independently from one '
-                             'another.',
+                             'another.'.format(actual_coordinates_file_suffix, category_file_suffix),
                         default=0)
+    parser.add_argument('--category_prefixes', type=int, default=0,
+                        help='if 0, one category file {0} is expected. otherwise, a category file for each data file '
+                             'is expected (with a prefix that matches the data file and a suffix matching {0})'
+                             '.'.format(category_file_suffix))
     parser.add_argument('--order_greedy_deanonymization_enabled', type=int,
                         help='if 0, the program will run without using order information in deanonymization (a global '
                              'minimum will be used). if 1, the program will take a greedy approach to '
-                             'deanonymization. First it will search for ###order.txt files which should be associated '
-                             'with the ###position_data_coordinates.txt files in a 1-to-1 fashion. Then the item '
+                             'deanonymization. First it will search for ###{1} files which should be associated '
+                             'with the ###{0} files in a 1-to-1 fashion. Then the item '
                              'being placed first will be associated with its minimum-distance true value, '
                              'then the second will be associated with the minimum distance remaining values, '
                              'etc until all values are associated. This effectively weights the importance of '
-                             'deanonymization minimization in accordance with the placement order.',
+                             'deanonymization minimization in accordance with the placement order.'.format(
+                              data_coordinates_file_suffix, order_file_suffix),
                         default=0)
-
+    parser.add_argument('--order_prefixes', type=int, default=0,
+                        help='if 0, one order file {0} is expected. otherwise, an order file for each data file is '
+                             'expected (with a prefix that matches the data file and a suffix matching {0}.').format(
+        order_file_suffix)
     parser.add_argument('--num_trials', type=int, help='the number of trials in each file', default=None)
     parser.add_argument('--num_items', type=int, help='the number of items to be analyzed', default=None)
     parser.add_argument('--pipeline_mode', type=int, help='the mode in which the pipeline should process; \n\t0 for '
@@ -46,38 +60,41 @@ if __name__ == "__main__":
                                                           'accuracy+deanonymization+swaps, \n\t2 for accuracy+global '
                                                           'transformations+swaps, \n\t3 for '
                                                           'accuracy+deanonymization+global transformations+swaps \n('
-                                                          'default is 3)', default=3)
-    parser.add_argument('--accuracy_z_value', type=float, help='the z value to be used for accuracy exclusion ('
-                                                               'default is 1.96, corresponding to 95% confidence',
-                        default=1.96)
+                                                          'default is {0})'.format(int(default_pipeline_flags)),
+                        default=int(default_pipeline_flags))
+    parser.add_argument('--accuracy_z_value', type=float,
+                        help='the z value to be used for accuracy exclusion ('
+                        'default is {0}, corresponding to {1}% '
+                        'confidence'.format(default_z_value, int(np.round((1-st.norm.sf(default_z_value)*2)*100))),
+                        default=default_z_value)
     parser.add_argument('--collapse_trials', type=int, help='if 0, one row per trial will be output, otherwise one '
                                                             'row per participant will be output (default is 1)',
                         default=1)
-    parser.add_argument('--dimension', type=int, help='the dimensionality of the data (default is 2)', default=2)
+    parser.add_argument('--dimension', type=int,
+                        help='the dimensionality of the data (default is {0})'.format(default_dimensions),
+                        default=default_dimensions)
     parser.add_argument('--trial_by_trial_accuracy', type=int, help='when not 0, z_value thresholds are used on a '
                                                                     'trial-by-trial basis for accuracy calculations, '
                                                                     'when 0, the thresholds are computed then '
                                                                     'collapsed across an individual\'s trials',
                         default=1)
-    parser.add_argument('--prefix_length', type=int, help='the length of the subject ID prefix at the beginning of '
-                                                          'the data filenames (default is 3)', default=3)
-    parser.add_argument('--actual_coordinate_prefixes', type=int, help='if 0, the normal assumption that all '
-                                                                       'participants used the same '
-                                                                       'actual_coordinates.txt file will be used. if '
-                                                                       'not 0, it is assumed that all '
-                                                                       'actual_coordinates.txt files have a prefix '
-                                                                       'which is matched in the '
-                                                                       'position_data_coordinates.txt prefix. Thus, '
-                                                                       'there should be a one-to-one correspondance '
-                                                                       'between actual_coordinates.txt and '
-                                                                       'position_data_coordinates.txt files and their '
-                                                                       'contents.', default=0)
+    parser.add_argument('--actual_coordinate_prefixes', type=int,
+                        help='if 0, the normal assumption that all participants used the same {0} file will be used. '
+                             'if not 0, it is assumed that all {0} files have a prefix which is '
+                             'matched in the {1} prefix. Thus, there should be a one-to-one correspondence between '
+                             '{0} and {1} files and their contents.'.format(actual_coordinates_file_suffix,
+                                                                            data_coordinates_file_suffix), default=0)
     parser.add_argument('--manual_swap_accuracy_threshold_list', type=str,
                         help='if empty string or none, the value is ignored. if a string (path) pointing to a text '
                              'file containing a new line separated list of id,threshold pairs is provided, '
                              'any files whose participant id matches the first matching id in the list will have the '
                              'associated threshold applied instead of being automatically computed.',
                         default='')
+
+    parser.add_argument('--remove-dims', metavar='N', type=int, nargs='+',
+                        help='a list of dimensions (starting with 0) to remove from processing (default is None)',
+                        default=None)
+
     if len(sys.argv) > 1:
         args = parser.parse_args()
         if args.search_directory is None:
@@ -116,7 +133,10 @@ if __name__ == "__main__":
                        actual_coordinate_prefixes=args.actual_coordinate_prefixes,
                        manual_threshold=manual_swap_accuracy_threshold_list,
                        category_independence_enabled=args.category_independence_enabled != 0,
-                       order_greedy_deanonymization_enabled=args.order_greedy_deanonymization_enabled != 0
+                       category_prefixes=args.category_prefixes != 0,
+                       order_greedy_deanonymization_enabled=args.order_greedy_deanonymization_enabled != 0,
+                       order_prefxies=args.order_prefixes != 0,
+                       removal_dim_indicies=args.remove_dims
                        )
         exit()
 

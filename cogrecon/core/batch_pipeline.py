@@ -6,6 +6,8 @@ import copy
 from .full_pipeline import full_pipeline, get_aggregation_functions, get_header_labels
 from .file_io import get_coordinates_from_file, get_id_from_file_prefix_via_suffix, find_data_files_in_directory
 from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
+from .data_flexing.dimension_removal import remove_dimensions
+from .globals import default_z_value, default_pipeline_flags, default_dimensions, data_coordinates_file_suffix
 
 # TODO: Documentation needs an audit/overhaul
 
@@ -73,12 +75,13 @@ def validate_equal_list_shapes(l1, l2, expected_shape=None, l1_name="list1", l2_
 
 # threshold values for each process step
 def get_single_file_result(actual_coordinates, dat, categories=None, data_orders=None,
-                           label="", accuracy_z_value=1.96,
+                           label="", accuracy_z_value=default_z_value,
                            trial_by_trial_accuracy=True, manual_threshold=None,
-                           flags=PipelineFlags.All):
+                           flags=PipelineFlags(default_pipeline_flags), remove_dims=None):
     """
     This function generates the results for a specific file's data structure, usually containing multiple trials
 
+    :param remove_dims:
     :param data_orders:
     :param categories:
     :param manual_threshold:
@@ -94,7 +97,7 @@ def get_single_file_result(actual_coordinates, dat, categories=None, data_orders
     accuracy calculations, when False, the thresholds are computed then collapsed across an individual's trials
     (default is True)
     :param flags: (optional) the value (PipelineFlags) describing what pipeline elements should/should not be run on
-    the data (default is PipelineFlags.All)
+    the data (default is stored in globals.py)
     :return: a list, (Nt, r), where Nt is the number of trials and r is the number of result metrics, of results values
     from the analysis for each trial on a particular file's data
     """
@@ -128,6 +131,9 @@ def get_single_file_result(actual_coordinates, dat, categories=None, data_orders
         assert len(categories) == len(dat), "data_orders must be same length as data_coordinates"
     _participant_data = ParticipantData([TrialData(_a, _d, cateogry_labels=_c, data_order=_o)
                                          for _a, _d, _c, _o in zip(actual_coordinates, dat, categories, data_orders)])
+
+    if remove_dims is not None:
+        _participant_data = remove_dimensions(_participant_data, removal_dim_indices=remove_dims)
 
     # Process the participant
     return full_pipeline(_participant_data, _analysis_configuration)
@@ -163,18 +169,21 @@ def detect_shape_from_file(path, dimension):
         return trial_count, int(float(item_count_list[0]) / float(dimension)), dimension
 
 
-def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=2, accuracy_z_value=1.96,
+def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=default_dimensions,
+                   accuracy_z_value=default_z_value,
                    trial_by_trial_accuracy=True,
-                   flags=PipelineFlags.All,
+                   flags=PipelineFlags(default_pipeline_flags),
                    collapse_trials=True, manual_threshold=None,
                    actual_coordinate_prefixes=False,
                    category_independence_enabled=False, category_prefixes=False,
-                   order_greedy_deanonymization_enabled=False, order_prefxies=True):
+                   order_greedy_deanonymization_enabled=False, order_prefxies=True,
+                   removal_dim_indicies=None):
     """
     This function allows the easy running of the pipeline on a directory and all of the appropriate files in its
     subdirectories. It will search for the actual coordinates and data files and process them all as specified
     by the other parameters.
 
+    :param removal_dim_indicies:
     :param dimension:
     :param order_prefxies:
     :param category_prefixes:
@@ -190,12 +199,12 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=2,
     (default is None)
     :param out_filename: the filename and path (string) into which the data should be saved
     :param accuracy_z_value: (optional) a value (float or int) representing the z threshold for counting something as
-    accurate (default is 1.96, i.e. 95% confidence interval)
+    accurate (default is stored in globals.py)
     :param trial_by_trial_accuracy: (optional) when True, z_value thresholds are used on a trial-by-trial basis for
     accuracy calculations, when False, the thresholds are computed then collapsed across an individual's trials
     (default is True)
     :param flags: (optional) the value (PipelineFlags) describing what pipeline elements should/should not be run on
-    the data (default is PipelineFlags.All)
+    the data (default is stored in globals.py)
     :param collapse_trials: (optional) if True, the output file will contain one row per participant, otherwise each
     trial will be output in an individual row
     """
@@ -291,7 +300,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=2,
                 data_orders.append(copy.copy(data_orders[index_check]))
                 data_orders.append(get_coordinates_from_file(f, data_shape))
 
-    data_labels = [get_id_from_file_prefix_via_suffix(filename, "position_data_coordinates.txt") for filename in
+    data_labels = [get_id_from_file_prefix_via_suffix(filename, data_coordinates_file_suffix) for filename in
                    data_coordinates_filenames]
 
     logging.info('The following ids were found and are being processed: {0}'.format(data_labels))
@@ -330,7 +339,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=2,
         results = get_single_file_result(actual, data, categories=category, data_orders=order,
                                          label=label, accuracy_z_value=accuracy_z_value,
                                          flags=flags, trial_by_trial_accuracy=trial_by_trial_accuracy,
-                                         manual_threshold=mt)
+                                         manual_threshold=mt, remove_dims=removal_dim_indicies)
 
         new_results = []
         # Append the across-trial variables

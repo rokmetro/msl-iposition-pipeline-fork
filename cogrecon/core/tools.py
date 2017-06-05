@@ -8,6 +8,7 @@ from scipy.spatial.distance import cdist
 from scipy.optimize import linear_sum_assignment
 from math import factorial
 
+from .globals import default_dimensions
 
 # TODO: Documentation needs an audit/overhaul
 
@@ -21,7 +22,8 @@ def sum_of_distance(list1, list2):
 # This function is for testing. It generates a set of "correct" and "incorrect" points such that the correct points are
 # randomly placed between (0,0) and (1,1) in R2. Then it generates "incorrect" points which are offset randomly up
 # to 10% in the positive direction, shuffled, and where one point is completely random.
-def generate_random_test_points(number_of_points=5, dimension=2, shuffle_points=True, noise=(1.0 / 20.0),
+def generate_random_test_points(number_of_points=5, dimension=default_dimensions,
+                                shuffle_points=True, noise=(1.0 / 20.0),
                                 num_rerandomed_points=1):
     correct_points = [[random.random() for _ in range(dimension)] for _ in range(0, number_of_points)]
     offsets = [[(random.random()) * noise for _ in range(dimension)] for _ in range(0, number_of_points)]

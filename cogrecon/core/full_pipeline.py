@@ -11,14 +11,15 @@ from .tools import validate_type, mask_points, collapse_unique_components, \
     find_minimal_mapping, greedy_find_minimal_mapping, sum_of_distance
 from .visualization import visualization
 from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
+from .globals import default_z_value
 
 
 # TODO: Documentation needs an audit/overhaul
 
 
 def accuracy(participant_data, analysis_configuration):
-    validate_type(participant_data, ParticipantData, "participant_data", "edge_resizing")
-    validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "trial_geometric_transform")
+    validate_type(participant_data, ParticipantData, "participant_data", "accuracy")
+    validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "accuracy")
 
     actual_points = participant_data.actual_points
     data_points = participant_data.data_points
@@ -27,8 +28,8 @@ def accuracy(participant_data, analysis_configuration):
     manual_threshold = analysis_configuration.manual_threshold
 
     if z_value is None:
-        logging.error('a z_value was not found for accuracy, using z=1.96')
-        z_value = 1.96
+        logging.error('a z_value was not found for accuracy, using z={0}'.format(default_z_value))
+        z_value = default_z_value
     if trial_by_trial_accuracy:
         dist_accuracy_map = []
         exclusion_thresholds = []
@@ -77,7 +78,7 @@ def accuracy(participant_data, analysis_configuration):
 
 
 def trial_axis_swap(trial_data):
-    validate_type(trial_data, TrialData, "trial_data", "axis_swap")
+    validate_type(trial_data, TrialData, "trial_data", "trial_axis_swap")
 
     actual_points = trial_data.actual_points
     data_points = trial_data.data_points
@@ -103,7 +104,7 @@ def trial_axis_swap(trial_data):
 
 
 def trial_edge_resizing(trial_data):
-    validate_type(trial_data, TrialData, "trial_data", "edge_resizing")
+    validate_type(trial_data, TrialData, "trial_data", "trial_edge_resizing")
 
     actual_points = trial_data.actual_points
     data_points = trial_data.data_points
@@ -121,7 +122,7 @@ def trial_edge_resizing(trial_data):
 
 
 def trial_edge_distortion(trial_data):
-    validate_type(trial_data, TrialData, "trial_data", "edge_resizing")
+    validate_type(trial_data, TrialData, "trial_data", "trial_edge_distortion")
 
     actual_points = trial_data.actual_points
     data_points = trial_data.data_points
