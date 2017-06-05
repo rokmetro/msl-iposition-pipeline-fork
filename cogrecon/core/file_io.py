@@ -2,13 +2,14 @@ import numpy as np
 import logging
 import os
 import time
-
+from .globals import data_coordinates_file_suffix, order_file_suffix, category_file_suffix, \
+    actual_coordinates_file_suffix
 
 # TODO: Documentation needs an audit/overhaul
 
 
 # This function reads a data file and shapes the data into the appropriate expected shape (usually (Nt, Ni, 2) where
-# Nt is the number of trials (rows) and Ni is the number of items (columns / 2), and 2 is the number of dimensions.
+# Nt is the number of trials (rows) and Ni is the number of items (columns / dimensions)
 def get_coordinates_from_file(path, expected_shape, data_type=float):
     with open(os.path.abspath(path), 'rU') as tsv:
         if data_type is not None:
@@ -154,41 +155,46 @@ def find_data_files_in_directory(directory, actual_coordinate_prefixes=False,
     for root, f_idx in zip(file_roots_index, file_index):
         filepath = os.path.join(root, f_idx)
 
-        if filepath.endswith("position_data_coordinates.txt"):  # If we find a data file, save it to the file list
+        if filepath.endswith(data_coordinates_file_suffix):  # If we find a data file, save it to the file list
             logging.debug('Found data file ({0}).'.format(filepath))
             data_files.append(filepath)
 
-        if filepath.endswith("order.txt"):  # If we find a data file, save it to the file list
+        if filepath.endswith(order_file_suffix):  # If we find a data file, save it to the file list
             logging.debug('Found order file ({0}).'.format(filepath))
             order_files.append(filepath)
 
-        if filepath.endswith("categories.txt"):
+        if filepath.endswith(category_file_suffix):
             logging.debug('Found category file ({0}).'.format(filepath))
             category_files.append(filepath)
 
-        if filepath.endswith("actual_coordinates.txt"):
+        if filepath.endswith(actual_coordinates_file_suffix):
             logging.debug('Found actual coordinates file ({0}).'.format(filepath))
             actual_coordinates_files.append(filepath)
 
     # Ensure that we found at least 1 of each required file and if enabled, at least one of each optional file
-    assert len(actual_coordinates_files) >= 1, "there must be at least one actual_coordinates.txt file"
-    assert len(data_files) >= 1, "there must be at least one data file ending in position_data_coordinates.txt"
+    assert len(actual_coordinates_files) >= 1, \
+        "there must be at least one {0} file".format(actual_coordinates_file_suffix)
+    assert len(data_files) >= 1, \
+        "there must be at least one data file ending in {0}".format(data_coordinates_file_suffix)
     if order_greedy_deanonymization_enabled:
         assert len(order_files) >= 1, "if order_greedy_deanonymization_enabled is True, there must be at least one " \
-                                      "order file ending in order.txt "
+                                      "order file ending in {0}".format(order_file_suffix)
     if category_independence_enabled:
         assert len(category_files) >= 1, "if category_independence_enabled is True, there must be at least one " \
-                                         "category file ending in category.txt "
+                                         "category file ending in {0}".format(category_file_suffix)
 
     # For each non-data file, we can enforce singular file contents on the file list if enabled
     if not actual_coordinate_prefixes:
-        actual_coordinates_files = enforce_single_file_contents(actual_coordinates_files, "actual_coordinates.txt")
+        actual_coordinates_files = enforce_single_file_contents(actual_coordinates_files,
+                                                                actual_coordinates_file_suffix)
 
     if not category_prefixes:
-        category_files = enforce_single_file_contents(category_files, "categories.txt")
+        category_files = enforce_single_file_contents(category_files,
+                                                      category_file_suffix)
 
     if not order_prefixes:
-        order_files = enforce_single_file_contents(order_files, "order.txt")
+        order_files = enforce_single_file_contents(order_files,
+                                                   order_file_suffix)
 
     # We need to generate temporary lists of equal length so we can pair off the appropriate files with each other
     # For actual_coordinates files, we expect either a list identical values or a list of all unique, prefixed values
@@ -213,10 +219,10 @@ def find_data_files_in_directory(directory, actual_coordinate_prefixes=False,
     ]
 
     prefixes = [
-        extract_prefixes_from_file_list_via_suffix(data_files, "position_data_coordinates.txt"),
-        extract_prefixes_from_file_list_via_suffix(tmp_acf, "actual_coordinates.txt"),
-        extract_prefixes_from_file_list_via_suffix(tmp_cat, "categories.txt"),
-        extract_prefixes_from_file_list_via_suffix(tmp_order, "order.txt")
+        extract_prefixes_from_file_list_via_suffix(data_files, data_coordinates_file_suffix),
+        extract_prefixes_from_file_list_via_suffix(tmp_acf, actual_coordinates_file_suffix),
+        extract_prefixes_from_file_list_via_suffix(tmp_cat, category_file_suffix),
+        extract_prefixes_from_file_list_via_suffix(tmp_order, order_file_suffix)
     ]
 
     data_files, actual_coordinates_files, category_files, order_files = match_file_prefixes(files, prefixes)

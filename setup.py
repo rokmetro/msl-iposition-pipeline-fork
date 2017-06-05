@@ -30,7 +30,7 @@ setup(
     # https://packaging.python.org/en/latest/single_source_version.html
 
     # Note: Change version in cogrecon __init__.py when this is changed
-    version='0.0.2',
+    version='0.0.3',
 
     description='A package for analyzing reconstruction data generated from iPosition and related memory tasks.',
     long_description=long_description,

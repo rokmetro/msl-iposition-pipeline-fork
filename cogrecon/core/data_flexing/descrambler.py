@@ -1,17 +1,18 @@
-import cogrecon.core.batch_pipeline as bpipe
 import easygui
 import os
+
+from ..batch_pipeline import find_data_files_in_directory
 
 
 def descrambler():
     selected_directory = easygui.diropenbox()
 
-    _, files = bpipe.find_data_files_in_directory(selected_directory)
+    _, files = find_data_files_in_directory(selected_directory)
 
     for f in files:
         print("descrambling file {0}".format(f))
         lines = []
-        with open(f, 'rb') as fp:
+        with open(f, 'rU') as fp:
             for line in fp:
                 lines.append(line)
         output = [''] * len(lines)

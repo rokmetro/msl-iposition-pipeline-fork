@@ -4,6 +4,7 @@ import numpy as np
 import inspect
 
 from .file_io import get_coordinates_from_file
+from .globals import default_z_value, default_pipeline_flags
 
 # TODO: Documentation needs an audit/overhaul
 
@@ -221,9 +222,9 @@ class ParticipantData(object):
 
 class AnalysisConfiguration:
     # noinspection PyDefaultArgument
-    def __init__(self, z_value=1.96,
+    def __init__(self, z_value=default_z_value,
                  trial_by_trial_accuracy=True, manual_threshold=None,
-                 flags=PipelineFlags(PipelineFlags.All),
+                 flags=PipelineFlags(default_pipeline_flags),
                  greedy_order_deanonymization=False,
                  process_categories_independently=False, is_category=False, category_label=None,
                  debug_labels=['']):
