@@ -569,4 +569,4 @@ def get_aggregation_functions():
             np.nanmean, np.nanmean, np.nanmean,  # 11
             np.nanmean, np.nanmean, np.nanmean,  # 12
             np.nanmean, np.nanmean,  # 13
-            collapse_unique_components, np.logical_or, collapse_unique_components]  # 14
+            collapse_unique_components, any, collapse_unique_components]  # 14

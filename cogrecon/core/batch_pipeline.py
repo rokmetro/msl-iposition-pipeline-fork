@@ -347,12 +347,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=2,
             # Apply the aggregation function to each value
             result = []
             for iidx in range(len(results[0])):
-                try:
-                    result.append(agg_functions[iidx]([row[iidx] for row in results]))
-                except Exception:
-                    print(iidx)
-                    print(result)
-
+                result.append(agg_functions[iidx]([row[iidx] for row in results]))
             # Write to file
             out_fp.write(
                 '{0},{1}\n'.format(

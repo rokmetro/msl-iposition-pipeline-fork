@@ -56,8 +56,14 @@ def mask_points(points, keep_indicies):
 
 
 def collapse_unique_components(components_list):
-    return map(list,
-               set(frozenset(i) for i in map(set, [element for sublist in components_list for element in sublist])))
+    # Filter NoneType from list as it is not orderable
+    filtered_list = [x for x in components_list if x is not None]
+    # Generate the unique list
+    unique_list = np.unique(filtered_list).tolist()
+    # Add in a single None value if the filter found a NoneType to maintain a record of its existence
+    if len(filtered_list) < len(components_list):
+        unique_list += [None]
+    return unique_list
 
 
 def validate_type(obj, t, name, source):
@@ -109,7 +115,7 @@ def find_minimal_mapping(p0, p1):
     C = cdist(p0, p1)
 
     _, assignment = linear_sum_assignment(C)
-    print(assignment)
+
     p1_reordered = [p1[idx] for idx in assignment]
     return sum_of_distance(p0, p1_reordered), lexicographic_index(assignment), p1_reordered
 
