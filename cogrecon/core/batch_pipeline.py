@@ -2,12 +2,14 @@ import logging
 import os
 import numpy as np
 import copy
+import datetime
 
 from .full_pipeline import full_pipeline, get_aggregation_functions, get_header_labels
 from .file_io import get_coordinates_from_file, get_id_from_file_prefix_via_suffix, find_data_files_in_directory
 from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
 from .data_flexing.dimension_removal import remove_dimensions
 from .globals import default_z_value, default_pipeline_flags, default_dimensions, data_coordinates_file_suffix
+from .._version import __version__
 
 # TODO: Documentation needs an audit/overhaul
 
@@ -235,7 +237,6 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
     logging.info('Finding files in folder {0}.'.format(search_directory))
 
     # Find the files
-    actual_coordinates_filename = data_coordinates_filenames = category_filenames = order_filenames = None
     try:
         actual_coordinates_filename, data_coordinates_filenames, category_filenames, order_filenames = \
             find_data_files_in_directory(search_directory,
@@ -246,7 +247,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
                                          order_prefixes=order_prefxies)
     except IOError:
         logging.error('The input path was not found.')
-        exit()
+        raise IOError('Failed to find input file.')
 
     if data_shape is None:
         data_shape = detect_shape_from_file(data_coordinates_filenames[0], dimension)
@@ -313,8 +314,15 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
     agg_functions.append(np.nansum)
     header_labels.append('num_rows_with_nan')
 
-    # Generate the output file and write the header
+    # Generate the output file and write the headers
     out_fp = open(out_filename, 'w')
+
+    top_header = 'Generated with the msl-iposition-pipeline (https://github.com/kevroy314/msl-iposition-pipeline) ' \
+                 'version {0} on {1}. Note: datetime provided may not match filename datetime if system is ' \
+                 'slow.\n'.format(__version__, datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.csv"))
+
+    out_fp.write(top_header)
+
     if collapse_trials:
         header = "subID,{0}\n".format(','.join(header_labels))
     else:

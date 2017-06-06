@@ -378,7 +378,7 @@ def deanonymize(participant_data, analysis_configuration):
 # The coordinates are expected to be equal in length of the for (Nt, Ni, 2) where Nt is the number of trials and Ni is
 # the number of items.
 # noinspection PyDefaultArgument
-def full_pipeline(participant_data, analysis_configuration, visualize=False):
+def full_pipeline(participant_data, analysis_configuration, visualize=False, visualization_extent=None):
     validate_type(participant_data, ParticipantData, "participant_data", "full_pipeline")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "full_pipeline")
 
@@ -530,7 +530,8 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False):
         for idx, (trial, min_trial, transformed_trial, output_trial) in \
                 enumerate(zip(original_participant_data.trials, min_coordinates, transformed_coordinates, output)):
             # noinspection PyTypeChecker
-            visualization(trial, analysis_configuration, min_trial, transformed_trial, output_trial)
+            visualization(trial, analysis_configuration, min_trial, transformed_trial, output_trial,
+                          extent=visualization_extent)
 
     return output
 

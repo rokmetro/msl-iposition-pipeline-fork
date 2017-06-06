@@ -7,11 +7,17 @@ https://github.com/pypa/sampleproject
 
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
+from distutils.util import convert_path
 # To use a consistent encoding
 from codecs import open
 from os import path
 
 here = path.abspath(path.dirname(__file__))
+
+main_ns = {}
+ver_path = convert_path('cogrecon/__init__.py')
+with open(ver_path) as ver_file:
+    exec(ver_file.read(), main_ns)
 
 
 def read(fname):
@@ -29,8 +35,8 @@ setup(
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
 
-    # Note: Change version in cogrecon __init__.py when this is changed
-    version='0.0.3',
+    # Note: Change version in cogrecon __init__.py
+    version=main_ns['__version__'],
 
     description='A package for analyzing reconstruction data generated from iPosition and related memory tasks.',
     long_description=long_description,

@@ -13,6 +13,7 @@ from .globals import default_animation_duration, default_animation_ticks, \
     default_visualization_accuracies_correct_color, default_visualization_accuracies_uncorrected_color, \
     default_visualization_accuracies_uncorrected_alpha
 
+
 # TODO: Documentation needs an audit/overhaul
 
 
@@ -21,7 +22,7 @@ from .globals import default_animation_duration, default_animation_ticks, \
 # noinspection PyDefaultArgument
 def visualization(trial_data, analysis_configuration, min_points, transformed_points, output_list,
                   animation_duration=default_animation_duration, animation_ticks=default_animation_ticks,
-                  print_output=True):
+                  print_output=True, extent=None):
     from full_pipeline import get_header_labels, accuracy
 
     actual_points = trial_data.actual_points
@@ -96,5 +97,14 @@ def visualization(trial_data, analysis_configuration, min_points, transformed_po
     # noinspection PyUnusedLocal
     anim = animation.FuncAnimation(fig, update, interval=(float(animation_duration) / float(animation_ticks)) * 1000,
                                    blit=True)
+
+    if extent is not None:
+        assert isinstance(extent, list) and np.array(extent).shape == (2, 2) and \
+               all([isinstance(x, float) for x in np.array(extent).flatten().tolist()]), \
+               'extent must be a 2 by 2 list of floating point values'
+        axes = plt.gca()
+        axes.set_xlim(extent[0])
+        axes.set_ylim(extent[1])
+
     fig.show()
     plt.show()
