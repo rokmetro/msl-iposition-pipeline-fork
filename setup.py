@@ -15,7 +15,7 @@ from os import path
 here = path.abspath(path.dirname(__file__))
 
 main_ns = {}
-ver_path = convert_path('cogrecon/__init__.py')
+ver_path = convert_path('cogrecon/_version.py')
 with open(ver_path) as ver_file:
     exec(ver_file.read(), main_ns)
 
@@ -63,13 +63,12 @@ setup(
         'Intended Audience :: Researchers',
         'Topic :: Scientific/Engineering :: Information Analysis',
 
-        # TODO: Add support for other python versions (Tkinter seems to be the only worriesome library)
-        # 'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
-        # 'Programming Language :: Python :: 3',
-        # 'Programming Language :: Python :: 3.3',
-        # 'Programming Language :: Python :: 3.4',
-        # 'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
     ],
 
     # You can just specify the packages manually here if your project is

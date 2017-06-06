@@ -187,15 +187,78 @@ class ParticipantData(object):
     # noinspection PyUnusedLocal
     @staticmethod
     def category_split_participant(original_participant_data, unique_categories):
-        # TODO: Implement this
-        # verify category uniqueness
-        # extract data from each category
-        # data from categories returned as list sorted by unique_categories order
-        # data from unknown categories should be returned as well as separate tuple value
-        category_data = []
-        unknown_categories_data = []
-        raise NotImplementedError
-        # return category_data, unknown_categories_data
+        # Confirm unique_categories are, in fact, unique
+        # noinspection PyTypeChecker
+        assert len(np.unique(np.array(unique_categories)).tolist()) == len(np.array(unique_categories).tolist())
+
+        # Generate a split data object for each category
+        split_participant_data = [ParticipantData([TrialData([], [], [], [], [], [])
+                                                   for _ in original_participant_data.trials])]
+        for dat in split_participant_data:
+            for t in dat.trials:
+                t.distance_accuracy_map = []  # Fill accuracy map with empty lists so we can copy that too
+
+        # Generate an additional data object for unknown category data
+        unknown_category_participant_data = ParticipantData([TrialData([], [], [], [], [], [])
+                                                             for _ in original_participant_data.trials])
+        for t in unknown_category_participant_data.trials:
+            t.distance_accuracy_map = []  # Fill accuracy map with empty lists so we can copy that too
+
+        # Iterate through all the trials in the original data set
+        for trial_idx, t in enumerate(original_participant_data.trials):
+            for d_points, a_points, d_labels, a_labels, c_labels, d_order, d_accuracy_map \
+                    in zip(t.data_points, t.actual_points, t.data_labels, t.actual_labels,
+                           t.category_labels, t.data_order, t.distance_accuracy_map):
+                # Store the distance threshold for the trial for convenience
+                dt = t.distance_threshold
+                # Iterate through all the points in the trial
+                for i in range(0, len(d_points)):
+                    # Check if there is a category label
+                    cl = None
+                    if c_labels is not None and len(c_labels) > i:
+                        cl = c_labels[i]
+                    # If there is a category label and it is in our list of unique categories
+                    if cl is not None and cl in unique_categories:
+                        # Get the index of the output data in which to store the point
+                        idx = unique_categories.index(cl)
+                        # Store the distance threshold
+                        split_participant_data[idx].trials[trial_idx].distance_threshold = dt
+
+                        # Go through each list and, if there is a valid point at that index, append it to the new object
+                        if d_points is not None and len(d_points) > i:
+                            split_participant_data[idx].trials[trial_idx].data_points.append(d_points[i])
+                        if d_labels is not None and len(d_labels) > i:
+                            split_participant_data[idx].trials[trial_idx].data_points.append(d_labels[i])
+                        if a_labels is not None and len(a_labels) > i:
+                            split_participant_data[idx].trials[trial_idx].data_points.append(a_labels[i])
+                        if c_labels is not None and len(c_labels) > i:
+                            split_participant_data[idx].trials[trial_idx].data_points.append(c_labels[i])
+                        if d_order is not None and len(d_order) > i:
+                            split_participant_data[idx].trials[trial_idx].data_points.append(d_order[i])
+                        if d_accuracy_map is not None and len(d_accuracy_map) > i:
+                            split_participant_data[idx].trials[trial_idx].data_points.append(d_accuracy_map[i])
+                    # If either there was no category information or it was not in our list, the points belong in the
+                    # unknown category object
+                    else:
+                        # Set the distance threshold
+                        unknown_category_participant_data.trials[trial_idx].distance_threshold = dt
+
+                        # Go through each list and, if there is a valid point at that index, append it to the new object
+                        if d_points is not None and len(d_points) > i:
+                            unknown_category_participant_data.trials[trial_idx].data_points.append(d_points[i])
+                        if d_labels is not None and len(d_labels) > i:
+                            unknown_category_participant_data.trials[trial_idx].data_points.append(d_labels[i])
+                        if a_labels is not None and len(a_labels) > i:
+                            unknown_category_participant_data.trials[trial_idx].data_points.append(a_labels[i])
+                        if c_labels is not None and len(c_labels) > i:
+                            unknown_category_participant_data.trials[trial_idx].data_points.append(c_labels[i])
+                        if d_order is not None and len(d_order) > i:
+                            unknown_category_participant_data.trials[trial_idx].data_points.append(d_order[i])
+                        if d_accuracy_map is not None and len(d_accuracy_map) > i:
+                            unknown_category_participant_data.trials[trial_idx].data_points.append(d_accuracy_map[i])
+
+        # return the list of unique_categories sorted data and the object with unknown cateogry data
+        return split_participant_data, unknown_category_participant_data
 
     @staticmethod
     def load_from_file(actual_coordinates_filepath, data_coordinates_filepath, expected_shape,

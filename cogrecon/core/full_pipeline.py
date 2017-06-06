@@ -389,8 +389,8 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
             logging.warning('Visualization is not supported for category data at the moment.')
         categories = participant_data.category_labels
         unique_categories = list(set(categories))
-        _category_participant_data, _ = ParticipantData.category_split_participant(participant_data,
-                                                                                   unique_categories)
+        _category_participant_data, _unknown_category_participant_data = \
+            ParticipantData.category_split_participant(participant_data, unique_categories)
         _category_analysis_configuration = copy.deepcopy(analysis_configuration)
         _category_analysis_configuration.category_independence = False
         _category_analysis_configuration.is_category = True
@@ -399,6 +399,8 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
         for cat, cat_label in zip(_category_participant_data, unique_categories):
             _category_analysis_configuration.category_label = cat_label
             cat_outputs.append(full_pipeline(cat, _category_analysis_configuration))
+
+        cat_outputs.append(full_pipeline(_unknown_category_participant_data, _category_analysis_configuration))
 
         return cat_outputs
 

@@ -7,3 +7,5 @@ scipy
 numpy
 matplotlib_venn
 easygui
+statsmodels
+tzlocal
