@@ -78,13 +78,16 @@ def time_travel_task_to_iposition(input_dir, output_dir,
         print(meta['subID'] + ',' + meta['trial'])
 
         if exclude_incorrect_category:
-            print(reconstruction_items)
-            print(items)
-            print(order)
-            reconstruction_items, items, order = np.transpose([(r, i, o) for r, i, o
-                                                               in zip(reconstruction_items, items, order)
-                                                               if 'direction' in r and 'direction' in i
-                                                               and r['direction'] == i['direction']]).tolist()
+            excluded_list = np.transpose([(r, i, o) for r, i, o in zip(reconstruction_items, items, order)
+                                          if ('direction' in r and 'direction' in i
+                                              and r['direction'] == i['direction'])]).tolist()
+
+            if not excluded_list:
+                reconstruction_items = []
+                items = []
+                order = []
+            else:
+                reconstruction_items, items, order = excluded_list
 
         categories = [r['direction'] for r in reconstruction_items if (r is not None and r['direction'] is not None)]
 
