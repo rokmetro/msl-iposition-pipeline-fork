@@ -1,0 +1,795 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>cogrecon.core.full_pipeline &mdash; msl-iposition-pipeline 0.0.4 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="msl-iposition-pipeline 0.0.4 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> msl-iposition-pipeline
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.4
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">msl-iposition-pipeline</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>cogrecon.core.full_pipeline</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for cogrecon.core.full_pipeline</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.spatial</span> <span class="k">import</span> <span class="n">distance</span>
+
+<span class="kn">from</span> <span class="nn">.similarity_transform</span> <span class="k">import</span> <span class="n">similarity_transform</span>
+<span class="kn">from</span> <span class="nn">.tools</span> <span class="k">import</span> <span class="n">validate_type</span><span class="p">,</span> <span class="n">mask_points</span><span class="p">,</span> <span class="n">collapse_unique_components</span><span class="p">,</span> \
+    <span class="n">find_minimal_mapping</span><span class="p">,</span> <span class="n">greedy_find_minimal_mapping</span><span class="p">,</span> <span class="n">sum_of_distance</span>
+<span class="kn">from</span> <span class="nn">.visualization</span> <span class="k">import</span> <span class="n">visualization</span>
+<span class="kn">from</span> <span class="nn">.data_structures</span> <span class="k">import</span> <span class="n">TrialData</span><span class="p">,</span> <span class="n">ParticipantData</span><span class="p">,</span> <span class="n">AnalysisConfiguration</span><span class="p">,</span> <span class="n">PipelineFlags</span>
+<span class="kn">from</span> <span class="nn">.globals</span> <span class="k">import</span> <span class="n">default_z_value</span>
+
+
+<span class="c1"># TODO: Documentation needs an audit/overhaul</span>
+
+
+<div class="viewcode-block" id="accuracy"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.full_pipeline.accuracy">[docs]</a><span class="k">def</span> <span class="nf">accuracy</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">analysis_configuration</span><span class="p">):</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">ParticipantData</span><span class="p">,</span> <span class="s2">&quot;participant_data&quot;</span><span class="p">,</span> <span class="s2">&quot;accuracy&quot;</span><span class="p">)</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">analysis_configuration</span><span class="p">,</span> <span class="n">AnalysisConfiguration</span><span class="p">,</span> <span class="s2">&quot;analysis_configuration&quot;</span><span class="p">,</span> <span class="s2">&quot;accuracy&quot;</span><span class="p">)</span>
+
+    <span class="n">actual_points</span> <span class="o">=</span> <span class="n">participant_data</span><span class="o">.</span><span class="n">actual_points</span>
+    <span class="n">data_points</span> <span class="o">=</span> <span class="n">participant_data</span><span class="o">.</span><span class="n">data_points</span>
+    <span class="n">z_value</span> <span class="o">=</span> <span class="n">analysis_configuration</span><span class="o">.</span><span class="n">z_value</span>
+    <span class="n">trial_by_trial_accuracy</span> <span class="o">=</span> <span class="n">analysis_configuration</span><span class="o">.</span><span class="n">trial_by_trial_accuracy</span>
+    <span class="n">manual_threshold</span> <span class="o">=</span> <span class="n">analysis_configuration</span><span class="o">.</span><span class="n">manual_threshold</span>
+
+    <span class="k">if</span> <span class="n">z_value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;a z_value was not found for accuracy, using z=</span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">default_z_value</span><span class="p">))</span>
+        <span class="n">z_value</span> <span class="o">=</span> <span class="n">default_z_value</span>
+    <span class="k">if</span> <span class="n">trial_by_trial_accuracy</span><span class="p">:</span>
+        <span class="n">dist_accuracy_map</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">exclusion_thresholds</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">actual_trial</span><span class="p">,</span> <span class="n">data_trial</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">actual_points</span><span class="p">,</span> <span class="n">data_points</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">manual_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">dists</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">distance</span><span class="o">.</span><span class="n">cdist</span><span class="p">(</span><span class="n">data_trial</span><span class="p">,</span> <span class="n">actual_trial</span><span class="p">))</span>
+                <span class="n">dist_accuracy_map</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">xd</span> <span class="o">&lt;</span> <span class="n">manual_threshold</span> <span class="k">for</span> <span class="n">xd</span> <span class="ow">in</span> <span class="n">dists</span><span class="p">])</span>
+                <span class="n">exclusion_thresholds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">manual_threshold</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">dists</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">distance</span><span class="o">.</span><span class="n">cdist</span><span class="p">(</span><span class="n">data_trial</span><span class="p">,</span> <span class="n">actual_trial</span><span class="p">))</span>
+                <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dists</span><span class="p">)</span>
+                <span class="n">sd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">dists</span><span class="p">)</span>
+                <span class="n">ste</span> <span class="o">=</span> <span class="n">sd</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dists</span><span class="p">))</span>
+                <span class="n">ci</span> <span class="o">=</span> <span class="n">ste</span> <span class="o">*</span> <span class="n">z_value</span>
+                <span class="n">exclusion_threshold</span> <span class="o">=</span> <span class="n">ci</span> <span class="o">+</span> <span class="n">mu</span>
+                <span class="n">exclusion_thresholds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">exclusion_threshold</span><span class="p">)</span>
+                <span class="n">dist_accuracy_map</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">xd</span> <span class="o">&lt;</span> <span class="n">exclusion_threshold</span> <span class="k">for</span> <span class="n">xd</span> <span class="ow">in</span> <span class="n">dists</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dist_accuracy_map</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">manual_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">actual_trial</span><span class="p">,</span> <span class="n">data_trial</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">actual_points</span><span class="p">,</span> <span class="n">data_points</span><span class="p">):</span>
+                <span class="n">dists</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">distance</span><span class="o">.</span><span class="n">cdist</span><span class="p">(</span><span class="n">data_trial</span><span class="p">,</span> <span class="n">actual_trial</span><span class="p">))</span>
+                <span class="n">dist_accuracy_map</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">xd</span> <span class="o">&lt;</span> <span class="n">manual_threshold</span> <span class="k">for</span> <span class="n">xd</span> <span class="ow">in</span> <span class="n">dists</span><span class="p">])</span>
+            <span class="n">exclusion_thresholds</span> <span class="o">=</span> <span class="p">[</span><span class="n">manual_threshold</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_points</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">collapsed_actual_points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">actual_points</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="n">data_points</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">xd</span><span class="p">)</span> <span class="k">for</span> <span class="n">xd</span> <span class="ow">in</span> <span class="n">data_points</span><span class="p">]</span>
+            <span class="n">collapsed_data_points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data_points</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="n">dists</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">distance</span><span class="o">.</span><span class="n">cdist</span><span class="p">(</span><span class="n">collapsed_actual_points</span><span class="p">,</span> <span class="n">collapsed_data_points</span><span class="p">))</span>
+            <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dists</span><span class="p">)</span>
+            <span class="n">sd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">dists</span><span class="p">)</span>
+            <span class="n">ste</span> <span class="o">=</span> <span class="n">sd</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dists</span><span class="p">))</span>
+            <span class="n">ci</span> <span class="o">=</span> <span class="n">ste</span> <span class="o">*</span> <span class="n">z_value</span>
+            <span class="n">exclusion_threshold</span> <span class="o">=</span> <span class="n">ci</span> <span class="o">+</span> <span class="n">mu</span>
+            <span class="n">exclusion_thresholds</span> <span class="o">=</span> <span class="p">[</span><span class="n">exclusion_threshold</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_points</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">actual_trial</span><span class="p">,</span> <span class="n">data_trial</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">actual_points</span><span class="p">,</span> <span class="n">data_points</span><span class="p">):</span>
+                <span class="c1"># noinspection PyTypeChecker</span>
+                <span class="n">dists</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">distance</span><span class="o">.</span><span class="n">cdist</span><span class="p">(</span><span class="n">data_trial</span><span class="p">,</span> <span class="n">actual_trial</span><span class="p">))</span>
+                <span class="n">dist_accuracy_map</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">bool</span><span class="p">(</span><span class="n">xd</span> <span class="o">&lt;</span> <span class="n">exclusion_threshold</span><span class="p">)</span> <span class="k">for</span> <span class="n">xd</span> <span class="ow">in</span> <span class="n">dists</span><span class="p">])</span>
+
+    <span class="n">participant_data</span><span class="o">.</span><span class="n">distance_accuracy_map</span> <span class="o">=</span> <span class="n">dist_accuracy_map</span>
+    <span class="n">participant_data</span><span class="o">.</span><span class="n">distance_threshold</span> <span class="o">=</span> <span class="n">exclusion_thresholds</span>
+
+    <span class="k">return</span> <span class="n">participant_data</span></div>
+
+
+<div class="viewcode-block" id="trial_axis_swap"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.full_pipeline.trial_axis_swap">[docs]</a><span class="k">def</span> <span class="nf">trial_axis_swap</span><span class="p">(</span><span class="n">trial_data</span><span class="p">):</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">trial_data</span><span class="p">,</span> <span class="n">TrialData</span><span class="p">,</span> <span class="s2">&quot;trial_data&quot;</span><span class="p">,</span> <span class="s2">&quot;trial_axis_swap&quot;</span><span class="p">)</span>
+
+    <span class="n">actual_points</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">actual_points</span>
+    <span class="n">data_points</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">data_points</span>
+    <span class="n">actual_labels</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">actual_labels</span>
+    <span class="n">data_labels</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">data_labels</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">actual_labels</span><span class="p">:</span>
+        <span class="n">actual_labels</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">actual_points</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">data_labels</span><span class="p">:</span>
+        <span class="n">data_labels</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data_points</span><span class="p">))</span>
+    <span class="n">axis_swaps</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">comparisons</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">axis_swap_pairs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_points</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">idx2</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_points</span><span class="p">)):</span>
+            <span class="n">comparisons</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">actual_points</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">actual_points</span><span class="p">[</span><span class="n">idx2</span><span class="p">])))</span> <span class="o">!=</span>
+                   <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data_points</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data_points</span><span class="p">[</span><span class="n">idx2</span><span class="p">])))):</span>
+                <span class="n">axis_swaps</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">axis_swap_pairs</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">actual_labels</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">data_labels</span><span class="p">[</span><span class="n">idx2</span><span class="p">]])</span>
+    <span class="n">axis_swaps</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">axis_swaps</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">comparisons</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">axis_swaps</span><span class="p">,</span> <span class="n">axis_swap_pairs</span></div>
+
+
+<div class="viewcode-block" id="trial_edge_resizing"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.full_pipeline.trial_edge_resizing">[docs]</a><span class="k">def</span> <span class="nf">trial_edge_resizing</span><span class="p">(</span><span class="n">trial_data</span><span class="p">):</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">trial_data</span><span class="p">,</span> <span class="n">TrialData</span><span class="p">,</span> <span class="s2">&quot;trial_data&quot;</span><span class="p">,</span> <span class="s2">&quot;trial_edge_resizing&quot;</span><span class="p">)</span>
+
+    <span class="n">actual_points</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">actual_points</span>
+    <span class="n">data_points</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">data_points</span>
+
+    <span class="n">actual_edges</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">data_edges</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">actual_points</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">idx2</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">idx1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_points</span><span class="p">)):</span>
+            <span class="n">actual_edges</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">distance</span><span class="o">.</span><span class="n">euclidean</span><span class="p">(</span><span class="n">actual_points</span><span class="p">[</span><span class="n">idx1</span><span class="p">],</span> <span class="n">actual_points</span><span class="p">[</span><span class="n">idx2</span><span class="p">]))</span>
+            <span class="n">data_edges</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">distance</span><span class="o">.</span><span class="n">euclidean</span><span class="p">(</span><span class="n">data_points</span><span class="p">[</span><span class="n">idx1</span><span class="p">],</span> <span class="n">data_points</span><span class="p">[</span><span class="n">idx2</span><span class="p">]))</span>
+    <span class="c1"># noinspection PyTypeChecker</span>
+    <span class="n">resizing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">actual_edges</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data_edges</span><span class="p">)))</span>
+
+    <span class="k">return</span> <span class="n">resizing</span></div>
+
+
+<div class="viewcode-block" id="trial_edge_distortion"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.full_pipeline.trial_edge_distortion">[docs]</a><span class="k">def</span> <span class="nf">trial_edge_distortion</span><span class="p">(</span><span class="n">trial_data</span><span class="p">):</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">trial_data</span><span class="p">,</span> <span class="n">TrialData</span><span class="p">,</span> <span class="s2">&quot;trial_data&quot;</span><span class="p">,</span> <span class="s2">&quot;trial_edge_distortion&quot;</span><span class="p">)</span>
+
+    <span class="n">actual_points</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">actual_points</span>
+    <span class="n">data_points</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">data_points</span>
+
+    <span class="n">edge_distortions_count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">comparisons</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_points</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">idx2</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_points</span><span class="p">)):</span>
+            <span class="n">comparisons</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">actual_signs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">((</span><span class="nb">map</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">actual_points</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">actual_points</span><span class="p">[</span><span class="n">idx2</span><span class="p">])))))</span>
+            <span class="n">data_signs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data_points</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data_points</span><span class="p">[</span><span class="n">idx2</span><span class="p">]))))</span>
+            <span class="n">equality_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">actual_signs</span> <span class="o">==</span> <span class="n">data_signs</span><span class="p">)</span>
+            <span class="n">edge_distortions_count</span> <span class="o">+=</span> <span class="n">equality_list</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">distortions</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">edge_distortions_count</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">comparisons</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">distortions</span></div>
+
+
+<span class="c1"># noinspection PyDefaultArgument</span>
+<div class="viewcode-block" id="geometric_transform"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.full_pipeline.geometric_transform">[docs]</a><span class="k">def</span> <span class="nf">geometric_transform</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">analysis_configuration</span><span class="p">):</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">ParticipantData</span><span class="p">,</span> <span class="s2">&quot;participant_data&quot;</span><span class="p">,</span> <span class="s2">&quot;geometric_transform&quot;</span><span class="p">)</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">analysis_configuration</span><span class="p">,</span> <span class="n">AnalysisConfiguration</span><span class="p">,</span> <span class="s2">&quot;analysis_configuration&quot;</span><span class="p">,</span> <span class="s2">&quot;geometric_transform&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Determine if the points meet the specified accuracy threshold</span>
+    <span class="n">participant_data</span> <span class="o">=</span> <span class="n">accuracy</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">analysis_configuration</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">trial</span> <span class="ow">in</span> <span class="n">participant_data</span><span class="o">.</span><span class="n">trials</span><span class="p">:</span>
+        <span class="c1"># noinspection PyTypeChecker</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trial_geometric_transform</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">analysis_configuration</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div>
+
+
+<span class="c1"># TODO: Addition transformation/de-anonymization methods(see https://en.wikipedia.org/wiki/Point_set_registration)</span>
+<span class="c1"># noinspection PyDefaultArgument</span>
+<div class="viewcode-block" id="trial_geometric_transform"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.full_pipeline.trial_geometric_transform">[docs]</a><span class="k">def</span> <span class="nf">trial_geometric_transform</span><span class="p">(</span><span class="n">trial_data</span><span class="p">,</span> <span class="n">analysis_configuration</span><span class="p">):</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">trial_data</span><span class="p">,</span> <span class="n">TrialData</span><span class="p">,</span> <span class="s2">&quot;trial_data&quot;</span><span class="p">,</span> <span class="s2">&quot;trial_geometric_transform&quot;</span><span class="p">)</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">analysis_configuration</span><span class="p">,</span> <span class="n">AnalysisConfiguration</span><span class="p">,</span> <span class="s2">&quot;analysis_configuration&quot;</span><span class="p">,</span> <span class="s2">&quot;trial_geometric_transform&quot;</span><span class="p">)</span>
+
+    <span class="n">actual_points</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">actual_points</span>
+    <span class="n">data_points</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">data_points</span>
+    <span class="n">dist_accuracy_map</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">distance_accuracy_map</span>
+    <span class="n">dist_threshold</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">distance_threshold</span>
+    <span class="n">debug_labels</span> <span class="o">=</span> <span class="n">analysis_configuration</span><span class="o">.</span><span class="n">debug_labels</span>
+
+    <span class="c1"># Determine which points should be included in the transformation step and generate the point sets</span>
+    <span class="n">valid_points_indicies</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">actual_points</span><span class="p">)),</span> <span class="n">dist_accuracy_map</span><span class="p">)</span> <span class="k">if</span> <span class="n">y</span><span class="p">]</span>
+    <span class="n">from_points</span> <span class="o">=</span> <span class="n">mask_points</span><span class="p">(</span><span class="n">data_points</span><span class="p">,</span> <span class="n">valid_points_indicies</span><span class="p">)</span>
+    <span class="n">to_points</span> <span class="o">=</span> <span class="n">mask_points</span><span class="p">(</span><span class="n">actual_points</span><span class="p">,</span> <span class="n">valid_points_indicies</span><span class="p">)</span>
+
+    <span class="c1"># noinspection PyTypeChecker</span>
+    <span class="c1"># Number of &quot;inaccurate&quot; points after deanonymizing is number of False in this list</span>
+    <span class="n">num_geometric_transform_points_excluded</span> <span class="o">=</span> <span class="n">dist_accuracy_map</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="c1"># noinspection PyTypeChecker</span>
+    <span class="n">num_geometric_transform_points_used</span> <span class="o">=</span> <span class="n">dist_accuracy_map</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">translation_magnitude</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">rotation_theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">scaling</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="n">transformation_auto_exclusion</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">translation</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span>
+    <span class="n">transformed_coordinates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data_points</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="c1"># Confirm there are enough points to perform the transformation</span>
+    <span class="c1"># (it is meaningless to perform with 0 or 1 points)</span>
+    <span class="k">if</span> <span class="n">num_geometric_transform_points_used</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">debug_labels</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; : &quot;</span> <span class="o">+</span> <span class="p">(</span><span class="s1">&#39;Not enough points were found to be accurate enough to &#39;</span>
+                                                     <span class="s1">&#39;create a geometric transform. It will be skipped.&#39;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Perform the transformation via Umeyama&#39;s method</span>
+            <span class="n">rotation_matrix</span><span class="p">,</span> <span class="n">scaling</span><span class="p">,</span> <span class="n">translation</span> <span class="o">=</span> <span class="n">similarity_transform</span><span class="p">(</span><span class="n">from_points</span><span class="p">,</span> <span class="n">to_points</span><span class="p">)</span>
+            <span class="n">translation</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">translation</span><span class="p">)</span>
+            <span class="c1"># Compute the rotation factor</span>
+            <span class="n">theta_matrix</span> <span class="o">=</span> <span class="p">[</span><span class="nb">map</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">rotation_matrix</span><span class="p">]</span>
+            <span class="n">theta_matrix</span> <span class="o">=</span> <span class="p">[</span><span class="nb">map</span><span class="p">(</span><span class="nb">abs</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">theta_matrix</span><span class="p">]</span>
+            <span class="n">rotation_theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="nb">list</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">theta_matrix</span><span class="p">])</span>  <span class="c1"># Rotation angle</span>
+            <span class="n">translation_magnitude</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">translation</span><span class="p">)</span>  <span class="c1"># Translation magnitude (direction is in &#39;translation&#39;)</span>
+            <span class="c1"># Apply the linear transformation to the data coordinates to cancel out global errors if possible</span>
+            <span class="n">transformed_coordinates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">translation</span><span class="p">))</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">rotation_matrix</span><span class="p">)</span> <span class="o">*</span> <span class="n">scaling</span>
+                                               <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data_points</span><span class="p">])</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">transformation_auto_exclusion</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">new_error</span> <span class="o">=</span> <span class="n">sum_of_distance</span><span class="p">(</span><span class="n">transformed_coordinates</span><span class="p">,</span> <span class="n">actual_points</span><span class="p">)</span>
+            <span class="n">old_error</span> <span class="o">=</span> <span class="n">sum_of_distance</span><span class="p">(</span><span class="n">data_points</span><span class="p">,</span> <span class="n">actual_points</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">new_error</span> <span class="o">&gt;</span> <span class="n">old_error</span><span class="p">:</span>  <span class="c1"># Exclude rotation from transform</span>
+                <span class="n">rotation_theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">debug_labels</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; : &quot;</span> <span class="o">+</span>
+                             <span class="p">(</span><span class="s1">&#39;The transformation function did not reduce the error, removing rotation and retying&#39;</span> <span class="o">+</span>
+                              <span class="s1">&#39; (old_error=</span><span class="si">{0}</span><span class="s1">, new_error=</span><span class="si">{1}</span><span class="s1">).&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">old_error</span><span class="p">,</span>
+                                                                         <span class="n">new_error</span><span class="p">))</span>
+                <span class="n">transformed_coordinates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">translation</span><span class="p">))</span> <span class="o">*</span> <span class="n">scaling</span>
+                                                    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data_points</span><span class="p">])</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+                <span class="n">new_error</span> <span class="o">=</span> <span class="n">sum_of_distance</span><span class="p">(</span><span class="n">transformed_coordinates</span><span class="p">,</span> <span class="n">actual_points</span><span class="p">)</span>
+                <span class="n">old_error</span> <span class="o">=</span> <span class="n">sum_of_distance</span><span class="p">(</span><span class="n">data_points</span><span class="p">,</span> <span class="n">actual_points</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">new_error</span> <span class="o">&gt;</span> <span class="n">old_error</span><span class="p">:</span>  <span class="c1"># Completely exclude transform</span>
+                    <span class="n">transformation_auto_exclusion</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">rotation_theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                    <span class="n">scaling</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                    <span class="n">translation_magnitude</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                    <span class="n">translation</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span>
+                    <span class="n">transformed_coordinates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data_points</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">debug_labels</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; : &quot;</span> <span class="o">+</span>
+                                    <span class="p">(</span><span class="s1">&#39;The transformation function did not reduce the error, removing transform &#39;</span> <span class="o">+</span>
+                                     <span class="s1">&#39;(old_error=</span><span class="si">{0}</span><span class="s1">, new_error=</span><span class="si">{1}</span><span class="s1">).&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">old_error</span><span class="p">,</span>
+                                                                               <span class="n">new_error</span><span class="p">))</span>
+
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">transformed_coordinates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data_points</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">((</span><span class="s1">&#39;Finding transformation failed , &#39;</span> <span class="o">+</span>
+                           <span class="s1">&#39;from_points=</span><span class="si">{0}</span><span class="s1">, to_points=</span><span class="si">{1}</span><span class="s1">.&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">from_points</span><span class="p">,</span> <span class="n">to_points</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">translation</span><span class="p">,</span> <span class="n">translation_magnitude</span><span class="p">,</span> <span class="n">scaling</span><span class="p">,</span> <span class="n">rotation_theta</span><span class="p">,</span> <span class="n">transformation_auto_exclusion</span><span class="p">,</span>
+            <span class="n">num_geometric_transform_points_excluded</span><span class="p">,</span> <span class="n">transformed_coordinates</span><span class="p">,</span> <span class="n">dist_threshold</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="swaps"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.full_pipeline.swaps">[docs]</a><span class="k">def</span> <span class="nf">swaps</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">analysis_configuration</span><span class="p">):</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">ParticipantData</span><span class="p">,</span> <span class="s2">&quot;participant_data&quot;</span><span class="p">,</span> <span class="s2">&quot;swaps&quot;</span><span class="p">)</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">analysis_configuration</span><span class="p">,</span> <span class="n">AnalysisConfiguration</span><span class="p">,</span> <span class="s2">&quot;analysis_configuration&quot;</span><span class="p">,</span> <span class="s2">&quot;swaps&quot;</span><span class="p">)</span>
+
+    <span class="n">participant_data</span> <span class="o">=</span> <span class="n">accuracy</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">analysis_configuration</span><span class="p">)</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">trial</span> <span class="ow">in</span> <span class="n">participant_data</span><span class="o">.</span><span class="n">trials</span><span class="p">:</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trial_swaps</span><span class="p">(</span><span class="n">trial</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">result</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="trial_swaps"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.full_pipeline.trial_swaps">[docs]</a><span class="k">def</span> <span class="nf">trial_swaps</span><span class="p">(</span><span class="n">trial_data</span><span class="p">):</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">trial_data</span><span class="p">,</span> <span class="n">TrialData</span><span class="p">,</span> <span class="s2">&quot;trial_data&quot;</span><span class="p">,</span> <span class="s2">&quot;trial_swaps&quot;</span><span class="p">)</span>
+
+    <span class="n">actual_points</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">actual_points</span>
+    <span class="n">data_points</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">data_points</span>
+    <span class="n">actual_labels</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">actual_labels</span>
+    <span class="n">data_labels</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">data_labels</span>
+    <span class="n">dist_accuracy_map</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">distance_accuracy_map</span>
+    <span class="n">dist_threshold</span> <span class="o">=</span> <span class="n">trial_data</span><span class="o">.</span><span class="n">distance_threshold</span>
+
+    <span class="n">accurate_points_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">l</span> <span class="k">for</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">is_accurate</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">actual_labels</span><span class="p">,</span> <span class="n">dist_accuracy_map</span><span class="p">)</span> <span class="k">if</span> <span class="n">is_accurate</span><span class="p">]</span>
+
+    <span class="n">deanonymized_graph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="n">deanonymized_graph</span><span class="o">.</span><span class="n">add_nodes_from</span><span class="p">(</span><span class="n">actual_labels</span><span class="p">)</span>
+    <span class="n">deanonymized_graph</span><span class="o">.</span><span class="n">add_edges_from</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">actual_labels</span><span class="p">,</span> <span class="n">data_labels</span><span class="p">))</span>
+    <span class="n">components</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">connected_components</span><span class="p">(</span><span class="n">deanonymized_graph</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="nb">len</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">accurate_placements</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">inaccurate_placements</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">true_swaps</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">true_swap_distances</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">true_swap_expected_distances</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">partial_swaps</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">partial_swap_distances</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">partial_swap_expected_distances</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">cycle_swaps</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">cycle_swap_distances</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">cycle_swap_expected_distances</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">partial_cycle_swaps</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">partial_cycle_swap_distances</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">partial_cycle_swap_expected_distances</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">components</span><span class="p">:</span>
+        <span class="c1"># noinspection PyTypeChecker</span>
+        <span class="n">component</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">component</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">component</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">node</span> <span class="ow">in</span> <span class="n">accurate_points_labels</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">component</span><span class="p">]):</span>
+                <span class="n">accurate_placements</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">inaccurate_placements</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">component</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">swap_actual_idx0</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">actual_labels</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">component</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">swap_actual_idx1</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">actual_labels</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">component</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">swap_data_idx0</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data_labels</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">component</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">swap_data_idx1</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data_labels</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">component</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">dist_actual</span> <span class="o">=</span> <span class="n">distance</span><span class="o">.</span><span class="n">euclidean</span><span class="p">(</span><span class="n">actual_points</span><span class="p">[</span><span class="n">swap_actual_idx0</span><span class="p">],</span> <span class="n">actual_points</span><span class="p">[</span><span class="n">swap_actual_idx1</span><span class="p">])</span>
+            <span class="n">dist_data</span> <span class="o">=</span> <span class="n">distance</span><span class="o">.</span><span class="n">euclidean</span><span class="p">(</span><span class="n">data_points</span><span class="p">[</span><span class="n">swap_data_idx0</span><span class="p">],</span> <span class="n">data_points</span><span class="p">[</span><span class="n">swap_data_idx1</span><span class="p">])</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">node</span> <span class="ow">in</span> <span class="n">accurate_points_labels</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">component</span><span class="p">]):</span>
+                <span class="n">true_swaps</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">true_swap_distances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dist_data</span><span class="p">)</span>
+                <span class="n">true_swap_expected_distances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dist_actual</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">partial_swaps</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">partial_swap_distances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dist_data</span><span class="p">)</span>
+                <span class="n">partial_swap_expected_distances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dist_actual</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">component</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">swap_actual_idxs</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">actual_labels</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">component</span><span class="p">]</span>
+            <span class="n">swap_actual_idxs_combinations</span> <span class="o">=</span> <span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="ow">in</span>
+                                             <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">swap_actual_idxs</span><span class="p">,</span> <span class="n">swap_actual_idxs</span><span class="p">))</span> <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="n">b</span><span class="p">]</span>
+            <span class="n">swap_data_idxs</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">actual_labels</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">component</span><span class="p">]</span>
+            <span class="n">swap_data_idxs_combinations</span> <span class="o">=</span> <span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="ow">in</span>
+                                           <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">swap_data_idxs</span><span class="p">,</span> <span class="n">swap_data_idxs</span><span class="p">))</span> <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="n">b</span><span class="p">]</span>
+            <span class="n">dists_actual</span> <span class="o">=</span> <span class="p">[</span><span class="n">distance</span><span class="o">.</span><span class="n">euclidean</span><span class="p">(</span><span class="n">actual_points</span><span class="p">[</span><span class="n">a</span><span class="p">],</span> <span class="n">actual_points</span><span class="p">[</span><span class="n">b</span><span class="p">])</span> <span class="k">for</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="ow">in</span>
+                            <span class="n">swap_actual_idxs_combinations</span><span class="p">]</span>
+            <span class="n">dists_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">distance</span><span class="o">.</span><span class="n">euclidean</span><span class="p">(</span><span class="n">data_points</span><span class="p">[</span><span class="n">a</span><span class="p">],</span> <span class="n">data_points</span><span class="p">[</span><span class="n">b</span><span class="p">])</span> <span class="k">for</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="ow">in</span>
+                          <span class="n">swap_data_idxs_combinations</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">node</span> <span class="ow">in</span> <span class="n">accurate_points_labels</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">component</span><span class="p">]):</span>
+                <span class="n">cycle_swaps</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">cycle_swap_distances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dists_data</span><span class="p">))</span>
+                <span class="n">cycle_swap_expected_distances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dists_actual</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">partial_cycle_swaps</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">partial_cycle_swap_distances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dists_data</span><span class="p">))</span>
+                <span class="n">partial_cycle_swap_expected_distances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dists_actual</span><span class="p">))</span>
+
+    <span class="n">misassignment</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">accurate_misassignment</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">inaccurate_misassignment</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">actual_label</span><span class="p">,</span> <span class="n">data_label</span><span class="p">,</span> <span class="n">acc</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">actual_labels</span><span class="p">,</span> <span class="n">data_labels</span><span class="p">,</span> <span class="n">dist_accuracy_map</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">actual_label</span> <span class="o">!=</span> <span class="n">data_label</span><span class="p">:</span>
+            <span class="n">misassignment</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">acc</span><span class="p">:</span>
+                <span class="n">accurate_misassignment</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">inaccurate_misassignment</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>  <span class="c1"># Ignore empty mean warnings</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">RuntimeWarning</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">accurate_placements</span><span class="p">,</span> <span class="n">inaccurate_placements</span><span class="p">,</span> <span class="n">true_swaps</span><span class="p">,</span> <span class="n">partial_swaps</span><span class="p">,</span> <span class="n">cycle_swaps</span><span class="p">,</span> <span class="n">partial_cycle_swaps</span><span class="p">,</span>
+                <span class="n">components</span><span class="p">,</span> <span class="n">misassignment</span><span class="p">,</span> <span class="n">accurate_misassignment</span><span class="p">,</span> <span class="n">inaccurate_misassignment</span><span class="p">,</span> <span class="n">dist_threshold</span><span class="p">,</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">true_swap_distances</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">true_swap_expected_distances</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">partial_swap_distances</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">partial_swap_expected_distances</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">cycle_swap_distances</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">cycle_swap_expected_distances</span><span class="p">),</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">partial_cycle_swap_distances</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">partial_cycle_swap_expected_distances</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="deanonymize"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.full_pipeline.deanonymize">[docs]</a><span class="k">def</span> <span class="nf">deanonymize</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">analysis_configuration</span><span class="p">):</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">ParticipantData</span><span class="p">,</span> <span class="s2">&quot;participant_data&quot;</span><span class="p">,</span> <span class="s2">&quot;deanonymize&quot;</span><span class="p">)</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">analysis_configuration</span><span class="p">,</span> <span class="n">AnalysisConfiguration</span><span class="p">,</span> <span class="s2">&quot;analysis_configuration&quot;</span><span class="p">,</span> <span class="s2">&quot;deanonymize&quot;</span><span class="p">)</span>
+
+    <span class="n">actual_points</span> <span class="o">=</span> <span class="n">participant_data</span><span class="o">.</span><span class="n">actual_points</span>
+    <span class="n">data_points</span> <span class="o">=</span> <span class="n">participant_data</span><span class="o">.</span><span class="n">data_points</span>
+    <span class="n">data_order</span> <span class="o">=</span> <span class="n">participant_data</span><span class="o">.</span><span class="n">data_order</span>
+
+    <span class="n">min_coordinates</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">min_scores</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">min_score_positions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">raw_deanonymized_misplacements</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">actual_trial</span><span class="p">,</span> <span class="n">data_trial</span><span class="p">,</span> <span class="n">order_trial</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">actual_points</span><span class="p">,</span> <span class="n">data_points</span><span class="p">,</span> <span class="n">data_order</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">analysis_configuration</span><span class="o">.</span><span class="n">greedy_order_deanonymization</span><span class="p">:</span>
+            <span class="n">min_score</span><span class="p">,</span> <span class="n">min_score_idx</span><span class="p">,</span> <span class="n">min_permutation</span> <span class="o">=</span> <span class="n">greedy_find_minimal_mapping</span><span class="p">(</span><span class="n">actual_trial</span><span class="p">,</span>
+                                                                                    <span class="n">data_trial</span><span class="p">,</span> <span class="n">order_trial</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">min_score</span><span class="p">,</span> <span class="n">min_score_idx</span><span class="p">,</span> <span class="n">min_permutation</span> <span class="o">=</span> <span class="n">find_minimal_mapping</span><span class="p">(</span><span class="n">actual_trial</span><span class="p">,</span> <span class="n">data_trial</span><span class="p">)</span>
+
+        <span class="n">min_score_positions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">min_score_idx</span><span class="p">)</span>
+        <span class="n">min_scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">min_score</span><span class="p">)</span>
+        <span class="n">min_coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">min_permutation</span><span class="p">))</span>
+        <span class="n">raw_deanonymized_misplacements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">min_score</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_trial</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">min_coordinates</span><span class="p">,</span> <span class="n">min_scores</span><span class="p">,</span> <span class="n">min_score_positions</span><span class="p">,</span> <span class="n">raw_deanonymized_misplacements</span></div>
+
+
+<span class="c1"># This function is the main pipeline for the new processing methods. When run alone, it just returns the values</span>
+<span class="c1"># for a single trial. With visualize=True it will display the results. debug_labels is used to help specify</span>
+<span class="c1"># which participant/trial is being observed when running from an external process (it is appended to the debug info).</span>
+<span class="c1"># The coordinates are expected to be equal in length of the for (Nt, Ni, 2) where Nt is the number of trials and Ni is</span>
+<span class="c1"># the number of items.</span>
+<span class="c1"># noinspection PyDefaultArgument</span>
+<div class="viewcode-block" id="full_pipeline"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.full_pipeline.full_pipeline">[docs]</a><span class="k">def</span> <span class="nf">full_pipeline</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">analysis_configuration</span><span class="p">,</span> <span class="n">visualize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">visualization_extent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">ParticipantData</span><span class="p">,</span> <span class="s2">&quot;participant_data&quot;</span><span class="p">,</span> <span class="s2">&quot;full_pipeline&quot;</span><span class="p">)</span>
+    <span class="n">validate_type</span><span class="p">(</span><span class="n">analysis_configuration</span><span class="p">,</span> <span class="n">AnalysisConfiguration</span><span class="p">,</span> <span class="s2">&quot;analysis_configuration&quot;</span><span class="p">,</span> <span class="s2">&quot;full_pipeline&quot;</span><span class="p">)</span>
+
+    <span class="n">original_participant_data</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">participant_data</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">analysis_configuration</span><span class="o">.</span><span class="n">category_independence</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">visualize</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Visualization is not supported for category data at the moment.&#39;</span><span class="p">)</span>
+        <span class="n">categories</span> <span class="o">=</span> <span class="n">participant_data</span><span class="o">.</span><span class="n">category_labels</span>
+        <span class="n">unique_categories</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">categories</span><span class="p">))</span>
+        <span class="n">_category_participant_data</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ParticipantData</span><span class="o">.</span><span class="n">category_split_participant</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span>
+                                                                                   <span class="n">unique_categories</span><span class="p">)</span>
+        <span class="n">_category_analysis_configuration</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">analysis_configuration</span><span class="p">)</span>
+        <span class="n">_category_analysis_configuration</span><span class="o">.</span><span class="n">category_independence</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">_category_analysis_configuration</span><span class="o">.</span><span class="n">is_category</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">cat_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">cat</span><span class="p">,</span> <span class="n">cat_label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">_category_participant_data</span><span class="p">,</span> <span class="n">unique_categories</span><span class="p">):</span>
+            <span class="n">_category_analysis_configuration</span><span class="o">.</span><span class="n">category_label</span> <span class="o">=</span> <span class="n">cat_label</span>
+            <span class="n">cat_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_pipeline</span><span class="p">(</span><span class="n">cat</span><span class="p">,</span> <span class="n">_category_analysis_configuration</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">cat_outputs</span>
+
+    <span class="n">actual_coordinates</span> <span class="o">=</span> <span class="n">participant_data</span><span class="o">.</span><span class="n">actual_points</span>
+    <span class="n">min_coordinates</span> <span class="o">=</span> <span class="n">participant_data</span><span class="o">.</span><span class="n">data_points</span>  <span class="c1"># For visualization</span>
+    <span class="n">transformed_coordinates</span> <span class="o">=</span> <span class="n">participant_data</span><span class="o">.</span><span class="n">data_points</span>  <span class="c1"># For visualization</span>
+
+    <span class="n">flags</span> <span class="o">=</span> <span class="n">analysis_configuration</span><span class="o">.</span><span class="n">flags</span>
+
+    <span class="n">num_trials</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">participant_data</span><span class="o">.</span><span class="n">trials</span><span class="p">)</span>
+
+    <span class="n">straight_misplacements</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">axis_swaps</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">axis_swap_pairs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">edge_resize</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">edge_distort</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">trial</span> <span class="ow">in</span> <span class="n">participant_data</span><span class="o">.</span><span class="n">trials</span><span class="p">:</span>
+        <span class="c1"># First calculate the two primary original metrics, misplacement and axis swaps - this has been validated</span>
+        <span class="c1"># against the previous script via an MRE data set of 20 individuals</span>
+        <span class="n">straight_misplacements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sum_of_distance</span><span class="p">(</span><span class="n">trial</span><span class="o">.</span><span class="n">actual_points</span><span class="p">,</span>
+                                                      <span class="n">trial</span><span class="o">.</span><span class="n">data_points</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">trial</span><span class="o">.</span><span class="n">actual_points</span><span class="p">))</span>
+        <span class="n">axis_swaps_element</span><span class="p">,</span> <span class="n">axis_swap_pairs_element</span> <span class="o">=</span> <span class="n">trial_axis_swap</span><span class="p">(</span><span class="n">trial</span><span class="p">)</span>
+        <span class="n">axis_swaps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">axis_swaps_element</span><span class="p">)</span>
+        <span class="n">axis_swap_pairs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">axis_swap_pairs_element</span><span class="p">)</span>
+        <span class="n">edge_resize</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trial_edge_resizing</span><span class="p">(</span><span class="n">trial</span><span class="p">))</span>
+        <span class="n">edge_distort</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trial_edge_distortion</span><span class="p">(</span><span class="n">trial</span><span class="p">))</span>
+
+    <span class="n">pre_processed_accuracy</span> <span class="o">=</span> <span class="n">accuracy</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">analysis_configuration</span><span class="p">)</span>
+    <span class="n">pre_process_accuracies</span> <span class="o">=</span> <span class="n">pre_processed_accuracy</span><span class="o">.</span><span class="n">distance_accuracy_map</span>
+    <span class="n">pre_process_threshold</span> <span class="o">=</span> <span class="n">pre_processed_accuracy</span> <span class="o">.</span><span class="n">distance_threshold</span>
+
+    <span class="c1"># De-anonymization via Global Minimization of Misplacement</span>
+    <span class="c1"># Try all permutations of the data coordinates to find an ordering which is globally minimal in misplacement</span>
+    <span class="k">if</span> <span class="n">flags</span> <span class="o">==</span> <span class="n">PipelineFlags</span><span class="o">.</span><span class="n">Deanonymize</span><span class="p">:</span>
+        <span class="n">min_coordinates</span><span class="p">,</span> <span class="n">min_score</span><span class="p">,</span> <span class="n">min_score_position</span><span class="p">,</span> \
+            <span class="n">raw_deanonymized_misplacement</span> <span class="o">=</span> <span class="n">deanonymize</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">analysis_configuration</span><span class="p">)</span>
+        <span class="n">participant_data</span><span class="o">.</span><span class="n">data_points</span> <span class="o">=</span> <span class="n">min_coordinates</span>
+        <span class="n">deanon_processed_accuracy</span> <span class="o">=</span> <span class="n">accuracy</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">analysis_configuration</span><span class="p">)</span>
+        <span class="n">deanon_accuracies</span> <span class="o">=</span> <span class="n">deanon_processed_accuracy</span><span class="o">.</span><span class="n">distance_accuracy_map</span>
+        <span class="n">deanon_threshold</span> <span class="o">=</span> <span class="n">deanon_processed_accuracy</span><span class="o">.</span><span class="n">distance_threshold</span>
+        <span class="c1"># noinspection PyTypeChecker</span>
+        <span class="n">deanonymized_labels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">permutations</span><span class="p">(</span>
+            <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">participant_data</span><span class="o">.</span><span class="n">actual_points</span><span class="p">[</span><span class="mi">0</span><span class="p">]))))[</span><span class="n">position</span><span class="p">])</span> <span class="k">for</span> <span class="n">position</span> <span class="ow">in</span> <span class="n">min_score_position</span><span class="p">]</span>
+        <span class="n">participant_data</span><span class="o">.</span><span class="n">data_labels</span> <span class="o">=</span> <span class="n">deanonymized_labels</span>
+        <span class="n">actual_labels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">actual_trial</span><span class="p">))</span> <span class="k">for</span> <span class="n">actual_trial</span> <span class="ow">in</span>
+                         <span class="n">actual_coordinates</span><span class="p">]</span>
+        <span class="n">participant_data</span><span class="o">.</span><span class="n">actual_labels</span> <span class="o">=</span> <span class="n">actual_labels</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">deanon_threshold</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_trials</span>
+        <span class="n">deanon_accuracies</span> <span class="o">=</span> <span class="p">[]</span> <span class="o">*</span> <span class="n">num_trials</span>
+        <span class="n">raw_deanonymized_misplacement</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_trials</span>
+        <span class="n">deanonymized_labels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">permutations</span><span class="p">(</span>
+            <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">participant_data</span><span class="o">.</span><span class="n">actual_points</span><span class="p">[</span><span class="mi">0</span><span class="p">]))))[</span><span class="n">position</span><span class="p">]</span> <span class="k">for</span> <span class="n">position</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_trials</span><span class="p">]</span>
+        <span class="n">participant_data</span><span class="o">.</span><span class="n">data_labels</span> <span class="o">=</span> <span class="n">deanonymized_labels</span>
+        <span class="n">actual_labels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">actual_trial</span><span class="p">))</span> <span class="k">for</span> <span class="n">actual_trial</span> <span class="ow">in</span>
+                         <span class="n">actual_coordinates</span><span class="p">]</span>
+        <span class="n">participant_data</span><span class="o">.</span><span class="n">actual_labels</span> <span class="o">=</span> <span class="n">actual_labels</span>
+
+    <span class="k">if</span> <span class="n">flags</span> <span class="o">==</span> <span class="n">PipelineFlags</span><span class="o">.</span><span class="n">GlobalTransformation</span><span class="p">:</span>
+        <span class="p">(</span><span class="n">translation</span><span class="p">,</span> <span class="n">translation_magnitude</span><span class="p">,</span> <span class="n">scaling</span><span class="p">,</span> <span class="n">rotation_theta</span><span class="p">,</span>
+         <span class="n">transformation_auto_exclusion</span><span class="p">,</span> <span class="n">num_geometric_transform_points_excluded</span><span class="p">,</span>
+         <span class="n">transformed_coordinates</span><span class="p">,</span> <span class="n">geo_dist_threshold</span><span class="p">)</span> <span class="o">=</span> <span class="n">geometric_transform</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span> <span class="n">analysis_configuration</span><span class="p">)</span>
+        <span class="n">participant_data</span><span class="o">.</span><span class="n">data_points</span> <span class="o">=</span> <span class="n">transformed_coordinates</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">translation</span> <span class="o">=</span> <span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]]</span> <span class="o">*</span> <span class="n">num_trials</span>
+        <span class="n">transformation_auto_exclusion</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_trials</span>
+        <span class="n">num_geometric_transform_points_excluded</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_trials</span>
+        <span class="n">rotation_theta</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_trials</span>
+        <span class="n">scaling</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_trials</span>
+        <span class="n">translation_magnitude</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_trials</span>
+        <span class="n">geo_dist_threshold</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_trials</span>
+
+    <span class="c1"># Determine if the points meet the specified accuracy threshold</span>
+
+    <span class="p">(</span><span class="n">accurate_placements</span><span class="p">,</span> <span class="n">inaccurate_placements</span><span class="p">,</span> <span class="n">true_swaps</span><span class="p">,</span> <span class="n">partial_swaps</span><span class="p">,</span> <span class="n">cycle_swaps</span><span class="p">,</span> <span class="n">partial_cycle_swaps</span><span class="p">,</span>
+     <span class="n">components</span><span class="p">,</span> <span class="n">misassignment</span><span class="p">,</span> <span class="n">accurate_misassignment</span><span class="p">,</span> <span class="n">inaccurate_misassignment</span><span class="p">,</span> <span class="n">swap_dist_threshold</span><span class="p">,</span>
+     <span class="n">true_swap_distances</span><span class="p">,</span> <span class="n">true_swap_expected_distances</span><span class="p">,</span>
+     <span class="n">partial_swap_distances</span><span class="p">,</span> <span class="n">partial_swap_expected_distances</span><span class="p">,</span>
+     <span class="n">cycle_swap_distances</span><span class="p">,</span> <span class="n">cycle_swap_expected_distances</span><span class="p">,</span>
+     <span class="n">partial_cycle_swap_distances</span><span class="p">,</span> <span class="n">partial_cycle_swap_expected_distances</span><span class="p">)</span> <span class="o">=</span> <span class="n">swaps</span><span class="p">(</span><span class="n">participant_data</span><span class="p">,</span>
+                                                                                  <span class="n">analysis_configuration</span><span class="p">)</span>
+
+    <span class="n">output</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">straight_misplacements</span><span class="p">,</span>
+         <span class="n">axis_swaps</span><span class="p">,</span>
+         <span class="n">edge_resize</span><span class="p">,</span>
+         <span class="n">edge_distort</span><span class="p">,</span>
+         <span class="n">axis_swap_pairs</span><span class="p">,</span>
+         <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">pre_process_accuracies</span><span class="p">],</span>
+         <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">pre_process_accuracies</span><span class="p">],</span>
+         <span class="n">pre_process_threshold</span><span class="p">,</span>
+         <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">deanon_accuracies</span><span class="p">],</span>
+         <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">deanon_accuracies</span><span class="p">],</span>
+         <span class="n">deanon_threshold</span><span class="p">,</span>
+         <span class="n">raw_deanonymized_misplacement</span><span class="p">,</span>
+         <span class="n">transformation_auto_exclusion</span><span class="p">,</span>
+         <span class="n">num_geometric_transform_points_excluded</span><span class="p">,</span>
+         <span class="n">rotation_theta</span><span class="p">,</span>
+         <span class="n">scaling</span><span class="p">,</span>
+         <span class="n">translation_magnitude</span><span class="p">,</span>
+         <span class="n">translation</span><span class="p">,</span>
+         <span class="n">geo_dist_threshold</span><span class="p">,</span>
+         <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">components</span><span class="p">],</span>
+         <span class="n">accurate_placements</span><span class="p">,</span>
+         <span class="n">inaccurate_placements</span><span class="p">,</span>
+         <span class="n">true_swaps</span><span class="p">,</span>
+         <span class="n">partial_swaps</span><span class="p">,</span>
+         <span class="n">cycle_swaps</span><span class="p">,</span>
+         <span class="n">partial_cycle_swaps</span><span class="p">,</span>
+         <span class="n">misassignment</span><span class="p">,</span>
+         <span class="n">accurate_misassignment</span><span class="p">,</span>
+         <span class="n">inaccurate_misassignment</span><span class="p">,</span>
+         <span class="n">swap_dist_threshold</span><span class="p">,</span>
+         <span class="n">true_swap_distances</span><span class="p">,</span>
+         <span class="n">true_swap_expected_distances</span><span class="p">,</span>
+         <span class="n">partial_swap_distances</span><span class="p">,</span>
+         <span class="n">partial_swap_expected_distances</span><span class="p">,</span>
+         <span class="n">cycle_swap_distances</span><span class="p">,</span>
+         <span class="n">cycle_swap_expected_distances</span><span class="p">,</span>
+         <span class="n">partial_cycle_swap_distances</span><span class="p">,</span>
+         <span class="n">partial_cycle_swap_expected_distances</span><span class="p">,</span>
+         <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">components</span><span class="p">],</span>
+         <span class="p">[</span><span class="n">analysis_configuration</span><span class="o">.</span><span class="n">is_category</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">participant_data</span><span class="o">.</span><span class="n">trials</span><span class="p">),</span>
+         <span class="p">[</span><span class="n">analysis_configuration</span><span class="o">.</span><span class="n">category_label</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">participant_data</span><span class="o">.</span><span class="n">trials</span><span class="p">)</span>
+         <span class="p">])</span>
+
+    <span class="c1"># If requested, visualize the data</span>
+    <span class="k">if</span> <span class="n">visualize</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">min_trial</span><span class="p">,</span> <span class="n">transformed_trial</span><span class="p">,</span> <span class="n">output_trial</span><span class="p">)</span> <span class="ow">in</span> \
+                <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">original_participant_data</span><span class="o">.</span><span class="n">trials</span><span class="p">,</span> <span class="n">min_coordinates</span><span class="p">,</span> <span class="n">transformed_coordinates</span><span class="p">,</span> <span class="n">output</span><span class="p">)):</span>
+            <span class="c1"># noinspection PyTypeChecker</span>
+            <span class="n">visualization</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">analysis_configuration</span><span class="p">,</span> <span class="n">min_trial</span><span class="p">,</span> <span class="n">transformed_trial</span><span class="p">,</span> <span class="n">output_trial</span><span class="p">,</span>
+                          <span class="n">extent</span><span class="o">=</span><span class="n">visualization_extent</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">output</span></div>
+
+
+<span class="c1"># This function is responsible for returning the names of the values returned in full_pipeline</span>
+<div class="viewcode-block" id="get_header_labels"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.full_pipeline.get_header_labels">[docs]</a><span class="k">def</span> <span class="nf">get_header_labels</span><span class="p">():</span>
+    <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;Original Misplacement&quot;</span><span class="p">,</span> <span class="s2">&quot;Original Swap&quot;</span><span class="p">,</span> <span class="s2">&quot;Original Edge Resizing&quot;</span><span class="p">,</span> <span class="s2">&quot;Original Edge Distortion&quot;</span><span class="p">,</span>  <span class="c1"># 0</span>
+            <span class="s2">&quot;Axis Swap Pairs&quot;</span><span class="p">,</span> <span class="s2">&quot;Pre-Processed Accurate Placements&quot;</span><span class="p">,</span> <span class="s2">&quot;Pre-Processed Inaccurate Placements&quot;</span><span class="p">,</span>  <span class="c1"># 1</span>
+            <span class="s2">&quot;Pre-Processed Accuracy Threshold&quot;</span><span class="p">,</span> <span class="s2">&quot;Deanonymized Accurate Placements&quot;</span><span class="p">,</span>  <span class="c1"># 2</span>
+            <span class="s2">&quot;Deanonymized Inaccurate Placements&quot;</span><span class="p">,</span> <span class="s2">&quot;Deanonymized Accuracy Threshold&quot;</span><span class="p">,</span>  <span class="c1"># 3</span>
+            <span class="s2">&quot;Raw Deanonymized Misplacement&quot;</span><span class="p">,</span> <span class="s2">&quot;Transformation Auto-Exclusion&quot;</span><span class="p">,</span>  <span class="c1"># 4</span>
+            <span class="s2">&quot;Number of Points Excluded From Geometric Transform&quot;</span><span class="p">,</span> <span class="s2">&quot;Rotation Theta&quot;</span><span class="p">,</span> <span class="s2">&quot;Scaling&quot;</span><span class="p">,</span>  <span class="c1"># 5</span>
+            <span class="s2">&quot;Translation Magnitude&quot;</span><span class="p">,</span>  <span class="c1"># 6</span>
+            <span class="s2">&quot;Translation&quot;</span><span class="p">,</span> <span class="s2">&quot;Geometric Distance Threshold&quot;</span><span class="p">,</span>  <span class="c1"># 7</span>
+            <span class="s2">&quot;Number of Components&quot;</span><span class="p">,</span> <span class="s2">&quot;Accurate Placements&quot;</span><span class="p">,</span> <span class="s2">&quot;Inaccurate Placements&quot;</span><span class="p">,</span> <span class="s2">&quot;True Swaps&quot;</span><span class="p">,</span>  <span class="c1"># 8</span>
+            <span class="s2">&quot;Partial Swaps&quot;</span><span class="p">,</span> <span class="s2">&quot;Cycle Swaps&quot;</span><span class="p">,</span> <span class="s2">&quot;Partial Cycle Swaps&quot;</span><span class="p">,</span> <span class="s2">&quot;Misassignment&quot;</span><span class="p">,</span> <span class="s2">&quot;Accurate Misassignment&quot;</span><span class="p">,</span>  <span class="c1"># 9</span>
+            <span class="s2">&quot;Inaccurate Misassignment&quot;</span><span class="p">,</span> <span class="s2">&quot;Swap Distance Threshold&quot;</span><span class="p">,</span>  <span class="c1"># 10</span>
+            <span class="s2">&quot;True Swap Data Distance&quot;</span><span class="p">,</span> <span class="s2">&quot;True Swap Actual Distance&quot;</span><span class="p">,</span> <span class="s2">&quot;Partial Swap Data Distance&quot;</span><span class="p">,</span>  <span class="c1"># 11</span>
+            <span class="s2">&quot;Partial Swap Actual Distance&quot;</span><span class="p">,</span> <span class="s2">&quot;Cycle Swap Data Distance&quot;</span><span class="p">,</span> <span class="s2">&quot;Cycle Swap Actual Distance&quot;</span><span class="p">,</span>  <span class="c1"># 12</span>
+            <span class="s2">&quot;Partial Cycle Swap Data Distance&quot;</span><span class="p">,</span> <span class="s2">&quot;Partial Cycle Swap Actual Distance&quot;</span><span class="p">,</span>  <span class="c1"># 13</span>
+            <span class="s2">&quot;Unique Components&quot;</span><span class="p">,</span> <span class="s2">&quot;Contains Category Data&quot;</span><span class="p">,</span> <span class="s2">&quot;Category Label&quot;</span><span class="p">]</span>  <span class="c1"># 14</span></div>
+
+
+<span class="c1"># (lambda x: list(array(x).flatten())) for append</span>
+<div class="viewcode-block" id="get_aggregation_functions"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.full_pipeline.get_aggregation_functions">[docs]</a><span class="k">def</span> <span class="nf">get_aggregation_functions</span><span class="p">():</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span>  <span class="c1"># 0</span>
+            <span class="n">collapse_unique_components</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span>  <span class="c1"># 1</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span>  <span class="c1"># 2</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span>  <span class="c1"># 3</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">,</span>  <span class="c1"># 4</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span>  <span class="c1"># 5</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span>  <span class="c1"># 6</span>
+            <span class="p">(</span><span class="k">lambda</span> <span class="n">xs</span><span class="p">:</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">xs</span><span class="p">)]),</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span>  <span class="c1"># Mean of vectors # 7</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span>  <span class="c1"># 8</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span>  <span class="c1"># 9</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span>  <span class="c1"># 10</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span>  <span class="c1"># 11</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span>  <span class="c1"># 12</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">,</span>  <span class="c1"># 13</span>
+            <span class="n">collapse_unique_components</span><span class="p">,</span> <span class="nb">any</span><span class="p">,</span> <span class="n">collapse_unique_components</span><span class="p">]</span>  <span class="c1"># 14</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Kevin Horecka.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.4',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

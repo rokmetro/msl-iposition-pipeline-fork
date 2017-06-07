@@ -1,0 +1,373 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>cogrecon.core.tools &mdash; msl-iposition-pipeline 0.0.4 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="msl-iposition-pipeline 0.0.4 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> msl-iposition-pipeline
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.4
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">msl-iposition-pipeline</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>cogrecon.core.tools</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for cogrecon.core.tools</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">import</span> <span class="nn">scipy.spatial.distance</span> <span class="k">as</span> <span class="nn">distance</span>
+<span class="kn">from</span> <span class="nn">scipy.spatial.distance</span> <span class="k">import</span> <span class="n">cdist</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="k">import</span> <span class="n">linear_sum_assignment</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">factorial</span>
+
+<span class="kn">from</span> <span class="nn">.globals</span> <span class="k">import</span> <span class="n">default_dimensions</span>
+
+<span class="c1"># TODO: Documentation needs an audit/overhaul</span>
+
+
+<span class="c1"># This function defines the misplacement metric which is used for minimization (in de-anonymization).</span>
+<span class="c1"># It is also used to calculate the original misplacement metric.</span>
+<div class="viewcode-block" id="sum_of_distance"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.tools.sum_of_distance">[docs]</a><span class="k">def</span> <span class="nf">sum_of_distance</span><span class="p">(</span><span class="n">list1</span><span class="p">,</span> <span class="n">list2</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">distance</span><span class="o">.</span><span class="n">cdist</span><span class="p">(</span><span class="n">list1</span><span class="p">,</span> <span class="n">list2</span><span class="p">)))</span></div>
+
+
+<span class="c1"># This function is for testing. It generates a set of &quot;correct&quot; and &quot;incorrect&quot; points such that the correct points are</span>
+<span class="c1"># randomly placed between (0,0) and (1,1) in R2. Then it generates &quot;incorrect&quot; points which are offset randomly up</span>
+<span class="c1"># to 10% in the positive direction, shuffled, and where one point is completely random.</span>
+<div class="viewcode-block" id="generate_random_test_points"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.tools.generate_random_test_points">[docs]</a><span class="k">def</span> <span class="nf">generate_random_test_points</span><span class="p">(</span><span class="n">number_of_points</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="n">default_dimensions</span><span class="p">,</span>
+                                <span class="n">shuffle_points</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">20.0</span><span class="p">),</span>
+                                <span class="n">num_rerandomed_points</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="n">correct_points</span> <span class="o">=</span> <span class="p">[[</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dimension</span><span class="p">)]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">number_of_points</span><span class="p">)]</span>
+    <span class="n">offsets</span> <span class="o">=</span> <span class="p">[[(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">())</span> <span class="o">*</span> <span class="n">noise</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dimension</span><span class="p">)]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">number_of_points</span><span class="p">)]</span>
+    <span class="n">input_points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">correct_points</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">offsets</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">shuffle_points</span><span class="p">:</span>
+        <span class="n">perms</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">permutations</span><span class="p">(</span><span class="n">input_points</span><span class="p">))</span>
+        <span class="n">input_points</span> <span class="o">=</span> <span class="n">perms</span><span class="p">[</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">perms</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="n">num_rerandomed_points</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_points</span><span class="p">):</span>  <span class="c1"># Bound the number of randomized points to the number of points</span>
+        <span class="n">num_rerandomed_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_points</span><span class="p">)</span>
+    <span class="c1"># Generate a random sampling of point indicies</span>
+    <span class="n">indicies</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_points</span><span class="p">)),</span> <span class="n">num_rerandomed_points</span><span class="p">)</span>
+    <span class="c1"># Loop through each index and re-randomize each element in the point</span>
+    <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">indicies</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">input_points</span><span class="p">[</span><span class="n">index</span><span class="p">])):</span>
+            <span class="n">input_points</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">correct_points</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">input_points</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+
+
+<span class="c1"># This function performs simple vector linear interpolation on two equal length number lists</span>
+<div class="viewcode-block" id="lerp"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.tools.lerp">[docs]</a><span class="k">def</span> <span class="nf">lerp</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">finish</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">start</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">finish</span><span class="p">),</span> <span class="s2">&quot;lerp requires equal length lists as inputs.&quot;</span>
+    <span class="c1"># noinspection PyTypeChecker</span>
+    <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">t</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;lerp t must be between 0.0 and 1.0 inclusively.&quot;</span>
+    <span class="k">return</span> <span class="p">[(</span><span class="n">bx</span> <span class="o">-</span> <span class="n">ax</span><span class="p">)</span> <span class="o">*</span> <span class="n">t</span> <span class="o">+</span> <span class="n">ax</span> <span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">bx</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">finish</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="mask_points"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.tools.mask_points">[docs]</a><span class="k">def</span> <span class="nf">mask_points</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">keep_indicies</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">points</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">keep_indicies</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="collapse_unique_components"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.tools.collapse_unique_components">[docs]</a><span class="k">def</span> <span class="nf">collapse_unique_components</span><span class="p">(</span><span class="n">components_list</span><span class="p">):</span>
+    <span class="c1"># Filter NoneType from list as it is not orderable</span>
+    <span class="n">filtered_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">components_list</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="c1"># Generate the unique list</span>
+    <span class="n">unique_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">filtered_list</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="c1"># Add in a single None value if the filter found a NoneType to maintain a record of its existence</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_list</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">components_list</span><span class="p">):</span>
+        <span class="n">unique_list</span> <span class="o">+=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">unique_list</span></div>
+
+
+<div class="viewcode-block" id="validate_type"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.tools.validate_type">[docs]</a><span class="k">def</span> <span class="nf">validate_type</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">source</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">t</span><span class="p">),</span> <span class="s2">&quot;</span><span class="si">{2}</span><span class="s2"> expects type </span><span class="si">{3}</span><span class="s2"> for </span><span class="si">{1}</span><span class="s2">, found </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">),</span> <span class="n">name</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span></div>
+
+
+<span class="c1"># noinspection PyUnusedLocal</span>
+<div class="viewcode-block" id="brute_force_find_minimal_mapping"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.tools.brute_force_find_minimal_mapping">[docs]</a><span class="k">def</span> <span class="nf">brute_force_find_minimal_mapping</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">):</span>
+    <span class="n">min_score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+    <span class="n">min_score_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">min_permutation</span> <span class="o">=</span> <span class="n">p1</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">perm</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">permutations</span><span class="p">(</span><span class="n">p1</span><span class="p">):</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">sum_of_distance</span><span class="p">(</span><span class="n">perm</span><span class="p">,</span> <span class="n">p0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">score</span> <span class="o">&lt;</span> <span class="n">min_score</span><span class="p">:</span>
+            <span class="n">min_score</span> <span class="o">=</span> <span class="n">score</span>
+            <span class="n">min_score_idx</span> <span class="o">=</span> <span class="n">idx</span>
+            <span class="n">min_permutation</span> <span class="o">=</span> <span class="n">perm</span>
+            <span class="k">if</span> <span class="n">score</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">raise</span> <span class="ne">DeprecationWarning</span></div>
+    <span class="c1"># return min_score, min_score_idx, min_permutation</span>
+
+
+<span class="c1"># From https://stackoverflow.com/questions/12146910/finding-the-lexicographic-index-of-a-permutation-of-a-given-array</span>
+<div class="viewcode-block" id="lexicographic_index"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.tools.lexicographic_index">[docs]</a><span class="k">def</span> <span class="nf">lexicographic_index</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the lexicographic index of the permutation `p` among all</span>
+<span class="sd">    permutations of its elements. `p` must be a sequence and all elements</span>
+<span class="sd">    of `p` must be distinct.</span>
+
+<span class="sd">    # &gt;&gt;&gt; lexicographic_index(&#39;dacb&#39;)</span>
+<span class="sd">    19</span>
+<span class="sd">    # &gt;&gt;&gt; from itertools import permutations</span>
+<span class="sd">    # &gt;&gt;&gt; all(lexicographic_index(p) == i</span>
+<span class="sd">    ...     for i, p in enumerate(permutations(&#39;abcde&#39;)))</span>
+<span class="sd">    True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)):</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">p</span><span class="p">[</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">p</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+        <span class="n">result</span> <span class="o">+=</span> <span class="n">k</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<span class="c1"># From https://stackoverflow.com/questions/39016821/minimize-total-distance-between-two-sets-of-points-in-python</span>
+<div class="viewcode-block" id="find_minimal_mapping"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.tools.find_minimal_mapping">[docs]</a><span class="k">def</span> <span class="nf">find_minimal_mapping</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">):</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">cdist</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">)</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">assignment</span> <span class="o">=</span> <span class="n">linear_sum_assignment</span><span class="p">(</span><span class="n">C</span><span class="p">)</span>
+
+    <span class="n">p1_reordered</span> <span class="o">=</span> <span class="p">[</span><span class="n">p1</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">assignment</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">sum_of_distance</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">p1_reordered</span><span class="p">),</span> <span class="n">lexicographic_index</span><span class="p">(</span><span class="n">assignment</span><span class="p">),</span> <span class="n">p1_reordered</span></div>
+
+
+<span class="c1"># noinspection PyUnusedLocal</span>
+<div class="viewcode-block" id="greedy_find_minimal_mapping"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.tools.greedy_find_minimal_mapping">[docs]</a><span class="k">def</span> <span class="nf">greedy_find_minimal_mapping</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p0</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">p1</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">p0</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">order</span><span class="p">),</span> <span class="s2">&quot;greedy_find_minimal_mapping requires all list to be equal &quot;</span> \
+                                                         <span class="s2">&quot;in length &quot;</span>
+    <span class="k">assert</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">order</span><span class="p">)))</span> <span class="o">==</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">order</span><span class="p">))),</span> <span class="s2">&quot;greedy_find_minimal_mapping order should contain &quot;</span> \
+                                                                <span class="s2">&quot;unique values between 0 and n-1, inclusively, &quot;</span> \
+                                                                <span class="s2">&quot;where n is the number of items &quot;</span>
+    <span class="c1"># Sort by order</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">order</span><span class="p">)))</span>
+    <span class="n">indices</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">order</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">)</span>
+    <span class="n">sorted_p0</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">p0</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">,</span> <span class="n">indices</span><span class="p">))</span>
+    <span class="n">sorted_p1</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">p1</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">,</span> <span class="n">indices</span><span class="p">))</span>
+
+    <span class="n">map_order</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sorted_p1</span><span class="p">):</span>
+        <span class="n">min_dist</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">float_info</span><span class="o">.</span><span class="n">max</span>
+        <span class="n">min_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">for</span> <span class="n">idxx</span><span class="p">,</span> <span class="n">pp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sorted_p0</span><span class="p">):</span>
+            <span class="n">dist</span> <span class="o">=</span> <span class="n">distance</span><span class="o">.</span><span class="n">euclidean</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">pp</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dist</span> <span class="o">&lt;</span> <span class="n">min_dist</span><span class="p">:</span>
+                <span class="n">min_dist</span> <span class="o">=</span> <span class="n">dist</span>
+                <span class="n">min_idx</span> <span class="o">=</span> <span class="n">idx</span>
+        <span class="n">map_order</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">min_idx</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">sorted_p1</span><span class="p">[</span><span class="n">min_idx</span><span class="p">]</span>
+
+    <span class="n">p1_reordered</span> <span class="o">=</span> <span class="p">[</span><span class="n">p1</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">map_order</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">sum_of_distance</span><span class="p">(</span><span class="n">p0</span><span class="p">,</span> <span class="n">p1_reordered</span><span class="p">),</span> <span class="n">lexicographic_index</span><span class="p">(</span><span class="n">map_order</span><span class="p">),</span> <span class="n">p1_reordered</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Kevin Horecka.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.4',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

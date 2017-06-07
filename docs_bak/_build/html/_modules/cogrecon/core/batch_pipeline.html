@@ -1,0 +1,605 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>cogrecon.core.batch_pipeline &mdash; msl-iposition-pipeline 0.0.4 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="msl-iposition-pipeline 0.0.4 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> msl-iposition-pipeline
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.4
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">msl-iposition-pipeline</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>cogrecon.core.batch_pipeline</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for cogrecon.core.batch_pipeline</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+
+<span class="kn">from</span> <span class="nn">.full_pipeline</span> <span class="k">import</span> <span class="n">full_pipeline</span><span class="p">,</span> <span class="n">get_aggregation_functions</span><span class="p">,</span> <span class="n">get_header_labels</span>
+<span class="kn">from</span> <span class="nn">.file_io</span> <span class="k">import</span> <span class="n">get_coordinates_from_file</span><span class="p">,</span> <span class="n">get_id_from_file_prefix_via_suffix</span><span class="p">,</span> <span class="n">find_data_files_in_directory</span>
+<span class="kn">from</span> <span class="nn">.data_structures</span> <span class="k">import</span> <span class="n">TrialData</span><span class="p">,</span> <span class="n">ParticipantData</span><span class="p">,</span> <span class="n">AnalysisConfiguration</span><span class="p">,</span> <span class="n">PipelineFlags</span>
+<span class="kn">from</span> <span class="nn">.data_flexing.dimension_removal</span> <span class="k">import</span> <span class="n">remove_dimensions</span>
+<span class="kn">from</span> <span class="nn">.globals</span> <span class="k">import</span> <span class="n">default_z_value</span><span class="p">,</span> <span class="n">default_pipeline_flags</span><span class="p">,</span> <span class="n">default_dimensions</span><span class="p">,</span> <span class="n">data_coordinates_file_suffix</span>
+<span class="kn">from</span> <span class="nn">.._version</span> <span class="k">import</span> <span class="n">__version__</span>
+
+<span class="c1"># TODO: Documentation needs an audit/overhaul</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="validate_list_format"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.batch_pipeline.validate_list_format">[docs]</a><span class="k">def</span> <span class="nf">validate_list_format</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">require_numeric</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">list_name</span><span class="o">=</span><span class="s2">&quot;list&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function validates that a list is the correct type, dimension, and</span>
+<span class="sd">    contains only int and float values (if specified).</span>
+
+<span class="sd">    :param l: a list whose type, dimensionality, and contents should be checked; valid types are list, tuple, or</span>
+<span class="sd">    numpy array, dimensionality should match dimension, and the contents should all be int or float</span>
+<span class="sd">    :param require_numeric: (optional) if True, elements must be int or float</span>
+<span class="sd">    :param dimension: (optional) the expected number of dimensions (integer greater than 0) of the list</span>
+<span class="sd">    (default is None, meaning it is not checked)</span>
+<span class="sd">    :param list_name: (optional) the name (string) of the list for debugging purposes (default is &quot;list&quot;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">require_numeric</span><span class="p">,</span> <span class="nb">bool</span><span class="p">),</span> <span class="s2">&quot;require_numeric is not a bool: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">require_numeric</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">list_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="s2">&quot;list_name is not string: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">list_name</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">),</span> \
+        <span class="s2">&quot;</span><span class="si">{1}</span><span class="s2"> should be list or numpy array: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">list_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dimension</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dimension</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="s2">&quot;dimension is not an integer: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dimension</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">dimension</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;dimension is not greater than 0: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dimension</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="n">dimension</span><span class="p">,</span> \
+            <span class="p">(</span><span class="s2">&quot;</span><span class="si">{1}</span><span class="s2"> should be a 3d list or numpy array of form (Nt, Ni, d) where Nt is the number of &quot;</span> <span class="o">+</span>
+             <span class="s2">&quot;trials, Ni is the number of items, and d is the dimensionality of the data: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">list_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">require_numeric</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span>
+                   <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">l</span><span class="p">))),</span> <span class="s2">&quot;</span><span class="si">{1}</span><span class="s2"> contains some non int or float values: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">l</span><span class="p">,</span>
+                                                                                                             <span class="n">list_name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="validate_equal_list_shapes"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.batch_pipeline.validate_equal_list_shapes">[docs]</a><span class="k">def</span> <span class="nf">validate_equal_list_shapes</span><span class="p">(</span><span class="n">l1</span><span class="p">,</span> <span class="n">l2</span><span class="p">,</span> <span class="n">expected_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">l1_name</span><span class="o">=</span><span class="s2">&quot;list1&quot;</span><span class="p">,</span> <span class="n">l2_name</span><span class="o">=</span><span class="s2">&quot;list2&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function validates that two numeric</span>
+<span class="sd">    :param l1: a list, tuple, or numpy array whose shape should be equal to the shape of l1</span>
+<span class="sd">    and expected_shape (if specified)</span>
+<span class="sd">    :param l2: a list, tuple, or numpy array whose shape should be equal to the shape of l2</span>
+<span class="sd">    and expected_shape (if specified)</span>
+<span class="sd">    :param expected_shape: (optional) a shape (list, tuple or numpy array) against which both l1 and l2 should be</span>
+<span class="sd">    compared to ensure they are equal to it and each other</span>
+<span class="sd">    :param l1_name: (optional) the name (string) of l1 for debugging</span>
+<span class="sd">    :param l2_name: (optional) the name (string) of l2 for debugging</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">l1_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="s2">&quot;l1_name is not string: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">l1_name</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">l2_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="s2">&quot;l2_name is not string: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">l2_name</span><span class="p">)</span>
+    <span class="n">validate_list_format</span><span class="p">(</span><span class="n">l1</span><span class="p">)</span>
+    <span class="n">validate_list_format</span><span class="p">(</span><span class="n">l2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">expected_shape</span><span class="p">:</span>
+        <span class="n">validate_list_format</span><span class="p">(</span><span class="n">expected_shape</span><span class="p">,</span> <span class="n">require_numeric</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">l1</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">expected_shape</span><span class="p">),</span> \
+            <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> does not match expected shape: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">l1_name</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">l2</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">expected_shape</span><span class="p">),</span> \
+            <span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> does not match expected shape: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">l1_name</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">l1</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">l2</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> \
+        <span class="p">(</span><span class="s2">&quot;shapes of </span><span class="si">{2}</span><span class="s2"> and </span><span class="si">{3}</span><span class="s2"> are not the same, &quot;</span> <span class="o">+</span>
+         <span class="s2">&quot;actual: </span><span class="si">{0}</span><span class="s2">, data: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">l1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">l2</span><span class="p">),</span> <span class="n">l1_name</span><span class="p">,</span> <span class="n">l2_name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<span class="c1"># threshold values for each process step</span>
+<div class="viewcode-block" id="get_single_file_result"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.batch_pipeline.get_single_file_result">[docs]</a><span class="k">def</span> <span class="nf">get_single_file_result</span><span class="p">(</span><span class="n">actual_coordinates</span><span class="p">,</span> <span class="n">dat</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data_orders</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">label</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">accuracy_z_value</span><span class="o">=</span><span class="n">default_z_value</span><span class="p">,</span>
+                           <span class="n">trial_by_trial_accuracy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">manual_threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">flags</span><span class="o">=</span><span class="n">PipelineFlags</span><span class="p">(</span><span class="n">default_pipeline_flags</span><span class="p">),</span> <span class="n">remove_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function generates the results for a specific file&#39;s data structure, usually containing multiple trials</span>
+
+<span class="sd">    :param remove_dims:</span>
+<span class="sd">    :param data_orders:</span>
+<span class="sd">    :param categories:</span>
+<span class="sd">    :param manual_threshold:</span>
+<span class="sd">    :rtype: list (or empty list)</span>
+<span class="sd">    :param actual_coordinates: the correct coordinates for the points - an (Nt, Ni, d) sized list of floats where Nt is</span>
+<span class="sd">    the number of trials, Ni is the number of items, and d is the dimensionality of the points</span>
+<span class="sd">    :param dat: the data coordinates for the points - an (Nt, Ni, d) sized list of floats where Nt is the number of</span>
+<span class="sd">    trials, Ni is the number of items, and d is the dimensionality of the points</span>
+<span class="sd">    :param label: (optional) the label (string) identifying the participant ID for this file, used for debugging</span>
+<span class="sd">    purposes only (default is empty string)</span>
+<span class="sd">    :param accuracy_z_value: (optional) a value (float or int) representing the z threshold for counting something as</span>
+<span class="sd">    :param trial_by_trial_accuracy: (optional) when True, z_value thresholds are used on a trial-by-trial basis for</span>
+<span class="sd">    accuracy calculations, when False, the thresholds are computed then collapsed across an individual&#39;s trials</span>
+<span class="sd">    (default is True)</span>
+<span class="sd">    :param flags: (optional) the value (PipelineFlags) describing what pipeline elements should/should not be run on</span>
+<span class="sd">    the data (default is stored in globals.py)</span>
+<span class="sd">    :return: a list, (Nt, r), where Nt is the number of trials and r is the number of result metrics, of results values</span>
+<span class="sd">    from the analysis for each trial on a particular file&#39;s data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">validate_list_format</span><span class="p">(</span><span class="n">actual_coordinates</span><span class="p">,</span> <span class="n">require_numeric</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">list_name</span><span class="o">=</span><span class="s2">&quot;actual_coordinates&quot;</span><span class="p">)</span>
+    <span class="n">validate_list_format</span><span class="p">(</span><span class="n">dat</span><span class="p">,</span> <span class="n">require_numeric</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">list_name</span><span class="o">=</span><span class="s2">&quot;dat&quot;</span><span class="p">)</span>
+
+    <span class="n">validate_equal_list_shapes</span><span class="p">(</span><span class="n">actual_coordinates</span><span class="p">,</span> <span class="n">dat</span><span class="p">,</span> <span class="n">l1_name</span><span class="o">=</span><span class="s2">&quot;actual_coordinates&quot;</span><span class="p">,</span> <span class="n">l2_name</span><span class="o">=</span><span class="s2">&quot;dat&quot;</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="s2">&quot;label must be a string: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">accuracy_z_value</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">accuracy_z_value</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span> \
+        <span class="s2">&quot;accuracy_z_value must be int or float: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">accuracy_z_value</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">accuracy_z_value</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> \
+        <span class="s2">&quot;accuracy_z_value must be greater than 0: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">accuracy_z_value</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flags</span><span class="p">,</span> <span class="n">PipelineFlags</span><span class="p">),</span> \
+        <span class="s2">&quot;flags is not of type PipelineFlags: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">flags</span><span class="p">)</span>
+
+    <span class="n">_analysis_configuration</span> <span class="o">=</span> <span class="n">AnalysisConfiguration</span><span class="p">(</span><span class="n">z_value</span><span class="o">=</span><span class="n">accuracy_z_value</span><span class="p">,</span>
+                                                    <span class="n">flags</span><span class="o">=</span><span class="n">flags</span><span class="p">,</span>
+                                                    <span class="n">debug_labels</span><span class="o">=</span><span class="p">[</span><span class="n">label</span><span class="p">],</span>
+                                                    <span class="n">trial_by_trial_accuracy</span><span class="o">=</span><span class="n">trial_by_trial_accuracy</span><span class="p">,</span>
+                                                    <span class="n">manual_threshold</span><span class="o">=</span><span class="n">manual_threshold</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">categories</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">categories</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_coordinates</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">validate_list_format</span><span class="p">(</span><span class="n">categories</span><span class="p">,</span> <span class="n">require_numeric</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">list_name</span><span class="o">=</span><span class="s2">&quot;categories&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">categories</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_coordinates</span><span class="p">),</span> <span class="s2">&quot;categories must be same length as actual_coordinates&quot;</span>
+    <span class="k">if</span> <span class="n">data_orders</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data_orders</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_coordinates</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">validate_list_format</span><span class="p">(</span><span class="n">data_orders</span><span class="p">,</span> <span class="n">require_numeric</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">list_name</span><span class="o">=</span><span class="s2">&quot;data_orders&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">categories</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">dat</span><span class="p">),</span> <span class="s2">&quot;data_orders must be same length as data_coordinates&quot;</span>
+    <span class="n">_participant_data</span> <span class="o">=</span> <span class="n">ParticipantData</span><span class="p">([</span><span class="n">TrialData</span><span class="p">(</span><span class="n">_a</span><span class="p">,</span> <span class="n">_d</span><span class="p">,</span> <span class="n">cateogry_labels</span><span class="o">=</span><span class="n">_c</span><span class="p">,</span> <span class="n">data_order</span><span class="o">=</span><span class="n">_o</span><span class="p">)</span>
+                                         <span class="k">for</span> <span class="n">_a</span><span class="p">,</span> <span class="n">_d</span><span class="p">,</span> <span class="n">_c</span><span class="p">,</span> <span class="n">_o</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">actual_coordinates</span><span class="p">,</span> <span class="n">dat</span><span class="p">,</span> <span class="n">categories</span><span class="p">,</span> <span class="n">data_orders</span><span class="p">)])</span>
+
+    <span class="k">if</span> <span class="n">remove_dims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_participant_data</span> <span class="o">=</span> <span class="n">remove_dimensions</span><span class="p">(</span><span class="n">_participant_data</span><span class="p">,</span> <span class="n">removal_dim_indices</span><span class="o">=</span><span class="n">remove_dims</span><span class="p">)</span>
+
+    <span class="c1"># Process the participant</span>
+    <span class="k">return</span> <span class="n">full_pipeline</span><span class="p">(</span><span class="n">_participant_data</span><span class="p">,</span> <span class="n">_analysis_configuration</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="detect_shape_from_file"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.batch_pipeline.detect_shape_from_file">[docs]</a><span class="k">def</span> <span class="nf">detect_shape_from_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">dimension</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    :rtype: int, int</span>
+<span class="sd">    :param path: a value (string) containing the path of the file from which structure should be detected</span>
+<span class="sd">    :param dimension: a value (integer) which represents the dimensionality of the data</span>
+<span class="sd">    :return: the trial count, the item count</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="s1">&#39;path is not string: </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="s1">&#39;path does not exist: </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">tsv</span><span class="p">:</span>
+        <span class="n">trial_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">item_count_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">tsv_line</span> <span class="ow">in</span> <span class="n">tsv</span><span class="p">:</span>
+            <span class="n">trial_count</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">item_count</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">split_line</span> <span class="o">=</span> <span class="n">tsv_line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">split_line</span><span class="p">:</span>
+                <span class="n">item_count</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">item_count_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item_count</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">item_count_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;no items detected in file: </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="n">item_count_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">item_count_list</span><span class="p">),</span> \
+            <span class="s1">&#39;inconsistent item count detected in file (</span><span class="si">{1}</span><span class="s1">): </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">item_count_list</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">trial_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;no trials detected: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">item_count_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;no items detected&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">trial_count</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">item_count_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">dimension</span><span class="p">)),</span> <span class="n">dimension</span></div>
+
+
+<div class="viewcode-block" id="batch_pipeline"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.batch_pipeline.batch_pipeline">[docs]</a><span class="k">def</span> <span class="nf">batch_pipeline</span><span class="p">(</span><span class="n">search_directory</span><span class="p">,</span> <span class="n">out_filename</span><span class="p">,</span> <span class="n">data_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="n">default_dimensions</span><span class="p">,</span>
+                   <span class="n">accuracy_z_value</span><span class="o">=</span><span class="n">default_z_value</span><span class="p">,</span>
+                   <span class="n">trial_by_trial_accuracy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                   <span class="n">flags</span><span class="o">=</span><span class="n">PipelineFlags</span><span class="p">(</span><span class="n">default_pipeline_flags</span><span class="p">),</span>
+                   <span class="n">collapse_trials</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">manual_threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">actual_coordinate_prefixes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                   <span class="n">category_independence_enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">category_prefixes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                   <span class="n">order_greedy_deanonymization_enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">order_prefxies</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                   <span class="n">removal_dim_indicies</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function allows the easy running of the pipeline on a directory and all of the appropriate files in its</span>
+<span class="sd">    subdirectories. It will search for the actual coordinates and data files and process them all as specified</span>
+<span class="sd">    by the other parameters.</span>
+
+<span class="sd">    :param removal_dim_indicies:</span>
+<span class="sd">    :param dimension:</span>
+<span class="sd">    :param order_prefxies:</span>
+<span class="sd">    :param category_prefixes:</span>
+<span class="sd">    :param order_greedy_deanonymization_enabled:</span>
+<span class="sd">    :param category_independence_enabled:</span>
+<span class="sd">    :param manual_threshold:</span>
+<span class="sd">    :param actual_coordinate_prefixes: </span>
+<span class="sd">    :rtype: None</span>
+<span class="sd">    :param search_directory: the directory (string) in which to recursively search for data files</span>
+<span class="sd">    :param data_shape: (optional) a shape (list, tuple or numpy array) which describes the structure of the date;</span>
+<span class="sd">    (Nt, Ni, d) such that Nt is the number of trials, Ni is the number of items and d is the number of dimensions;</span>
+<span class="sd">    if None is given, an attempt will be made to automatically detect the shape from the actual_coordinates file</span>
+<span class="sd">    (default is None)</span>
+<span class="sd">    :param out_filename: the filename and path (string) into which the data should be saved</span>
+<span class="sd">    :param accuracy_z_value: (optional) a value (float or int) representing the z threshold for counting something as</span>
+<span class="sd">    accurate (default is stored in globals.py)</span>
+<span class="sd">    :param trial_by_trial_accuracy: (optional) when True, z_value thresholds are used on a trial-by-trial basis for</span>
+<span class="sd">    accuracy calculations, when False, the thresholds are computed then collapsed across an individual&#39;s trials</span>
+<span class="sd">    (default is True)</span>
+<span class="sd">    :param flags: (optional) the value (PipelineFlags) describing what pipeline elements should/should not be run on</span>
+<span class="sd">    the data (default is stored in globals.py)</span>
+<span class="sd">    :param collapse_trials: (optional) if True, the output file will contain one row per participant, otherwise each</span>
+<span class="sd">    trial will be output in an individual row</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">search_directory</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> \
+        <span class="s2">&quot;search_directory must be a string: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">search_directory</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">search_directory</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;search_directory must have length greater than 0: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">search_directory</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">data_shape</span><span class="p">:</span>
+        <span class="n">validate_list_format</span><span class="p">(</span><span class="n">data_shape</span><span class="p">,</span> <span class="n">dimension</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">require_numeric</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">list_name</span><span class="o">=</span><span class="s2">&quot;data_shape&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out_filename</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> \
+        <span class="s2">&quot;out_filename is not string: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">out_filename</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">out_filename</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> \
+        <span class="s2">&quot;out_filename must have length greater than 0: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">out_filename</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">accuracy_z_value</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">accuracy_z_value</span><span class="p">,</span> <span class="nb">float</span><span class="p">),</span> \
+        <span class="s2">&quot;accuracy_z_value must be int or float: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">accuracy_z_value</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">accuracy_z_value</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> \
+        <span class="s2">&quot;accuracy_z_value must be greater than 0: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">accuracy_z_value</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flags</span><span class="p">,</span> <span class="n">PipelineFlags</span><span class="p">),</span> \
+        <span class="s2">&quot;flags is not of type PipelineFlags: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">flags</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">collapse_trials</span><span class="p">,</span> <span class="nb">bool</span><span class="p">),</span> \
+        <span class="s2">&quot;collapse_trials is not a bool: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">collapse_trials</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">trial_by_trial_accuracy</span><span class="p">,</span> <span class="nb">bool</span><span class="p">),</span> \
+        <span class="s2">&quot;trial_by_trial_accuracy is not a bool: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">trial_by_trial_accuracy</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">category_independence_enabled</span><span class="p">,</span> <span class="nb">bool</span><span class="p">),</span> \
+        <span class="s2">&quot;category_independence_enabled is not a bool </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">category_independence_enabled</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">order_greedy_deanonymization_enabled</span><span class="p">,</span> <span class="nb">bool</span><span class="p">),</span> \
+        <span class="s2">&quot;order_greedy_deanonymization_enabled is not a bool </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">order_greedy_deanonymization_enabled</span><span class="p">)</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Finding files in folder </span><span class="si">{0}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">search_directory</span><span class="p">))</span>
+
+    <span class="c1"># Find the files</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">actual_coordinates_filename</span><span class="p">,</span> <span class="n">data_coordinates_filenames</span><span class="p">,</span> <span class="n">category_filenames</span><span class="p">,</span> <span class="n">order_filenames</span> <span class="o">=</span> \
+            <span class="n">find_data_files_in_directory</span><span class="p">(</span><span class="n">search_directory</span><span class="p">,</span>
+                                         <span class="n">actual_coordinate_prefixes</span><span class="o">=</span><span class="n">actual_coordinate_prefixes</span><span class="p">,</span>
+                                         <span class="n">category_independence_enabled</span><span class="o">=</span><span class="n">category_independence_enabled</span><span class="p">,</span>
+                                         <span class="n">order_greedy_deanonymization_enabled</span><span class="o">=</span><span class="n">order_greedy_deanonymization_enabled</span><span class="p">,</span>
+                                         <span class="n">category_prefixes</span><span class="o">=</span><span class="n">category_prefixes</span><span class="p">,</span>
+                                         <span class="n">order_prefixes</span><span class="o">=</span><span class="n">order_prefxies</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;The input path was not found.&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s1">&#39;Failed to find input file.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">data_shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">data_shape</span> <span class="o">=</span> <span class="n">detect_shape_from_file</span><span class="p">(</span><span class="n">data_coordinates_filenames</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dimension</span><span class="p">)</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Parsing files with expected shape </span><span class="si">{0}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data_shape</span><span class="p">))</span>
+
+    <span class="n">data_coordinates</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">data_coordinates_filenames</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">f</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">data_coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data_coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_coordinates_from_file</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">data_shape</span><span class="p">))</span>
+
+    <span class="n">actual_coordinates</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">actual_coordinates_filename</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">f</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="n">actual_coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">index_check</span> <span class="o">=</span> <span class="n">actual_coordinates_filename</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="n">index_check</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_coordinates</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">index_check</span> <span class="o">&lt;</span> <span class="n">idx</span><span class="p">:</span>
+                <span class="n">actual_coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">actual_coordinates</span><span class="p">[</span><span class="n">index_check</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">actual_coordinates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_coordinates_from_file</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">data_shape</span><span class="p">))</span>
+
+    <span class="n">categories</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">category_filenames</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">f</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">f</span> <span class="o">==</span> <span class="p">[]:</span>
+            <span class="n">categories</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">index_check</span> <span class="o">=</span> <span class="n">category_filenames</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="n">index_check</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">categories</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">index_check</span> <span class="o">&lt;</span> <span class="n">idx</span><span class="p">:</span>
+                <span class="n">categories</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">categories</span><span class="p">[</span><span class="n">index_check</span><span class="p">]))</span>
+                <span class="n">categories</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_coordinates_from_file</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">data_shape</span><span class="p">))</span>
+
+    <span class="n">data_orders</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">order_filenames</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">f</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">f</span> <span class="o">==</span> <span class="p">[]:</span>
+            <span class="n">data_orders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">index_check</span> <span class="o">=</span> <span class="n">order_filenames</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="n">index_check</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_orders</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">index_check</span> <span class="o">&lt;</span> <span class="n">idx</span><span class="p">:</span>
+                <span class="n">data_orders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">data_orders</span><span class="p">[</span><span class="n">index_check</span><span class="p">]))</span>
+                <span class="n">data_orders</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_coordinates_from_file</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">data_shape</span><span class="p">))</span>
+
+    <span class="n">data_labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_id_from_file_prefix_via_suffix</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">data_coordinates_file_suffix</span><span class="p">)</span> <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span>
+                   <span class="n">data_coordinates_filenames</span><span class="p">]</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;The following ids were found and are being processed: </span><span class="si">{0}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data_labels</span><span class="p">))</span>
+
+    <span class="c1"># Get the labels and aggregation methods</span>
+    <span class="n">agg_functions</span> <span class="o">=</span> <span class="n">get_aggregation_functions</span><span class="p">()</span>
+    <span class="n">header_labels</span> <span class="o">=</span> <span class="n">get_header_labels</span><span class="p">()</span>
+
+    <span class="c1"># Add cross-trial labels and aggregation methods</span>
+    <span class="n">agg_functions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">)</span>
+    <span class="n">header_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;num_rows_with_nan&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Generate the output file and write the headers</span>
+    <span class="n">out_fp</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">out_filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+    <span class="n">top_header</span> <span class="o">=</span> <span class="s1">&#39;Generated with the msl-iposition-pipeline (https://github.com/kevroy314/msl-iposition-pipeline) &#39;</span> \
+                 <span class="s1">&#39;version </span><span class="si">{0}</span><span class="s1"> on </span><span class="si">{1}</span><span class="s1">. Note: datetime provided may not match filename datetime if system is &#39;</span> \
+                 <span class="s1">&#39;slow.</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">__version__</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">_%H-%M-%S.csv&quot;</span><span class="p">))</span>
+
+    <span class="n">out_fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">top_header</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">collapse_trials</span><span class="p">:</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="s2">&quot;subID,</span><span class="si">{0}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">header_labels</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="s2">&quot;subID,trial,</span><span class="si">{0}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">header_labels</span><span class="p">))</span>
+
+    <span class="n">out_fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">header</span><span class="p">)</span>
+
+    <span class="c1"># Iterate through the participants</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">actual</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">category</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span> \
+            <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">data_labels</span><span class="p">,</span> <span class="n">actual_coordinates</span><span class="p">,</span> <span class="n">data_coordinates</span><span class="p">,</span> <span class="n">categories</span><span class="p">,</span> <span class="n">data_orders</span><span class="p">)):</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Parsing </span><span class="si">{0}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">label</span><span class="p">))</span>
+        <span class="n">mt</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">manual_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">dat_id</span><span class="p">,</span> <span class="n">dat_threshold</span> <span class="ow">in</span> <span class="n">manual_threshold</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">dat_id</span> <span class="o">==</span> <span class="n">label</span><span class="p">:</span>
+                    <span class="n">mt</span> <span class="o">=</span> <span class="n">dat_threshold</span>
+                    <span class="k">break</span>
+
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">actual_coordinates</span><span class="p">[</span><span class="n">index</span><span class="p">])</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> \
+            <span class="s2">&quot;shape mismatch between </span><span class="si">{0}</span><span class="s2"> and </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">actual_coordinates_filename</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>
+                                                        <span class="n">data_coordinates_filenames</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">get_single_file_result</span><span class="p">(</span><span class="n">actual</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="n">category</span><span class="p">,</span> <span class="n">data_orders</span><span class="o">=</span><span class="n">order</span><span class="p">,</span>
+                                         <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="n">accuracy_z_value</span><span class="o">=</span><span class="n">accuracy_z_value</span><span class="p">,</span>
+                                         <span class="n">flags</span><span class="o">=</span><span class="n">flags</span><span class="p">,</span> <span class="n">trial_by_trial_accuracy</span><span class="o">=</span><span class="n">trial_by_trial_accuracy</span><span class="p">,</span>
+                                         <span class="n">manual_threshold</span><span class="o">=</span><span class="n">mt</span><span class="p">,</span> <span class="n">remove_dims</span><span class="o">=</span><span class="n">removal_dim_indicies</span><span class="p">)</span>
+
+        <span class="n">new_results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Append the across-trial variables</span>
+        <span class="c1"># Look for NaNs</span>
+        <span class="k">for</span> <span class="n">data_line</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+            <span class="n">num_rows_with_nan</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">data_line</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">item</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">:</span>
+                    <span class="n">num_rows_with_nan</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">new_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data_line</span><span class="p">,</span> <span class="p">[</span><span class="n">num_rows_with_nan</span><span class="p">]))</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">new_results</span>
+
+        <span class="k">if</span> <span class="n">collapse_trials</span><span class="p">:</span>
+            <span class="c1"># Apply the aggregation function to each value</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">iidx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">agg_functions</span><span class="p">[</span><span class="n">iidx</span><span class="p">]([</span><span class="n">row</span><span class="p">[</span><span class="n">iidx</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]))</span>
+            <span class="c1"># Write to file</span>
+            <span class="n">out_fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">,</span><span class="si">{1}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">label</span><span class="p">,</span>
+                    <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;&quot;</span><span class="si">{0}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">))</span> <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">result</span><span class="p">]))</span>  <span class="c1"># Filter commas</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">iidx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
+                <span class="n">out_fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                    <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">,</span><span class="si">{1}</span><span class="s1">,</span><span class="si">{2}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">label</span><span class="p">,</span>
+                                           <span class="n">iidx</span><span class="p">,</span>
+                                           <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;&quot;</span><span class="si">{0}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">))</span> <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">row</span><span class="p">]))</span>
+                <span class="p">)</span>
+
+    <span class="n">out_fp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done processing all files. Data can be found in </span><span class="si">{0}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">out_filename</span><span class="p">))</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Kevin Horecka.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.4',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,581 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>cogrecon.core.file_io &mdash; msl-iposition-pipeline 0.0.4 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../../genindex.html"/>
+        <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="msl-iposition-pipeline 0.0.4 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> msl-iposition-pipeline
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.4
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">msl-iposition-pipeline</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>cogrecon.core.file_io</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for cogrecon.core.file_io</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">errno</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">.globals</span> <span class="k">import</span> <span class="n">data_coordinates_file_suffix</span><span class="p">,</span> <span class="n">order_file_suffix</span><span class="p">,</span> <span class="n">category_file_suffix</span><span class="p">,</span> \
+    <span class="n">actual_coordinates_file_suffix</span>
+
+<span class="c1"># TODO: Documentation needs an audit/overhaul</span>
+
+
+<span class="c1"># This function reads a data file and shapes the data into the appropriate expected shape (usually (Nt, Ni, 2) where</span>
+<span class="c1"># Nt is the number of trials (rows) and Ni is the number of items (columns / dimensions)</span>
+<div class="viewcode-block" id="get_coordinates_from_file"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.file_io.get_coordinates_from_file">[docs]</a><span class="k">def</span> <span class="nf">get_coordinates_from_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">,</span> <span class="n">data_type</span><span class="o">=</span><span class="nb">float</span><span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="s1">&#39;rU&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tsv</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">coordinates</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="p">([</span><span class="n">data_type</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span> <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)]</span>
+                                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">tsv</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">coordinates</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="p">([</span><span class="n">element</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)]</span>
+                                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">tsv</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="n">coordinates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">expected_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">coordinates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coordinates</span><span class="p">),</span> <span class="n">expected_shape</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Data found in path (</span><span class="si">{0}</span><span class="s2">) cannot be transformed &quot;</span> <span class="o">+</span>
+                          <span class="s2">&quot;into expected shape (</span><span class="si">{1}</span><span class="s2">).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Failed to get data coordinate of expected shape.&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">expected_shape</span><span class="p">,</span> \
+            <span class="s2">&quot;shape </span><span class="si">{0}</span><span class="s2"> does not equal expectation </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coordinates</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">coordinates</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+
+
+<span class="c1"># This function grabs the first 3 characters of the filename which are assumed to be the participant id</span>
+<div class="viewcode-block" id="get_id_from_file_prefix_via_suffix"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.file_io.get_id_from_file_prefix_via_suffix">[docs]</a><span class="k">def</span> <span class="nf">get_id_from_file_prefix_via_suffix</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">suffix</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">)[:</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">suffix</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="file_list_contents_equal"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.file_io.file_list_contents_equal">[docs]</a><span class="k">def</span> <span class="nf">file_list_contents_equal</span><span class="p">(</span><span class="n">file_list</span><span class="p">):</span>
+    <span class="n">contents</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">file_list</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s1">&#39;rU&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">new_contents</span> <span class="o">=</span> <span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">contents</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">contents</span> <span class="o">=</span> <span class="n">new_contents</span>
+            <span class="k">elif</span> <span class="n">contents</span> <span class="o">!=</span> <span class="n">new_contents</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="enforce_single_file_contents"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.file_io.enforce_single_file_contents">[docs]</a><span class="k">def</span> <span class="nf">enforce_single_file_contents</span><span class="p">(</span><span class="n">file_list</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">file_list</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">file_list</span> <span class="o">=</span> <span class="n">file_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">file_list</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2"> files when 1 was expected. Checking contents for &quot;</span>
+                        <span class="s2">&quot;matching.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">file_list</span><span class="p">),</span> <span class="n">name</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">file_list_contents_equal</span><span class="p">(</span><span class="n">file_list</span><span class="p">):</span>
+        <span class="n">file_list</span> <span class="o">=</span> <span class="n">file_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Contents match, using first found </span><span class="si">{1}</span><span class="s2"> file &quot;</span>
+                        <span class="s2">&quot;(</span><span class="si">{0}</span><span class="s2">).&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_list</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Found </span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2"> files when 1 was expected. Not all files matched. &quot;</span>
+                      <span class="s2">&quot;Quitting.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_list</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s2">&quot;Unable to enforce single-file-contents requirement on files which should be identical.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">file_list</span></div>
+
+
+<div class="viewcode-block" id="make_singular_filename_values_list"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.file_io.make_singular_filename_values_list">[docs]</a><span class="k">def</span> <span class="nf">make_singular_filename_values_list</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">expected_length</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">value</span> <span class="o">+</span> <span class="p">([</span><span class="s2">&quot;&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">expected_length</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)))</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">value</span> <span class="o">*</span> <span class="n">expected_length</span>
+    <span class="k">elif</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span> <span class="o">*</span> <span class="n">expected_length</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">expected_length</span></div>
+
+
+<div class="viewcode-block" id="extract_prefixes_from_file_list_via_suffix"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.file_io.extract_prefixes_from_file_list_via_suffix">[docs]</a><span class="k">def</span> <span class="nf">extract_prefixes_from_file_list_via_suffix</span><span class="p">(</span><span class="n">file_list</span><span class="p">,</span> <span class="n">suffix</span><span class="p">):</span>
+    <span class="n">out_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">file_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span> <span class="ow">or</span> <span class="n">f</span> <span class="o">==</span> <span class="p">[]:</span>
+            <span class="n">out_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">suffix</span><span class="p">):</span>
+            <span class="n">out_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">base</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="n">out_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">base</span><span class="p">[:</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">suffix</span><span class="p">)])</span>
+    <span class="k">return</span> <span class="n">out_list</span></div>
+
+
+<div class="viewcode-block" id="match_file_prefixes"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.file_io.match_file_prefixes">[docs]</a><span class="k">def</span> <span class="nf">match_file_prefixes</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">prefixes</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">file_list</span><span class="p">,</span> <span class="n">prefix_list</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">prefixes</span><span class="p">)):</span>
+        <span class="n">sort_idxs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">file_list</span><span class="p">)))</span>
+        <span class="n">sort_idxs</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">prefix_list</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">)</span>
+        <span class="n">files</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">file_list</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">,</span> <span class="n">sort_idxs</span><span class="p">))</span>
+        <span class="n">prefixes</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">prefix_list</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">,</span> <span class="n">sort_idxs</span><span class="p">))</span>
+
+    <span class="n">prefix_comparison_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">prefixes</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">prefix_comparison_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="n">a</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">row</span><span class="p">))))</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;There was a problem matching up files via their prefixes. This is most commonly due to &quot;</span>
+                          <span class="s2">&quot;inappropriate files being found via search. Check that your files are unique and properly &quot;</span>
+                          <span class="s2">&quot;formatted then try again.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Failure to match items uniquely.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">files</span></div>
+
+
+<div class="viewcode-block" id="find_data_files_in_directory"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.file_io.find_data_files_in_directory">[docs]</a><span class="k">def</span> <span class="nf">find_data_files_in_directory</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">actual_coordinate_prefixes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                 <span class="n">category_prefixes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">category_independence_enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                 <span class="n">order_prefixes</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">order_greedy_deanonymization_enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function crawls the specified directory, recursively looking for the actual coordinate file and data files</span>
+
+<span class="sd">    :param order_prefixes:</span>
+<span class="sd">    :param category_prefixes:</span>
+<span class="sd">    :param order_greedy_deanonymization_enabled:</span>
+<span class="sd">    :param category_independence_enabled:</span>
+<span class="sd">    :param actual_coordinate_prefixes:</span>
+<span class="sd">    :rtype: string (or None), list of strings (or empty list)</span>
+<span class="sd">    :param directory: the directory (string) in which to recursively search for data files</span>
+<span class="sd">    :return: the actual coordinate filename/path (None if no file was found), a list of the data filenames/paths</span>
+<span class="sd">    (empty list if no files were found)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Check our data types</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="s2">&quot;directory is not a string: </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+
+    <span class="c1"># Ensure the directory exists</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">directory</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s1">&#39;The input path was not found.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Start timing execution</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="c1"># Create file type lists</span>
+    <span class="n">data_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">order_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">actual_coordinates_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">category_files</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Populate directory listing</span>
+    <span class="n">file_index</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">file_roots_index</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">directory</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">f_idx</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">file_index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f_idx</span><span class="p">)</span>
+            <span class="n">file_roots_index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+
+    <span class="c1"># Iterate through files and store in appropriate list via suffix</span>
+    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">f_idx</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">file_roots_index</span><span class="p">,</span> <span class="n">file_index</span><span class="p">):</span>
+        <span class="n">filepath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">f_idx</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">filepath</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">data_coordinates_file_suffix</span><span class="p">):</span>  <span class="c1"># If we find a data file, save it to the file list</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Found data file (</span><span class="si">{0}</span><span class="s1">).&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filepath</span><span class="p">))</span>
+            <span class="n">data_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">filepath</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">order_file_suffix</span><span class="p">):</span>  <span class="c1"># If we find a data file, save it to the file list</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Found order file (</span><span class="si">{0}</span><span class="s1">).&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filepath</span><span class="p">))</span>
+            <span class="n">order_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">filepath</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">category_file_suffix</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Found category file (</span><span class="si">{0}</span><span class="s1">).&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filepath</span><span class="p">))</span>
+            <span class="n">category_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">filepath</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">actual_coordinates_file_suffix</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Found actual coordinates file (</span><span class="si">{0}</span><span class="s1">).&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filepath</span><span class="p">))</span>
+            <span class="n">actual_coordinates_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+
+    <span class="c1"># Ensure that we found at least 1 of each required file and if enabled, at least one of each optional file</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">actual_coordinates_files</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> \
+        <span class="s2">&quot;there must be at least one </span><span class="si">{0}</span><span class="s2"> file&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">actual_coordinates_file_suffix</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_files</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> \
+        <span class="s2">&quot;there must be at least one data file ending in </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">data_coordinates_file_suffix</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">order_greedy_deanonymization_enabled</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">order_files</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;if order_greedy_deanonymization_enabled is True, there must be at least one &quot;</span> \
+                                      <span class="s2">&quot;order file ending in </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">order_file_suffix</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">category_independence_enabled</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">category_files</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;if category_independence_enabled is True, there must be at least one &quot;</span> \
+                                         <span class="s2">&quot;category file ending in </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">category_file_suffix</span><span class="p">)</span>
+
+    <span class="c1"># For each non-data file, we can enforce singular file contents on the file list if enabled</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">actual_coordinate_prefixes</span><span class="p">:</span>
+        <span class="n">actual_coordinates_files</span> <span class="o">=</span> <span class="n">enforce_single_file_contents</span><span class="p">(</span><span class="n">actual_coordinates_files</span><span class="p">,</span>
+                                                                <span class="n">actual_coordinates_file_suffix</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">category_prefixes</span><span class="p">:</span>
+        <span class="n">category_files</span> <span class="o">=</span> <span class="n">enforce_single_file_contents</span><span class="p">(</span><span class="n">category_files</span><span class="p">,</span>
+                                                      <span class="n">category_file_suffix</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">order_prefixes</span><span class="p">:</span>
+        <span class="n">order_files</span> <span class="o">=</span> <span class="n">enforce_single_file_contents</span><span class="p">(</span><span class="n">order_files</span><span class="p">,</span>
+                                                   <span class="n">order_file_suffix</span><span class="p">)</span>
+
+    <span class="c1"># We need to generate temporary lists of equal length so we can pair off the appropriate files with each other</span>
+    <span class="c1"># For actual_coordinates files, we expect either a list identical values or a list of all unique, prefixed values</span>
+    <span class="n">tmp_acf</span> <span class="o">=</span> <span class="n">make_singular_filename_values_list</span><span class="p">(</span><span class="n">actual_coordinates_files</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_files</span><span class="p">))</span>
+    <span class="c1"># For category files, we expect either a list identical values, a list of empty values,</span>
+    <span class="c1"># or a list of all unique, prefixed values</span>
+    <span class="n">tmp_cat</span> <span class="o">=</span> <span class="n">make_singular_filename_values_list</span><span class="p">(</span><span class="n">category_files</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_files</span><span class="p">))</span>
+    <span class="c1"># For order files, we expect either a list identical values, a list of empty values,</span>
+    <span class="c1"># or a list of all unique, prefixed values</span>
+    <span class="n">tmp_order</span> <span class="o">=</span> <span class="n">make_singular_filename_values_list</span><span class="p">(</span><span class="n">order_files</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_files</span><span class="p">))</span>
+
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_files</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">tmp_acf</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_files</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">tmp_cat</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_files</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">tmp_order</span><span class="p">),</span> \
+        <span class="s2">&quot;input file type length error - not enough files were found of each type to properly associate the data&quot;</span>
+
+    <span class="c1"># Next, we need to extract prefixes from all of our file lists for sorting</span>
+
+    <span class="n">files</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">data_files</span><span class="p">,</span>
+        <span class="n">tmp_acf</span><span class="p">,</span>
+        <span class="n">tmp_cat</span><span class="p">,</span>
+        <span class="n">tmp_order</span>
+    <span class="p">]</span>
+
+    <span class="n">prefixes</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">extract_prefixes_from_file_list_via_suffix</span><span class="p">(</span><span class="n">data_files</span><span class="p">,</span> <span class="n">data_coordinates_file_suffix</span><span class="p">),</span>
+        <span class="n">extract_prefixes_from_file_list_via_suffix</span><span class="p">(</span><span class="n">tmp_acf</span><span class="p">,</span> <span class="n">actual_coordinates_file_suffix</span><span class="p">),</span>
+        <span class="n">extract_prefixes_from_file_list_via_suffix</span><span class="p">(</span><span class="n">tmp_cat</span><span class="p">,</span> <span class="n">category_file_suffix</span><span class="p">),</span>
+        <span class="n">extract_prefixes_from_file_list_via_suffix</span><span class="p">(</span><span class="n">tmp_order</span><span class="p">,</span> <span class="n">order_file_suffix</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="n">data_files</span><span class="p">,</span> <span class="n">actual_coordinates_files</span><span class="p">,</span> <span class="n">category_files</span><span class="p">,</span> <span class="n">order_files</span> <span class="o">=</span> <span class="n">match_file_prefixes</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">prefixes</span><span class="p">)</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found </span><span class="si">{0}</span><span class="s1"> data files in </span><span class="si">{1}</span><span class="s1"> seconds.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data_files</span><span class="p">),</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">actual_coordinates_files</span><span class="p">,</span> <span class="n">data_files</span><span class="p">,</span> <span class="n">category_files</span><span class="p">,</span> <span class="n">order_files</span></div>
+
+
+<span class="c1"># Sadly, Python fails to provide the following magic number for us.</span>
+<span class="n">ERROR_INVALID_NAME</span> <span class="o">=</span> <span class="mi">123</span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Windows-specific error code indicating an invalid pathname.</span>
+
+<span class="sd">See Also</span>
+<span class="sd">----------</span>
+<span class="sd">https://msdn.microsoft.com/en-us/library/windows/desktop/ms681382%28v=vs.85%29.aspx</span>
+<span class="sd">    Official listing of all such codes.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+
+<div class="viewcode-block" id="is_pathname_valid"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.file_io.is_pathname_valid">[docs]</a><span class="k">def</span> <span class="nf">is_pathname_valid</span><span class="p">(</span><span class="n">pathname</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    `True` if the passed pathname is a valid pathname for the current OS;</span>
+<span class="sd">    `False` otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If this pathname is either not a string or is but is empty, this pathname</span>
+    <span class="c1"># is invalid.</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pathname</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">pathname</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># Strip this pathname&#39;s Windows-specific drive specifier (e.g., `C:\`)</span>
+        <span class="c1"># if any. Since Windows prohibits path components from containing `:`</span>
+        <span class="c1"># characters, failing to strip this `:`-suffixed prefix would</span>
+        <span class="c1"># erroneously invalidate all valid absolute Windows pathnames.</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">pathname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitdrive</span><span class="p">(</span><span class="n">pathname</span><span class="p">)</span>
+
+        <span class="c1"># Directory guaranteed to exist. If the current OS is Windows, this is</span>
+        <span class="c1"># the drive to which Windows was installed (e.g., the &quot;%HOMEDRIVE%&quot;</span>
+        <span class="c1"># environment variable); else, the typical root directory.</span>
+        <span class="n">root_dirname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;HOMEDRIVE&#39;</span><span class="p">,</span> <span class="s1">&#39;C:&#39;</span><span class="p">)</span> \
+            <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s1">&#39;win32&#39;</span> <span class="k">else</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span>
+        <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">root_dirname</span><span class="p">)</span>   <span class="c1"># ...Murphy and her ironclad Law</span>
+
+        <span class="c1"># Append a path separator to this directory if needed.</span>
+        <span class="n">root_dirname</span> <span class="o">=</span> <span class="n">root_dirname</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span>
+
+        <span class="c1"># Test whether each path component split from this pathname is valid or</span>
+        <span class="c1"># not, ignoring non-existent and non-readable path components.</span>
+        <span class="k">for</span> <span class="n">pathname_part</span> <span class="ow">in</span> <span class="n">pathname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">lstat</span><span class="p">(</span><span class="n">root_dirname</span> <span class="o">+</span> <span class="n">pathname_part</span><span class="p">)</span>
+            <span class="c1"># If an OS-specific exception is raised, its error code</span>
+            <span class="c1"># indicates whether this pathname is valid or not. Unless this</span>
+            <span class="c1"># is the case, this exception implies an ignorable kernel or</span>
+            <span class="c1"># filesystem complaint (e.g., path not found or inaccessible).</span>
+            <span class="c1">#</span>
+            <span class="c1"># Only the following exceptions indicate invalid pathnames:</span>
+            <span class="c1">#</span>
+            <span class="c1"># * Instances of the Windows-specific &quot;WindowsError&quot; class</span>
+            <span class="c1">#   defining the &quot;winerror&quot; attribute whose value is</span>
+            <span class="c1">#   &quot;ERROR_INVALID_NAME&quot;. Under Windows, &quot;winerror&quot; is more</span>
+            <span class="c1">#   fine-grained and hence useful than the generic &quot;errno&quot;</span>
+            <span class="c1">#   attribute. When a too-long pathname is passed, for example,</span>
+            <span class="c1">#   &quot;errno&quot; is &quot;ENOENT&quot; (i.e., no such file or directory) rather</span>
+            <span class="c1">#   than &quot;ENAMETOOLONG&quot; (i.e., file name too long).</span>
+            <span class="c1"># * Instances of the cross-platform &quot;OSError&quot; class defining the</span>
+            <span class="c1">#   generic &quot;errno&quot; attribute whose value is either:</span>
+            <span class="c1">#   * Under most POSIX-compatible OSes, &quot;ENAMETOOLONG&quot;.</span>
+            <span class="c1">#   * Under some edge-case OSes (e.g., SunOS, *BSD), &quot;ERANGE&quot;.</span>
+            <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="s1">&#39;winerror&#39;</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">exc</span><span class="o">.</span><span class="n">winerror</span> <span class="o">==</span> <span class="n">ERROR_INVALID_NAME</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="kc">False</span>
+                <span class="k">elif</span> <span class="n">exc</span><span class="o">.</span><span class="n">errno</span> <span class="ow">in</span> <span class="p">{</span><span class="n">errno</span><span class="o">.</span><span class="n">ENAMETOOLONG</span><span class="p">,</span> <span class="n">errno</span><span class="o">.</span><span class="n">ERANGE</span><span class="p">}:</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+    <span class="c1"># If a &quot;TypeError&quot; exception was raised, it almost certainly has the</span>
+    <span class="c1"># error message &quot;embedded NUL character&quot; indicating an invalid pathname.</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="c1"># If no exception was raised, all path components and hence this</span>
+    <span class="c1"># pathname itself are valid. (Praise be to the curmudgeonly python.)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+    <span class="c1"># If any other exception was raised, this is an unrelated fatal issue</span>
+    <span class="c1"># (e.g., a bug). Permit this exception to unwind the call stack.</span>
+    <span class="c1">#</span>
+    <span class="c1"># Did we mention this should be shipped with Python already?</span>
+
+
+<div class="viewcode-block" id="is_path_sibling_creatable"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.file_io.is_path_sibling_creatable">[docs]</a><span class="k">def</span> <span class="nf">is_path_sibling_creatable</span><span class="p">(</span><span class="n">pathname</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    `True` if the current user has sufficient permissions to create **siblings**</span>
+<span class="sd">    (i.e., arbitrary files in the parent directory) of the passed pathname;</span>
+<span class="sd">    `False` otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Parent directory of the passed path. If empty, we substitute the current</span>
+    <span class="c1"># working directory (CWD) instead.</span>
+    <span class="n">dirname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">pathname</span><span class="p">)</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># For safety, explicitly close and hence delete this temporary file</span>
+        <span class="c1"># immediately after creating it in the passed path&#39;s parent directory.</span>
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryFile</span><span class="p">(</span><span class="nb">dir</span><span class="o">=</span><span class="n">dirname</span><span class="p">):</span>
+            <span class="k">pass</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="c1"># While the exact type of exception raised by the above function depends on</span>
+    <span class="c1"># the current version of the Python interpreter, all such types subclass the</span>
+    <span class="c1"># following exception superclass.</span>
+    <span class="k">except</span> <span class="ne">EnvironmentError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="is_path_exists_or_creatable_portable"><a class="viewcode-back" href="../../../cogrecon.core.html#cogrecon.core.file_io.is_path_exists_or_creatable_portable">[docs]</a><span class="k">def</span> <span class="nf">is_path_exists_or_creatable_portable</span><span class="p">(</span><span class="n">pathname</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    `True` if the passed pathname is a valid pathname on the current OS _and_</span>
+<span class="sd">    either currently exists or is hypothetically creatable in a cross-platform</span>
+<span class="sd">    manner optimized for POSIX-unfriendly filesystems; `False` otherwise.</span>
+
+<span class="sd">    This function is guaranteed to _never_ raise exceptions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># To prevent &quot;os&quot; module calls from raising undesirable exceptions on</span>
+        <span class="c1"># invalid pathnames, is_pathname_valid() is explicitly called first.</span>
+        <span class="k">return</span> <span class="n">is_pathname_valid</span><span class="p">(</span><span class="n">pathname</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">pathname</span><span class="p">)</span> <span class="ow">or</span> <span class="n">is_path_sibling_creatable</span><span class="p">(</span><span class="n">pathname</span><span class="p">))</span>
+    <span class="c1"># Report failure on non-fatal filesystem complaints (e.g., connection</span>
+    <span class="c1"># timeouts, permissions issues) implying this path to be inaccessible. All</span>
+    <span class="c1"># other exceptions are unrelated fatal issues and should not be caught here.</span>
+    <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Kevin Horecka.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.4',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

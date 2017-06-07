@@ -1,0 +1,763 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>cogrecon.core package &mdash; msl-iposition-pipeline 0.0.4 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="msl-iposition-pipeline 0.0.4 documentation" href="index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> msl-iposition-pipeline
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.4
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">cogrecon.core package</a><ul>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-cogrecon.core.batch_pipeline">cogrecon.core.batch_pipeline module</a></li>
+<li><a class="reference internal" href="#module-cogrecon.core.data_structures">cogrecon.core.data_structures module</a></li>
+<li><a class="reference internal" href="#module-cogrecon.core.file_io">cogrecon.core.file_io module</a></li>
+<li><a class="reference internal" href="#module-cogrecon.core.full_pipeline">cogrecon.core.full_pipeline module</a></li>
+<li><a class="reference internal" href="#module-cogrecon.core.globals">cogrecon.core.globals module</a></li>
+<li><a class="reference internal" href="#module-cogrecon.core.similarity_transform">cogrecon.core.similarity_transform module</a></li>
+<li><a class="reference internal" href="#module-cogrecon.core.tools">cogrecon.core.tools module</a></li>
+<li><a class="reference internal" href="#module-cogrecon.core.visualization">cogrecon.core.visualization module</a></li>
+<li><a class="reference internal" href="#module-cogrecon.core">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">msl-iposition-pipeline</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>cogrecon.core package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/cogrecon.core.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="cogrecon-core-package">
+<h1>cogrecon.core package<a class="headerlink" href="#cogrecon-core-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="cogrecon.core.data_flexing.html">cogrecon.core.data_flexing package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cogrecon.core.data_flexing.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cogrecon.core.data_flexing.html#module-cogrecon.core.data_flexing.category_data_flexor">cogrecon.core.data_flexing.category_data_flexor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cogrecon.core.data_flexing.html#module-cogrecon.core.data_flexing.descrambler">cogrecon.core.data_flexing.descrambler module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cogrecon.core.data_flexing.html#module-cogrecon.core.data_flexing.dimension_removal">cogrecon.core.data_flexing.dimension_removal module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cogrecon.core.data_flexing.html#cogrecon-core-data-flexing-time-travel-task-binary-reader-module">cogrecon.core.data_flexing.time_travel_task_binary_reader module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cogrecon.core.data_flexing.html#cogrecon-core-data-flexing-time-travel-task-to-iposition-module">cogrecon.core.data_flexing.time_travel_task_to_iposition module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cogrecon.core.data_flexing.html#module-cogrecon.core.data_flexing">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-cogrecon.core.batch_pipeline">
+<span id="cogrecon-core-batch-pipeline-module"></span><h2>cogrecon.core.batch_pipeline module<a class="headerlink" href="#module-cogrecon.core.batch_pipeline" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="cogrecon.core.batch_pipeline.batch_pipeline">
+<code class="descclassname">cogrecon.core.batch_pipeline.</code><code class="descname">batch_pipeline</code><span class="sig-paren">(</span><em>search_directory</em>, <em>out_filename</em>, <em>data_shape=None</em>, <em>dimension=2</em>, <em>accuracy_z_value=1.96</em>, <em>trial_by_trial_accuracy=True</em>, <em>flags=&lt;PipelineFlags.All: 3&gt;</em>, <em>collapse_trials=True</em>, <em>manual_threshold=None</em>, <em>actual_coordinate_prefixes=False</em>, <em>category_independence_enabled=False</em>, <em>category_prefixes=False</em>, <em>order_greedy_deanonymization_enabled=False</em>, <em>order_prefxies=True</em>, <em>removal_dim_indicies=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/batch_pipeline.html#batch_pipeline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.batch_pipeline.batch_pipeline" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function allows the easy running of the pipeline on a directory and all of the appropriate files in its
+subdirectories. It will search for the actual coordinates and data files and process them all as specified
+by the other parameters.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>removal_dim_indicies</strong> – </li>
+<li><strong>dimension</strong> – </li>
+<li><strong>order_prefxies</strong> – </li>
+<li><strong>category_prefixes</strong> – </li>
+<li><strong>order_greedy_deanonymization_enabled</strong> – </li>
+<li><strong>category_independence_enabled</strong> – </li>
+<li><strong>manual_threshold</strong> – </li>
+<li><strong>actual_coordinate_prefixes</strong> – </li>
+<li><strong>search_directory</strong> – the directory (string) in which to recursively search for data files</li>
+<li><strong>data_shape</strong> – (optional) a shape (list, tuple or numpy array) which describes the structure of the date;</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>(Nt, Ni, d) such that Nt is the number of trials, Ni is the number of items and d is the number of dimensions;
+if None is given, an attempt will be made to automatically detect the shape from the actual_coordinates file
+(default is None)
+:param out_filename: the filename and path (string) into which the data should be saved
+:param accuracy_z_value: (optional) a value (float or int) representing the z threshold for counting something as
+accurate (default is stored in globals.py)
+:param trial_by_trial_accuracy: (optional) when True, z_value thresholds are used on a trial-by-trial basis for
+accuracy calculations, when False, the thresholds are computed then collapsed across an individual’s trials
+(default is True)
+:param flags: (optional) the value (PipelineFlags) describing what pipeline elements should/should not be run on
+the data (default is stored in globals.py)
+:param collapse_trials: (optional) if True, the output file will contain one row per participant, otherwise each
+trial will be output in an individual row</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.batch_pipeline.detect_shape_from_file">
+<code class="descclassname">cogrecon.core.batch_pipeline.</code><code class="descname">detect_shape_from_file</code><span class="sig-paren">(</span><em>path</em>, <em>dimension</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/batch_pipeline.html#detect_shape_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.batch_pipeline.detect_shape_from_file" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">int, int</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>path</strong> – a value (string) containing the path of the file from which structure should be detected</li>
+<li><strong>dimension</strong> – a value (integer) which represents the dimensionality of the data</li>
+</ul>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the trial count, the item count</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.batch_pipeline.get_single_file_result">
+<code class="descclassname">cogrecon.core.batch_pipeline.</code><code class="descname">get_single_file_result</code><span class="sig-paren">(</span><em>actual_coordinates</em>, <em>dat</em>, <em>categories=None</em>, <em>data_orders=None</em>, <em>label=”</em>, <em>accuracy_z_value=1.96</em>, <em>trial_by_trial_accuracy=True</em>, <em>manual_threshold=None</em>, <em>flags=&lt;PipelineFlags.All: 3&gt;</em>, <em>remove_dims=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/batch_pipeline.html#get_single_file_result"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.batch_pipeline.get_single_file_result" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function generates the results for a specific file’s data structure, usually containing multiple trials</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>remove_dims</strong> – </li>
+<li><strong>data_orders</strong> – </li>
+<li><strong>categories</strong> – </li>
+<li><strong>manual_threshold</strong> – </li>
+<li><strong>actual_coordinates</strong> – the correct coordinates for the points - an (Nt, Ni, d) sized list of floats where Nt is</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list (or empty list)</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>the number of trials, Ni is the number of items, and d is the dimensionality of the points
+:param dat: the data coordinates for the points - an (Nt, Ni, d) sized list of floats where Nt is the number of
+trials, Ni is the number of items, and d is the dimensionality of the points
+:param label: (optional) the label (string) identifying the participant ID for this file, used for debugging
+purposes only (default is empty string)
+:param accuracy_z_value: (optional) a value (float or int) representing the z threshold for counting something as
+:param trial_by_trial_accuracy: (optional) when True, z_value thresholds are used on a trial-by-trial basis for
+accuracy calculations, when False, the thresholds are computed then collapsed across an individual’s trials
+(default is True)
+:param flags: (optional) the value (PipelineFlags) describing what pipeline elements should/should not be run on
+the data (default is stored in globals.py)
+:return: a list, (Nt, r), where Nt is the number of trials and r is the number of result metrics, of results values
+from the analysis for each trial on a particular file’s data</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.batch_pipeline.validate_equal_list_shapes">
+<code class="descclassname">cogrecon.core.batch_pipeline.</code><code class="descname">validate_equal_list_shapes</code><span class="sig-paren">(</span><em>l1</em>, <em>l2</em>, <em>expected_shape=None</em>, <em>l1_name=’list1’</em>, <em>l2_name=’list2’</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/batch_pipeline.html#validate_equal_list_shapes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.batch_pipeline.validate_equal_list_shapes" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function validates that two numeric
+:param l1: a list, tuple, or numpy array whose shape should be equal to the shape of l1
+and expected_shape (if specified)
+:param l2: a list, tuple, or numpy array whose shape should be equal to the shape of l2
+and expected_shape (if specified)
+:param expected_shape: (optional) a shape (list, tuple or numpy array) against which both l1 and l2 should be
+compared to ensure they are equal to it and each other
+:param l1_name: (optional) the name (string) of l1 for debugging
+:param l2_name: (optional) the name (string) of l2 for debugging</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.batch_pipeline.validate_list_format">
+<code class="descclassname">cogrecon.core.batch_pipeline.</code><code class="descname">validate_list_format</code><span class="sig-paren">(</span><em>l</em>, <em>require_numeric=False</em>, <em>dimension=None</em>, <em>list_name=’list’</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/batch_pipeline.html#validate_list_format"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.batch_pipeline.validate_list_format" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function validates that a list is the correct type, dimension, and
+contains only int and float values (if specified).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>l</strong> – a list whose type, dimensionality, and contents should be checked; valid types are list, tuple, or</td>
+</tr>
+</tbody>
+</table>
+<p>numpy array, dimensionality should match dimension, and the contents should all be int or float
+:param require_numeric: (optional) if True, elements must be int or float
+:param dimension: (optional) the expected number of dimensions (integer greater than 0) of the list
+(default is None, meaning it is not checked)
+:param list_name: (optional) the name (string) of the list for debugging purposes (default is “list”)</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cogrecon.core.data_structures">
+<span id="cogrecon-core-data-structures-module"></span><h2>cogrecon.core.data_structures module<a class="headerlink" href="#module-cogrecon.core.data_structures" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="cogrecon.core.data_structures.AnalysisConfiguration">
+<em class="property">class </em><code class="descclassname">cogrecon.core.data_structures.</code><code class="descname">AnalysisConfiguration</code><span class="sig-paren">(</span><em>z_value=1.96, trial_by_trial_accuracy=True, manual_threshold=None, flags=&lt;PipelineFlags.All: 3&gt;, greedy_order_deanonymization=False, process_categories_independently=False, is_category=False, category_label=None, debug_labels=[”]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/data_structures.html#AnalysisConfiguration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.data_structures.AnalysisConfiguration" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="cogrecon.core.data_structures.ParticipantData">
+<em class="property">class </em><code class="descclassname">cogrecon.core.data_structures.</code><code class="descname">ParticipantData</code><span class="sig-paren">(</span><em>trials</em>, <em>identity=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/data_structures.html#ParticipantData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.data_structures.ParticipantData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="staticmethod">
+<dt id="cogrecon.core.data_structures.ParticipantData.category_split_participant">
+<em class="property">static </em><code class="descname">category_split_participant</code><span class="sig-paren">(</span><em>original_participant_data</em>, <em>unique_categories</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/data_structures.html#ParticipantData.category_split_participant"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.data_structures.ParticipantData.category_split_participant" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cogrecon.core.data_structures.ParticipantData.get_all_from_trials">
+<code class="descname">get_all_from_trials</code><span class="sig-paren">(</span><em>attribute</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/data_structures.html#ParticipantData.get_all_from_trials"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.data_structures.ParticipantData.get_all_from_trials" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="cogrecon.core.data_structures.ParticipantData.load_from_file">
+<em class="property">static </em><code class="descname">load_from_file</code><span class="sig-paren">(</span><em>actual_coordinates_filepath</em>, <em>data_coordinates_filepath</em>, <em>expected_shape</em>, <em>category_filepath=None</em>, <em>order_filepath=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/data_structures.html#ParticipantData.load_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.data_structures.ParticipantData.load_from_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="cogrecon.core.data_structures.ParticipantData.set_all_to_trials">
+<code class="descname">set_all_to_trials</code><span class="sig-paren">(</span><em>attribute</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/data_structures.html#ParticipantData.set_all_to_trials"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.data_structures.ParticipantData.set_all_to_trials" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cogrecon.core.data_structures.PipelineFlags">
+<em class="property">class </em><code class="descclassname">cogrecon.core.data_structures.</code><code class="descname">PipelineFlags</code><a class="reference internal" href="_modules/cogrecon/core/data_structures.html#PipelineFlags"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.data_structures.PipelineFlags" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+<dl class="attribute">
+<dt id="cogrecon.core.data_structures.PipelineFlags.All">
+<code class="descname">All</code><em class="property"> = 3</em><a class="headerlink" href="#cogrecon.core.data_structures.PipelineFlags.All" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cogrecon.core.data_structures.PipelineFlags.Deanonymize">
+<code class="descname">Deanonymize</code><em class="property"> = 1</em><a class="headerlink" href="#cogrecon.core.data_structures.PipelineFlags.Deanonymize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cogrecon.core.data_structures.PipelineFlags.GlobalTransformation">
+<code class="descname">GlobalTransformation</code><em class="property"> = 2</em><a class="headerlink" href="#cogrecon.core.data_structures.PipelineFlags.GlobalTransformation" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cogrecon.core.data_structures.PipelineFlags.Simple">
+<code class="descname">Simple</code><em class="property"> = 0</em><a class="headerlink" href="#cogrecon.core.data_structures.PipelineFlags.Simple" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cogrecon.core.data_structures.PipelineFlags.Unknown">
+<code class="descname">Unknown</code><em class="property"> = 0</em><a class="headerlink" href="#cogrecon.core.data_structures.PipelineFlags.Unknown" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cogrecon.core.data_structures.PipelineFlags.value">
+<code class="descname">value</code><em class="property"> = 0</em><a class="headerlink" href="#cogrecon.core.data_structures.PipelineFlags.value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="cogrecon.core.data_structures.TrialData">
+<em class="property">class </em><code class="descclassname">cogrecon.core.data_structures.</code><code class="descname">TrialData</code><span class="sig-paren">(</span><em>actual_points=None</em>, <em>data_points=None</em>, <em>actual_labels=None</em>, <em>data_labels=None</em>, <em>cateogry_labels=None</em>, <em>data_order=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/data_structures.html#TrialData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.data_structures.TrialData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="attribute">
+<dt id="cogrecon.core.data_structures.TrialData.actual_labels">
+<code class="descname">actual_labels</code><a class="headerlink" href="#cogrecon.core.data_structures.TrialData.actual_labels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cogrecon.core.data_structures.TrialData.actual_points">
+<code class="descname">actual_points</code><a class="headerlink" href="#cogrecon.core.data_structures.TrialData.actual_points" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cogrecon.core.data_structures.TrialData.category_labels">
+<code class="descname">category_labels</code><a class="headerlink" href="#cogrecon.core.data_structures.TrialData.category_labels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cogrecon.core.data_structures.TrialData.data_labels">
+<code class="descname">data_labels</code><a class="headerlink" href="#cogrecon.core.data_structures.TrialData.data_labels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cogrecon.core.data_structures.TrialData.data_order">
+<code class="descname">data_order</code><a class="headerlink" href="#cogrecon.core.data_structures.TrialData.data_order" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cogrecon.core.data_structures.TrialData.data_points">
+<code class="descname">data_points</code><a class="headerlink" href="#cogrecon.core.data_structures.TrialData.data_points" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cogrecon.core.data_structures.TrialData.distance_accuracy_map">
+<code class="descname">distance_accuracy_map</code><a class="headerlink" href="#cogrecon.core.data_structures.TrialData.distance_accuracy_map" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="cogrecon.core.data_structures.TrialData.distance_threshold">
+<code class="descname">distance_threshold</code><a class="headerlink" href="#cogrecon.core.data_structures.TrialData.distance_threshold" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cogrecon.core.file_io">
+<span id="cogrecon-core-file-io-module"></span><h2>cogrecon.core.file_io module<a class="headerlink" href="#module-cogrecon.core.file_io" title="Permalink to this headline">¶</a></h2>
+<dl class="data">
+<dt id="cogrecon.core.file_io.ERROR_INVALID_NAME">
+<code class="descclassname">cogrecon.core.file_io.</code><code class="descname">ERROR_INVALID_NAME</code><em class="property"> = 123</em><a class="headerlink" href="#cogrecon.core.file_io.ERROR_INVALID_NAME" title="Permalink to this definition">¶</a></dt>
+<dd><p>Windows-specific error code indicating an invalid pathname.</p>
+<dl class="docutils">
+<dt><a class="reference external" href="https://msdn.microsoft.com/en-us/library/windows/desktop/ms681382%28v=vs.85%29.aspx">https://msdn.microsoft.com/en-us/library/windows/desktop/ms681382%28v=vs.85%29.aspx</a></dt>
+<dd>Official listing of all such codes.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.file_io.enforce_single_file_contents">
+<code class="descclassname">cogrecon.core.file_io.</code><code class="descname">enforce_single_file_contents</code><span class="sig-paren">(</span><em>file_list</em>, <em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/file_io.html#enforce_single_file_contents"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.file_io.enforce_single_file_contents" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.file_io.extract_prefixes_from_file_list_via_suffix">
+<code class="descclassname">cogrecon.core.file_io.</code><code class="descname">extract_prefixes_from_file_list_via_suffix</code><span class="sig-paren">(</span><em>file_list</em>, <em>suffix</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/file_io.html#extract_prefixes_from_file_list_via_suffix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.file_io.extract_prefixes_from_file_list_via_suffix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.file_io.file_list_contents_equal">
+<code class="descclassname">cogrecon.core.file_io.</code><code class="descname">file_list_contents_equal</code><span class="sig-paren">(</span><em>file_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/file_io.html#file_list_contents_equal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.file_io.file_list_contents_equal" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.file_io.find_data_files_in_directory">
+<code class="descclassname">cogrecon.core.file_io.</code><code class="descname">find_data_files_in_directory</code><span class="sig-paren">(</span><em>directory</em>, <em>actual_coordinate_prefixes=False</em>, <em>category_prefixes=False</em>, <em>category_independence_enabled=False</em>, <em>order_prefixes=True</em>, <em>order_greedy_deanonymization_enabled=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/file_io.html#find_data_files_in_directory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.file_io.find_data_files_in_directory" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function crawls the specified directory, recursively looking for the actual coordinate file and data files</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>order_prefixes</strong> – </li>
+<li><strong>category_prefixes</strong> – </li>
+<li><strong>order_greedy_deanonymization_enabled</strong> – </li>
+<li><strong>category_independence_enabled</strong> – </li>
+<li><strong>actual_coordinate_prefixes</strong> – </li>
+<li><strong>directory</strong> – the directory (string) in which to recursively search for data files</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">string (or None), list of strings (or empty list)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the actual coordinate filename/path (None if no file was found), a list of the data filenames/paths</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>(empty list if no files were found)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.file_io.get_coordinates_from_file">
+<code class="descclassname">cogrecon.core.file_io.</code><code class="descname">get_coordinates_from_file</code><span class="sig-paren">(</span><em>path</em>, <em>expected_shape</em>, <em>data_type=&lt;type ‘float’&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/file_io.html#get_coordinates_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.file_io.get_coordinates_from_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.file_io.get_id_from_file_prefix_via_suffix">
+<code class="descclassname">cogrecon.core.file_io.</code><code class="descname">get_id_from_file_prefix_via_suffix</code><span class="sig-paren">(</span><em>path</em>, <em>suffix</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/file_io.html#get_id_from_file_prefix_via_suffix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.file_io.get_id_from_file_prefix_via_suffix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.file_io.is_path_exists_or_creatable_portable">
+<code class="descclassname">cogrecon.core.file_io.</code><code class="descname">is_path_exists_or_creatable_portable</code><span class="sig-paren">(</span><em>pathname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/file_io.html#is_path_exists_or_creatable_portable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.file_io.is_path_exists_or_creatable_portable" title="Permalink to this definition">¶</a></dt>
+<dd><p><cite>True</cite> if the passed pathname is a valid pathname on the current OS _and_
+either currently exists or is hypothetically creatable in a cross-platform
+manner optimized for POSIX-unfriendly filesystems; <cite>False</cite> otherwise.</p>
+<p>This function is guaranteed to _never_ raise exceptions.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.file_io.is_path_sibling_creatable">
+<code class="descclassname">cogrecon.core.file_io.</code><code class="descname">is_path_sibling_creatable</code><span class="sig-paren">(</span><em>pathname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/file_io.html#is_path_sibling_creatable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.file_io.is_path_sibling_creatable" title="Permalink to this definition">¶</a></dt>
+<dd><p><cite>True</cite> if the current user has sufficient permissions to create <strong>siblings</strong>
+(i.e., arbitrary files in the parent directory) of the passed pathname;
+<cite>False</cite> otherwise.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.file_io.is_pathname_valid">
+<code class="descclassname">cogrecon.core.file_io.</code><code class="descname">is_pathname_valid</code><span class="sig-paren">(</span><em>pathname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/file_io.html#is_pathname_valid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.file_io.is_pathname_valid" title="Permalink to this definition">¶</a></dt>
+<dd><p><cite>True</cite> if the passed pathname is a valid pathname for the current OS;
+<cite>False</cite> otherwise.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.file_io.make_singular_filename_values_list">
+<code class="descclassname">cogrecon.core.file_io.</code><code class="descname">make_singular_filename_values_list</code><span class="sig-paren">(</span><em>value</em>, <em>expected_length</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/file_io.html#make_singular_filename_values_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.file_io.make_singular_filename_values_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.file_io.match_file_prefixes">
+<code class="descclassname">cogrecon.core.file_io.</code><code class="descname">match_file_prefixes</code><span class="sig-paren">(</span><em>files</em>, <em>prefixes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/file_io.html#match_file_prefixes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.file_io.match_file_prefixes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-cogrecon.core.full_pipeline">
+<span id="cogrecon-core-full-pipeline-module"></span><h2>cogrecon.core.full_pipeline module<a class="headerlink" href="#module-cogrecon.core.full_pipeline" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="cogrecon.core.full_pipeline.accuracy">
+<code class="descclassname">cogrecon.core.full_pipeline.</code><code class="descname">accuracy</code><span class="sig-paren">(</span><em>participant_data</em>, <em>analysis_configuration</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/full_pipeline.html#accuracy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.full_pipeline.accuracy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.full_pipeline.deanonymize">
+<code class="descclassname">cogrecon.core.full_pipeline.</code><code class="descname">deanonymize</code><span class="sig-paren">(</span><em>participant_data</em>, <em>analysis_configuration</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/full_pipeline.html#deanonymize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.full_pipeline.deanonymize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.full_pipeline.full_pipeline">
+<code class="descclassname">cogrecon.core.full_pipeline.</code><code class="descname">full_pipeline</code><span class="sig-paren">(</span><em>participant_data</em>, <em>analysis_configuration</em>, <em>visualize=False</em>, <em>visualization_extent=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/full_pipeline.html#full_pipeline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.full_pipeline.full_pipeline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.full_pipeline.geometric_transform">
+<code class="descclassname">cogrecon.core.full_pipeline.</code><code class="descname">geometric_transform</code><span class="sig-paren">(</span><em>participant_data</em>, <em>analysis_configuration</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/full_pipeline.html#geometric_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.full_pipeline.geometric_transform" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.full_pipeline.get_aggregation_functions">
+<code class="descclassname">cogrecon.core.full_pipeline.</code><code class="descname">get_aggregation_functions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/full_pipeline.html#get_aggregation_functions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.full_pipeline.get_aggregation_functions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.full_pipeline.get_header_labels">
+<code class="descclassname">cogrecon.core.full_pipeline.</code><code class="descname">get_header_labels</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/full_pipeline.html#get_header_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.full_pipeline.get_header_labels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.full_pipeline.swaps">
+<code class="descclassname">cogrecon.core.full_pipeline.</code><code class="descname">swaps</code><span class="sig-paren">(</span><em>participant_data</em>, <em>analysis_configuration</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/full_pipeline.html#swaps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.full_pipeline.swaps" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.full_pipeline.trial_axis_swap">
+<code class="descclassname">cogrecon.core.full_pipeline.</code><code class="descname">trial_axis_swap</code><span class="sig-paren">(</span><em>trial_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/full_pipeline.html#trial_axis_swap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.full_pipeline.trial_axis_swap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.full_pipeline.trial_edge_distortion">
+<code class="descclassname">cogrecon.core.full_pipeline.</code><code class="descname">trial_edge_distortion</code><span class="sig-paren">(</span><em>trial_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/full_pipeline.html#trial_edge_distortion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.full_pipeline.trial_edge_distortion" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.full_pipeline.trial_edge_resizing">
+<code class="descclassname">cogrecon.core.full_pipeline.</code><code class="descname">trial_edge_resizing</code><span class="sig-paren">(</span><em>trial_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/full_pipeline.html#trial_edge_resizing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.full_pipeline.trial_edge_resizing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.full_pipeline.trial_geometric_transform">
+<code class="descclassname">cogrecon.core.full_pipeline.</code><code class="descname">trial_geometric_transform</code><span class="sig-paren">(</span><em>trial_data</em>, <em>analysis_configuration</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/full_pipeline.html#trial_geometric_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.full_pipeline.trial_geometric_transform" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.full_pipeline.trial_swaps">
+<code class="descclassname">cogrecon.core.full_pipeline.</code><code class="descname">trial_swaps</code><span class="sig-paren">(</span><em>trial_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/full_pipeline.html#trial_swaps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.full_pipeline.trial_swaps" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-cogrecon.core.globals">
+<span id="cogrecon-core-globals-module"></span><h2>cogrecon.core.globals module<a class="headerlink" href="#module-cogrecon.core.globals" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-cogrecon.core.similarity_transform">
+<span id="cogrecon-core-similarity-transform-module"></span><h2>cogrecon.core.similarity_transform module<a class="headerlink" href="#module-cogrecon.core.similarity_transform" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="cogrecon.core.similarity_transform.similarity_transform">
+<code class="descclassname">cogrecon.core.similarity_transform.</code><code class="descname">similarity_transform</code><span class="sig-paren">(</span><em>from_points</em>, <em>to_points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/similarity_transform.html#similarity_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.similarity_transform.similarity_transform" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-cogrecon.core.tools">
+<span id="cogrecon-core-tools-module"></span><h2>cogrecon.core.tools module<a class="headerlink" href="#module-cogrecon.core.tools" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="cogrecon.core.tools.brute_force_find_minimal_mapping">
+<code class="descclassname">cogrecon.core.tools.</code><code class="descname">brute_force_find_minimal_mapping</code><span class="sig-paren">(</span><em>p0</em>, <em>p1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/tools.html#brute_force_find_minimal_mapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.tools.brute_force_find_minimal_mapping" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.tools.collapse_unique_components">
+<code class="descclassname">cogrecon.core.tools.</code><code class="descname">collapse_unique_components</code><span class="sig-paren">(</span><em>components_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/tools.html#collapse_unique_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.tools.collapse_unique_components" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.tools.find_minimal_mapping">
+<code class="descclassname">cogrecon.core.tools.</code><code class="descname">find_minimal_mapping</code><span class="sig-paren">(</span><em>p0</em>, <em>p1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/tools.html#find_minimal_mapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.tools.find_minimal_mapping" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.tools.generate_random_test_points">
+<code class="descclassname">cogrecon.core.tools.</code><code class="descname">generate_random_test_points</code><span class="sig-paren">(</span><em>number_of_points=5</em>, <em>dimension=2</em>, <em>shuffle_points=True</em>, <em>noise=0.05</em>, <em>num_rerandomed_points=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/tools.html#generate_random_test_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.tools.generate_random_test_points" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.tools.greedy_find_minimal_mapping">
+<code class="descclassname">cogrecon.core.tools.</code><code class="descname">greedy_find_minimal_mapping</code><span class="sig-paren">(</span><em>p0</em>, <em>p1</em>, <em>order</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/tools.html#greedy_find_minimal_mapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.tools.greedy_find_minimal_mapping" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.tools.lerp">
+<code class="descclassname">cogrecon.core.tools.</code><code class="descname">lerp</code><span class="sig-paren">(</span><em>start</em>, <em>finish</em>, <em>t</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/tools.html#lerp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.tools.lerp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.tools.lexicographic_index">
+<code class="descclassname">cogrecon.core.tools.</code><code class="descname">lexicographic_index</code><span class="sig-paren">(</span><em>p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/tools.html#lexicographic_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.tools.lexicographic_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the lexicographic index of the permutation <cite>p</cite> among all
+permutations of its elements. <cite>p</cite> must be a sequence and all elements
+of <cite>p</cite> must be distinct.</p>
+<p># &gt;&gt;&gt; lexicographic_index(‘dacb’)
+19
+# &gt;&gt;&gt; from itertools import permutations
+# &gt;&gt;&gt; all(lexicographic_index(p) == i
+…     for i, p in enumerate(permutations(‘abcde’)))
+True</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.tools.mask_points">
+<code class="descclassname">cogrecon.core.tools.</code><code class="descname">mask_points</code><span class="sig-paren">(</span><em>points</em>, <em>keep_indicies</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/tools.html#mask_points"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.tools.mask_points" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.tools.sum_of_distance">
+<code class="descclassname">cogrecon.core.tools.</code><code class="descname">sum_of_distance</code><span class="sig-paren">(</span><em>list1</em>, <em>list2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/tools.html#sum_of_distance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.tools.sum_of_distance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="cogrecon.core.tools.validate_type">
+<code class="descclassname">cogrecon.core.tools.</code><code class="descname">validate_type</code><span class="sig-paren">(</span><em>obj</em>, <em>t</em>, <em>name</em>, <em>source</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/tools.html#validate_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.tools.validate_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-cogrecon.core.visualization">
+<span id="cogrecon-core-visualization-module"></span><h2>cogrecon.core.visualization module<a class="headerlink" href="#module-cogrecon.core.visualization" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="cogrecon.core.visualization.visualization">
+<code class="descclassname">cogrecon.core.visualization.</code><code class="descname">visualization</code><span class="sig-paren">(</span><em>trial_data</em>, <em>analysis_configuration</em>, <em>min_points</em>, <em>transformed_points</em>, <em>output_list</em>, <em>animation_duration=2</em>, <em>animation_ticks=20</em>, <em>print_output=True</em>, <em>extent=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cogrecon/core/visualization.html#visualization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#cogrecon.core.visualization.visualization" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-cogrecon.core">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-cogrecon.core" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Kevin Horecka.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.4',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
