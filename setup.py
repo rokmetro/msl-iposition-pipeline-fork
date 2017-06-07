@@ -49,7 +49,7 @@ setup(
     author_email='kevin.horecka@gmail.com',
     maintainer='Kevin Horecka',
     # License details
-    license=read(os.path.abspath('./LICENSE.txt')),
+    license=read(path.abspath('./LICENSE.txt')),
     include_package_data=True,
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
