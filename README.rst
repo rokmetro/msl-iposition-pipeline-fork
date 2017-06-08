@@ -1,10 +1,10 @@
 Memory Systems Lab iPosition Data Pipeline
-========
+==========================================
 
 This data pipeline is meant for the processing of iPosition data. It will output all the pre-2017 metrics as well as the newer metrics. It has a large number of options which will be enumerated in this readme. It can really run on any spatial/temporal reconstruction data whose outputs are formatted properly (TSV).
 
 Install
---------
+-------
 
 Install Git: https://git-scm.com/downloads if you don't already have it.
 
@@ -33,12 +33,12 @@ If you'd like to update without changing the dependencies you can instead, from 
     pip install --upgrade . --no-deps
 
 Usage
---------
+-----
 
 Note: this section is incomplete and will be updated as new features are added.
 
 Command Line Options
---------
+--------------------
 
 The easiest way to run the program is in batch mode via the command line. Running
 ::
@@ -47,7 +47,7 @@ The easiest way to run the program is in batch mode via the command line. Runnin
 runs the program in default mode (with a directory selection dialog popup).
 
 Command Line Arguments
---------
+----------------------
 
 * --search_directory - the root directory in which to search for the actual and data coordinate files (actual_coordinates.txt and ###position_data_coordinates.txt, respectively (will prompt with dialog if left empty)
 * --num_trials - the number of trials in each file (will be detected automatically if left empty)
@@ -66,14 +66,14 @@ Command Line Arguments
 * --prefix_length - the length of the subject ID prefix at the beginning of the data filenames (default is 3)
 
 Advanced usage example
---------
+----------------------
 
 In this example, the "C:\\Users Folder\\Data" folder and its subfolders will be searched for actual_coordinates.txt and files with length 5 participant IDs followed by position_data_coordinates.txt. Each file will be expected to have 15 trials and 6 items/trial with 3 dimensions each. The accuracy will be computed on a trial by trial basis using a 90% confidence interval. Each trial will be output independently (one per row).
 ::
     python batch_pipeline.py --search_directory="C:\User Folder\Data" --num_trials=15 --num_items=6 --accuracy_z_value=1.64 --collapse_trials=0 --dimension=3 --trial_by_trial_accuracy=1 --prefix_length=5
 
 Visualization of Single Trials
---------
+------------------------------
 
 Individual trials can be visualized by calling the full_pipeline.py file with appropriate arguments. The required arguments are (in this order):
 
@@ -96,13 +96,13 @@ The optional arguments are:
 * --dimension - the dimensionality of the data (default is 2)
 
 Visualization Usage Example
---------
+---------------------------
 
 To visualize the second of participant 101's data (assuming 15 trials and 5 items), the command line should be:
 ::
     python full_pipeline.py "actual_coordinates.txt" "101position_data_coordinates.txt" 15 5 1
 
 Scripted Usage
---------
+--------------
 
 Each program can be run from another python script. The easiest way to learn to do this is to look at the examples built into the buttom of each script (below the "# Test code" comment). 

@@ -14,6 +14,12 @@ Modified by Kevin Horecka Feb 11, 2017
 
 
 def similarity_transform(from_points, to_points):
+    """
+
+    :param from_points:
+    :param to_points:
+    :return:
+    """
     assert len(from_points.shape) == 2, \
         "from_points must be a m x n array"
     assert from_points.shape == to_points.shape, \

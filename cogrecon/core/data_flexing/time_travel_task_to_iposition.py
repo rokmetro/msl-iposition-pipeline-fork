@@ -14,6 +14,11 @@ else:
 
 
 def save_iposition_items_to_file(_filename, _items):
+    """
+
+    :param _filename:
+    :param _items:
+    """
     with open(_filename, 'ab') as fp:
         poses = []
         for item in _items:
@@ -28,6 +33,12 @@ def save_iposition_items_to_file(_filename, _items):
 
 # noinspection PyTypeChecker
 def extract_basic_order(order_list, first=True):
+    """
+
+    :param order_list:
+    :param first:
+    :return:
+    """
     if order_list is None or len(order_list) == 0 or order_list[0] == []:
         return []
     indicies = list(range(len(order_list)))
@@ -47,6 +58,11 @@ def extract_basic_order(order_list, first=True):
 
 
 def save_tsv(_filename, _list):
+    """
+
+    :param _filename:
+    :param _list:
+    """
     with open(_filename, 'ab') as fp:
         line = '\t'.join([str(el) for el in _list])
         fp.write(line + '\r\n')
@@ -57,6 +73,14 @@ def time_travel_task_to_iposition(input_dir, output_dir,
                                   file_regex="\d\d\d_\d_2_\d_\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d.dat",
                                   order_first=True, exclude_incorrect_category=False):
 
+    """
+
+    :param input_dir:
+    :param output_dir:
+    :param file_regex:
+    :param order_first:
+    :param exclude_incorrect_category:
+    """
     files = find_data_files_in_directory(input_dir, file_regex=file_regex)
 
     event_state_labels, item_number_label, item_label_filename, cols = get_item_details()

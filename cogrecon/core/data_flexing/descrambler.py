@@ -5,6 +5,9 @@ from ..batch_pipeline import find_data_files_in_directory
 
 
 def descrambler():
+    """
+
+    """
     selected_directory = easygui.diropenbox()
 
     _, files = find_data_files_in_directory(selected_directory)

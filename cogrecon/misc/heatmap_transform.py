@@ -7,6 +7,9 @@ import matplotlib.patches as patches
 
 
 def test_heatmap_transform():
+    """
+
+    """
     circles = [patches.Circle((0, 0), 0.25, fc='r', alpha=0.5)]
     drs = []
 

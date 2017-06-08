@@ -6,6 +6,12 @@ from ..tools import validate_type
 
 def remove_dimensions(participant_data, removal_dim_indices=None):
     # Validate data types
+    """
+
+    :param participant_data:
+    :param removal_dim_indices:
+    :return:
+    """
     validate_type(removal_dim_indices, list, "removal_dim_indices", "remove_dimensions")
     validate_type(participant_data, ParticipantData, "participant_data", "remove_dimensions")
     assert [isinstance(x, int) for x in removal_dim_indices], "remove_dimensions dim_indices must only contain int"

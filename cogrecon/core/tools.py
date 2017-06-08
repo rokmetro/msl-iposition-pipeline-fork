@@ -16,6 +16,12 @@ from .globals import default_dimensions
 # This function defines the misplacement metric which is used for minimization (in de-anonymization).
 # It is also used to calculate the original misplacement metric.
 def sum_of_distance(list1, list2):
+    """
+
+    :param list1:
+    :param list2:
+    :return:
+    """
     return sum(np.diag(distance.cdist(list1, list2)))
 
 
@@ -25,6 +31,15 @@ def sum_of_distance(list1, list2):
 def generate_random_test_points(number_of_points=5, dimension=default_dimensions,
                                 shuffle_points=True, noise=(1.0 / 20.0),
                                 num_rerandomed_points=1):
+    """
+
+    :param number_of_points:
+    :param dimension:
+    :param shuffle_points:
+    :param noise:
+    :param num_rerandomed_points:
+    :return:
+    """
     correct_points = [[random.random() for _ in range(dimension)] for _ in range(0, number_of_points)]
     offsets = [[(random.random()) * noise for _ in range(dimension)] for _ in range(0, number_of_points)]
     input_points = np.array(correct_points) + np.array(offsets)
@@ -47,6 +62,13 @@ def generate_random_test_points(number_of_points=5, dimension=default_dimensions
 
 # This function performs simple vector linear interpolation on two equal length number lists
 def lerp(start, finish, t):
+    """
+
+    :param start:
+    :param finish:
+    :param t:
+    :return:
+    """
     assert len(start) == len(finish), "lerp requires equal length lists as inputs."
     # noinspection PyTypeChecker
     assert 0.0 <= t <= 1.0, "lerp t must be between 0.0 and 1.0 inclusively."
@@ -54,11 +76,22 @@ def lerp(start, finish, t):
 
 
 def mask_points(points, keep_indicies):
+    """
+
+    :param points:
+    :param keep_indicies:
+    :return:
+    """
     return np.array([points[idx] for idx in keep_indicies])
 
 
 def collapse_unique_components(components_list):
     # Filter NoneType from list as it is not orderable
+    """
+
+    :param components_list:
+    :return:
+    """
     filtered_list = [x for x in components_list if x is not None]
     # Generate the unique list
     unique_list = np.unique(filtered_list).tolist()
@@ -69,11 +102,23 @@ def collapse_unique_components(components_list):
 
 
 def validate_type(obj, t, name, source):
+    """
+
+    :param obj:
+    :param t:
+    :param name:
+    :param source:
+    """
     assert isinstance(obj, t), "{2} expects type {3} for {1}, found {0}".format(type(obj), name, source, t.__name__)
 
 
 # noinspection PyUnusedLocal
 def brute_force_find_minimal_mapping(p0, p1):
+    """
+
+    :param p0:
+    :param p1:
+    """
     min_score = np.inf
     min_score_idx = -1
     min_permutation = p1
@@ -104,6 +149,8 @@ def lexicographic_index(p):
     # >>> all(lexicographic_index(p) == i
     ...     for i, p in enumerate(permutations('abcde')))
     True
+    :param p:
+    :return:
     """
     result = 0
     for j in range(len(p)):
@@ -114,6 +161,12 @@ def lexicographic_index(p):
 
 # From https://stackoverflow.com/questions/39016821/minimize-total-distance-between-two-sets-of-points-in-python
 def find_minimal_mapping(p0, p1):
+    """
+
+    :param p0:
+    :param p1:
+    :return:
+    """
     C = cdist(p0, p1)
 
     _, assignment = linear_sum_assignment(C)
@@ -124,6 +177,13 @@ def find_minimal_mapping(p0, p1):
 
 # noinspection PyUnusedLocal
 def greedy_find_minimal_mapping(p0, p1, order):
+    """
+
+    :param p0:
+    :param p1:
+    :param order:
+    :return:
+    """
     assert len(p0) == len(p1) and len(p0) == len(order), "greedy_find_minimal_mapping requires all list to be equal " \
                                                          "in length "
     assert sorted(list(set(order))) == list(range(len(order))), "greedy_find_minimal_mapping order should contain " \

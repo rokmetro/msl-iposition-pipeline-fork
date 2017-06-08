@@ -6,10 +6,20 @@ import inspect
 from .file_io import get_coordinates_from_file
 from .globals import default_z_value, default_pipeline_flags
 
+
 # TODO: Documentation needs an audit/overhaul
 
 
 class PipelineFlags(Enum):
+    """We use this as a public class example class.
+
+    You never call this class before calling :func:`public_fn_with_sphinxy_docstring`.
+
+    .. note::
+
+       An example of intersphinx is this: you **cannot** use :mod:`pickle` on this class.
+
+    """
     Unknown = 0
     Simple = 0
     Deanonymize = 1
@@ -18,15 +28,43 @@ class PipelineFlags(Enum):
     value = 0
 
     def __or__(self, other):
+        """
+
+        :param other:
+        :return:
+        """
         return PipelineFlags(self.value | other.value)
 
     def __eq__(self, other):
+        """
+
+        :param other:
+        :return:
+        """
         return (self.value & other.value) != 0
 
 
 class TrialData(object):
+    """We use this as a public class example class.
+
+    You never call this class before calling :func:`public_fn_with_sphinxy_docstring`.
+
+    .. note::
+
+       An example of intersphinx is this: you **cannot** use :mod:`pickle` on this class.
+
+    """
     def __init__(self, actual_points=None, data_points=None, actual_labels=None, data_labels=None,
                  cateogry_labels=None, data_order=None):
+        """
+
+        :param actual_points:
+        :param data_points:
+        :param actual_labels:
+        :param data_labels:
+        :param cateogry_labels:
+        :param data_order:
+        """
         if data_labels is None:
             data_labels = []
         if actual_labels is None:
@@ -67,38 +105,74 @@ class TrialData(object):
 
     @property
     def category_labels(self):
+        """
+
+        :return:
+        """
         return self._category_labels
 
     @property
     def data_order(self):
+        """
+
+        :return:
+        """
         return self._data_order
 
     @property
     def distance_accuracy_map(self):
+        """
+
+        :return:
+        """
         return self._distance_accuracy_map
 
     @property
     def distance_threshold(self):
+        """
+
+        :return:
+        """
         return self._distance_threshold
 
     @property
     def actual_points(self):
+        """
+
+        :return:
+        """
         return self._actual_points
 
     @property
     def data_points(self):
+        """
+
+        :return:
+        """
         return self._data_points
 
     @property
     def actual_labels(self):
+        """
+
+        :return:
+        """
         return self._actual_labels
 
     @property
     def data_labels(self):
+        """
+
+        :return:
+        """
         return self._data_labels
 
     @actual_points.setter
     def actual_points(self, value):
+        """
+
+        :param value:
+        """
         assert isinstance(value, list), "TrialData actual_points must be type list"
         assert len(value) > 0, "TrialData actual_points must be non-empty"
         assert all([isinstance(_x, float) for _x in np.ndarray.flatten(np.array(value))]), \
@@ -107,6 +181,10 @@ class TrialData(object):
 
     @data_points.setter
     def data_points(self, value):
+        """
+
+        :param value:
+        """
         assert isinstance(value, list), "TrialData data_points must be type list"
         assert len(value) > 0, "TrialData data_points must be non-empty"
         assert all([isinstance(_x, float) for _x in np.ndarray.flatten(np.array(value))]), \
@@ -115,6 +193,10 @@ class TrialData(object):
 
     @actual_labels.setter
     def actual_labels(self, value):
+        """
+
+        :param value:
+        """
         assert isinstance(value, list), "TrialData actual_labels must be type list"
         assert np.unique(value).shape == np.array(value).shape, \
             "swaps actual_labels are not unique: {0}".format(value)
@@ -122,6 +204,10 @@ class TrialData(object):
 
     @data_labels.setter
     def data_labels(self, value):
+        """
+
+        :param value:
+        """
         assert isinstance(value, list), "TrialData data_labels must be type list"
         assert np.unique(value).shape == np.array(value).shape, \
             "swaps data_labelsare not unique: {0}".format(value)
@@ -129,6 +215,10 @@ class TrialData(object):
 
     @distance_accuracy_map.setter
     def distance_accuracy_map(self, value):
+        """
+
+        :param value:
+        """
         assert isinstance(value, list), "TrialData distance_accuracy_map must be type list"
         assert all([isinstance(x, (bool, np.bool_)) for x in value]), \
             "TrialData distance_accuracy_map must only contain bools"
@@ -136,26 +226,51 @@ class TrialData(object):
 
     @distance_threshold.setter
     def distance_threshold(self, value):
+        """
+
+        :param value:
+        """
         assert isinstance(value, float), "TrialData distance_threshold must be type float"
         self._distance_threshold = value
 
     @category_labels.setter
     def category_labels(self, value):
+        """
+
+        :param value:
+        """
         assert isinstance(value, list), "TrialData category_labels must be type list"
         self._category_labels = value
 
     @data_order.setter
     def data_order(self, value):
+        """
+
+        :param value:
+        """
         assert isinstance(value, list), "TrialData data_order must be type list"
         assert all([isinstance(x, int) for x in value]), "TrialData data_order must only contain int"
         self._data_order = value
 
 
 class ParticipantData(object):
+    """We use this as a public class example class.
+
+    You never call this class before calling :func:`public_fn_with_sphinxy_docstring`.
+
+    .. note::
+
+       An example of intersphinx is this: you **cannot** use :mod:`pickle` on this class.
+
+    """
     def __init__(self, trials, identity=None):
-        assert isinstance(trials, list) and len(trials) > 0 and \
-               all([isinstance(trial, TrialData) for trial in trials]), \
-               "ParticipantData trials must be a non-empty list containing TrialData objects"
+        """
+
+        :param trials:
+        :param identity:
+        """
+        assert isinstance(trials, list) and len(trials) > 0 and all([isinstance(t, TrialData) for t in trials]), \
+            "ParticipantData trials must be a non-empty list containing TrialData objects"
         self.__dict__['trials'] = None
         self.__dict__['id'] = None
 
@@ -163,13 +278,28 @@ class ParticipantData(object):
         self.id = identity
 
     def get_all_from_trials(self, attribute):
+        """
+
+        :param attribute:
+        :return:
+        """
         return list(map(attrgetter(attribute), self.trials))
 
     def set_all_to_trials(self, attribute, value):
+        """
+
+        :param attribute:
+        :param value:
+        """
         for v, trial in zip(value, self.trials):
             setattr(trial, attribute, v)
 
     def __getattr__(self, attribute):
+        """
+
+        :param attribute:
+        :return:
+        """
         if attribute in self.__dict__.keys():
             return self.__dict__[attribute]
         elif attribute in [x[0] for x in inspect.getmembers(TrialData([0.], [0.])) if not x[0].startswith('__')]:
@@ -177,6 +307,11 @@ class ParticipantData(object):
         raise AttributeError('asd')
 
     def __setattr__(self, attribute, value):
+        """
+
+        :param attribute:
+        :param value:
+        """
         if attribute in self.__dict__.keys():
             self.__dict__[attribute] = value
         elif attribute in [x[0] for x in inspect.getmembers(TrialData([0.], [0.])) if not x[0].startswith('__')]:
@@ -188,6 +323,13 @@ class ParticipantData(object):
     @staticmethod
     def category_split_participant(original_participant_data, unique_categories):
         # Confirm unique_categories are, in fact, unique
+        # noinspection PyTypeChecker
+        """
+
+        :param original_participant_data:
+        :param unique_categories:
+        :return:
+        """
         # noinspection PyTypeChecker
         assert len(np.unique(np.array(unique_categories)).tolist()) == len(np.array(unique_categories).tolist())
 
@@ -263,6 +405,15 @@ class ParticipantData(object):
     @staticmethod
     def load_from_file(actual_coordinates_filepath, data_coordinates_filepath, expected_shape,
                        category_filepath=None, order_filepath=None):
+        """
+
+        :param actual_coordinates_filepath:
+        :param data_coordinates_filepath:
+        :param expected_shape:
+        :param category_filepath:
+        :param order_filepath:
+        :return:
+        """
         actual = get_coordinates_from_file(actual_coordinates_filepath, expected_shape)
         data = get_coordinates_from_file(data_coordinates_filepath, expected_shape)
         category = [None] * len(actual)
@@ -284,6 +435,15 @@ class ParticipantData(object):
 
 
 class AnalysisConfiguration:
+    """We use this as a public class example class.
+
+    You never call this class before calling :func:`public_fn_with_sphinxy_docstring`.
+
+    .. note::
+
+       An example of intersphinx is this: you **cannot** use :mod:`pickle` on this class.
+
+    """
     # noinspection PyDefaultArgument
     def __init__(self, z_value=default_z_value,
                  trial_by_trial_accuracy=True, manual_threshold=None,
@@ -291,6 +451,18 @@ class AnalysisConfiguration:
                  greedy_order_deanonymization=False,
                  process_categories_independently=False, is_category=False, category_label=None,
                  debug_labels=['']):
+        """
+
+        :param z_value:
+        :param trial_by_trial_accuracy:
+        :param manual_threshold:
+        :param flags:
+        :param greedy_order_deanonymization:
+        :param process_categories_independently:
+        :param is_category:
+        :param category_label:
+        :param debug_labels:
+        """
         self.z_value = float(z_value)
         self.trial_by_trial_accuracy = bool(trial_by_trial_accuracy)
         if manual_threshold is not None:

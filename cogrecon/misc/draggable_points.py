@@ -3,9 +3,23 @@ import matplotlib.patches as patches
 
 
 class DraggablePoint:
+    """We use this as a public class example class.
+
+    You never call this class before calling :func:`public_fn_with_sphinxy_docstring`.
+
+    .. note::
+
+       An example of intersphinx is this: you **cannot** use :mod:`pickle` on this class.
+
+    """
     lock = None  # only one can be animated at a time
 
     def __init__(self, point, move_callback=None):
+        """
+
+        :param point:
+        :param move_callback:
+        """
         self.move_callback = move_callback
         self.point = point
         self.cidmotion = self.point.figure.canvas.mpl_connect('motion_notify_event', self.on_motion)
@@ -15,11 +29,20 @@ class DraggablePoint:
         self.background = None
 
     def connect(self, move_callback=None):
+        """
+
+        :param move_callback:
+        """
         self.move_callback = move_callback
         # connect to all the events we need
         pass
 
     def on_press(self, event):
+        """
+
+        :param event:
+        :return:
+        """
         if event.inaxes != self.point.axes:
             return
         if DraggablePoint.lock is not None:
@@ -44,6 +67,11 @@ class DraggablePoint:
         canvas.blit(axes.bbox)
 
     def on_motion(self, event):
+        """
+
+        :param event:
+        :return:
+        """
         if DraggablePoint.lock is not self:
             return
         if event.inaxes != self.point.axes:
@@ -67,6 +95,11 @@ class DraggablePoint:
 
     # noinspection PyUnusedLocal
     def on_release(self, e):
+        """
+
+        :param e:
+        :return:
+        """
         if self.move_callback:
             self.move_callback()
 
@@ -86,12 +119,18 @@ class DraggablePoint:
 
     def disconnect(self):
         # disconnect all the stored connection ids
+        """
+
+        """
         self.point.figure.canvas.mpl_disconnect(self.cidpress)
         self.point.figure.canvas.mpl_disconnect(self.cidrelease)
         self.point.figure.canvas.mpl_disconnect(self.cidmotion)
 
 
 def test_draggable_points():
+    """
+
+    """
     fig = plt.figure()
     ax = fig.add_subplot(111)
     drs = []

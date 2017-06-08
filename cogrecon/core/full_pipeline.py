@@ -18,6 +18,12 @@ from .globals import default_z_value
 
 
 def accuracy(participant_data, analysis_configuration):
+    """
+
+    :param participant_data:
+    :param analysis_configuration:
+    :return:
+    """
     validate_type(participant_data, ParticipantData, "participant_data", "accuracy")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "accuracy")
 
@@ -78,6 +84,11 @@ def accuracy(participant_data, analysis_configuration):
 
 
 def trial_axis_swap(trial_data):
+    """
+
+    :param trial_data:
+    :return:
+    """
     validate_type(trial_data, TrialData, "trial_data", "trial_axis_swap")
 
     actual_points = trial_data.actual_points
@@ -104,6 +115,11 @@ def trial_axis_swap(trial_data):
 
 
 def trial_edge_resizing(trial_data):
+    """
+
+    :param trial_data:
+    :return:
+    """
     validate_type(trial_data, TrialData, "trial_data", "trial_edge_resizing")
 
     actual_points = trial_data.actual_points
@@ -122,6 +138,11 @@ def trial_edge_resizing(trial_data):
 
 
 def trial_edge_distortion(trial_data):
+    """
+
+    :param trial_data:
+    :return:
+    """
     validate_type(trial_data, TrialData, "trial_data", "trial_edge_distortion")
 
     actual_points = trial_data.actual_points
@@ -144,6 +165,12 @@ def trial_edge_distortion(trial_data):
 
 # noinspection PyDefaultArgument
 def geometric_transform(participant_data, analysis_configuration):
+    """
+
+    :param participant_data:
+    :param analysis_configuration:
+    :return:
+    """
     validate_type(participant_data, ParticipantData, "participant_data", "geometric_transform")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "geometric_transform")
 
@@ -160,6 +187,12 @@ def geometric_transform(participant_data, analysis_configuration):
 # TODO: Addition transformation/de-anonymization methods(see https://en.wikipedia.org/wiki/Point_set_registration)
 # noinspection PyDefaultArgument
 def trial_geometric_transform(trial_data, analysis_configuration):
+    """
+
+    :param trial_data:
+    :param analysis_configuration:
+    :return:
+    """
     validate_type(trial_data, TrialData, "trial_data", "trial_geometric_transform")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "trial_geometric_transform")
 
@@ -238,6 +271,12 @@ def trial_geometric_transform(trial_data, analysis_configuration):
 
 
 def swaps(participant_data, analysis_configuration):
+    """
+
+    :param participant_data:
+    :param analysis_configuration:
+    :return:
+    """
     validate_type(participant_data, ParticipantData, "participant_data", "swaps")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "swaps")
 
@@ -251,6 +290,11 @@ def swaps(participant_data, analysis_configuration):
 
 
 def trial_swaps(trial_data):
+    """
+
+    :param trial_data:
+    :return:
+    """
     validate_type(trial_data, TrialData, "trial_data", "trial_swaps")
 
     actual_points = trial_data.actual_points
@@ -346,6 +390,12 @@ def trial_swaps(trial_data):
 
 
 def deanonymize(participant_data, analysis_configuration):
+    """
+
+    :param participant_data:
+    :param analysis_configuration:
+    :return:
+    """
     validate_type(participant_data, ParticipantData, "participant_data", "deanonymize")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "deanonymize")
 
@@ -379,6 +429,14 @@ def deanonymize(participant_data, analysis_configuration):
 # the number of items.
 # noinspection PyDefaultArgument
 def full_pipeline(participant_data, analysis_configuration, visualize=False, visualization_extent=None):
+    """
+
+    :param participant_data:
+    :param analysis_configuration:
+    :param visualize:
+    :param visualization_extent:
+    :return:
+    """
     validate_type(participant_data, ParticipantData, "participant_data", "full_pipeline")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "full_pipeline")
 

@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 MSL-iPosition-Pipeline Documentation
-==================================================
+====================================
 
 .. toctree::
    :maxdepth: 2

@@ -23,6 +23,19 @@ from .globals import default_animation_duration, default_animation_ticks, \
 def visualization(trial_data, analysis_configuration, min_points, transformed_points, output_list,
                   animation_duration=default_animation_duration, animation_ticks=default_animation_ticks,
                   print_output=True, extent=None):
+    """
+
+    :param trial_data:
+    :param analysis_configuration:
+    :param min_points:
+    :param transformed_points:
+    :param output_list:
+    :param animation_duration:
+    :param animation_ticks:
+    :param print_output:
+    :param extent:
+    :return:
+    """
     from full_pipeline import get_header_labels, accuracy
 
     actual_points = trial_data.actual_points

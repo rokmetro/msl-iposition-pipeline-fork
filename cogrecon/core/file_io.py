@@ -14,6 +14,13 @@ from .globals import data_coordinates_file_suffix, order_file_suffix, category_f
 # This function reads a data file and shapes the data into the appropriate expected shape (usually (Nt, Ni, 2) where
 # Nt is the number of trials (rows) and Ni is the number of items (columns / dimensions)
 def get_coordinates_from_file(path, expected_shape, data_type=float):
+    """
+
+    :param path:
+    :param expected_shape:
+    :param data_type:
+    :return:
+    """
     with open(os.path.abspath(path), 'rU') as tsv:
         if data_type is not None:
             coordinates = zip(*([data_type(element.strip()) for element in line.strip().split('\t')]
@@ -36,10 +43,21 @@ def get_coordinates_from_file(path, expected_shape, data_type=float):
 
 # This function grabs the first 3 characters of the filename which are assumed to be the participant id
 def get_id_from_file_prefix_via_suffix(path, suffix):
+    """
+
+    :param path:
+    :param suffix:
+    :return:
+    """
     return os.path.basename(path)[:-len(suffix)]
 
 
 def file_list_contents_equal(file_list):
+    """
+
+    :param file_list:
+    :return:
+    """
     contents = None
     for f in file_list:
         with open(f, 'rU') as fp:
@@ -52,6 +70,12 @@ def file_list_contents_equal(file_list):
 
 
 def enforce_single_file_contents(file_list, name):
+    """
+
+    :param file_list:
+    :param name:
+    :return:
+    """
     if file_list is None or len(file_list) == 0:
         return []
     if len(file_list) == 1:
@@ -73,6 +97,12 @@ def enforce_single_file_contents(file_list, name):
 
 
 def make_singular_filename_values_list(value, expected_length):
+    """
+
+    :param value:
+    :param expected_length:
+    :return:
+    """
     if isinstance(value, list) and len(value) > 1:
         return value + ([""] * (expected_length - len(value)))
     elif isinstance(value, list) and len(value) == 1:
@@ -84,6 +114,12 @@ def make_singular_filename_values_list(value, expected_length):
 
 
 def extract_prefixes_from_file_list_via_suffix(file_list, suffix):
+    """
+
+    :param file_list:
+    :param suffix:
+    :return:
+    """
     out_list = []
     for f in file_list:
         if f == "" or f == []:
@@ -97,6 +133,12 @@ def extract_prefixes_from_file_list_via_suffix(file_list, suffix):
 
 
 def match_file_prefixes(files, prefixes):
+    """
+
+    :param files:
+    :param prefixes:
+    :return:
+    """
     for idx, (file_list, prefix_list) in enumerate(zip(files, prefixes)):
         sort_idxs = list(range(len(file_list)))
         sort_idxs.sort(key=prefix_list.__getitem__)
@@ -251,6 +293,8 @@ def is_pathname_valid(pathname):
     """
     `True` if the passed pathname is a valid pathname for the current OS;
     `False` otherwise.
+    :param pathname:
+    :return:
     """
     # If this pathname is either not a string or is but is empty, this pathname
     # is invalid.
@@ -322,6 +366,8 @@ def is_path_sibling_creatable(pathname):
     `True` if the current user has sufficient permissions to create **siblings**
     (i.e., arbitrary files in the parent directory) of the passed pathname;
     `False` otherwise.
+    :param pathname:
+    :return:
     """
     # Parent directory of the passed path. If empty, we substitute the current
     # working directory (CWD) instead.
@@ -347,6 +393,8 @@ def is_path_exists_or_creatable_portable(pathname):
     manner optimized for POSIX-unfriendly filesystems; `False` otherwise.
 
     This function is guaranteed to _never_ raise exceptions.
+    :param pathname:
+    :return:
     """
     try:
         # To prevent "os" module calls from raising undesirable exceptions on

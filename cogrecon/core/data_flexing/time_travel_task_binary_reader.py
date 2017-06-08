@@ -13,6 +13,11 @@ import warnings
 
 # This helper function extracts the meta-data from the filename
 def get_filename_meta_data(fn):
+    """
+
+    :param fn:
+    :return:
+    """
     parts = fn.split('_')
     dt = datetime.datetime.strptime(parts[4] + '_' + parts[5].split('.')[0], '%Y-%m-%d_%H-%M-%S')
     return {"subID": parts[0], "trial": parts[1], "phase": parts[2], "inverse": parts[3], "datetime": dt}
@@ -20,6 +25,11 @@ def get_filename_meta_data(fn):
 
 # Lookup phase name from number
 def phase_num_to_str(phase):
+    """
+
+    :param phase:
+    :return:
+    """
     names = ['VR Practice', 'VR Study', 'VR Test', 'VE Practice', 'VE Study', 'VE Test',
              '2D Practice', '2D Study', '2D Test']
     lookup = phase
@@ -32,6 +42,11 @@ def phase_num_to_str(phase):
 # From http://stackoverflow.com/questions/1550560/encoding-an-integer-in-7-bit-format-of-c-sharp-binaryreader-readstring
 # This function is used in reading the binary files to read the length of the header from the beginning of the file
 def decode_7bit_int_length(fp):
+    """
+
+    :param fp:
+    :return:
+    """
     string_length = 0
     string_length_parsed = False
     step = 0
@@ -48,6 +63,11 @@ def decode_7bit_int_length(fp):
 # From http://stackoverflow.com/questions/15919598/serialize-datetime-as-binary
 # This function is used in reading the binary files to parse the binary .NET DateTime into a Python datetime
 def datetime_from_dot_net_binary(data):
+    """
+
+    :param data:
+    :return:
+    """
     kind = (data % 2 ** 64) >> 62  # This says about UTC and stuff...
     ticks = data & 0x3FFFFFFFFFFFFFFF
     seconds = ticks / 10000000
@@ -58,6 +78,11 @@ def datetime_from_dot_net_binary(data):
 
 
 def read_binary_file(path):
+    """
+
+    :param path:
+    :return:
+    """
     iterations = []
     with open(path, 'rb') as f:
         header_length = decode_7bit_int_length(f)
@@ -212,12 +237,26 @@ def read_binary_file(path):
 
 
 def find_last(lst, sought_elt):
+    """
+
+    :param lst:
+    :param sought_elt:
+    :return:
+    """
     for r_idx, elt in enumerate(reversed(lst)):
         if elt == sought_elt:
             return len(lst) - 1 - r_idx
 
 
 def parse_test_items(iterations, cols, item_number_label, event_state_labels):
+    """
+
+    :param iterations:
+    :param cols:
+    :param item_number_label:
+    :param event_state_labels:
+    :return:
+    """
     descrambler = [1, 2, 4, 7, 0, 3, 5, 6, 8, 9]
     descrambler_type = [2, 2, 2, 2, 1, 1, 1, 1, 0, 0]
     reconstruction_items = [None] * len(item_number_label)
@@ -427,6 +466,13 @@ def parse_test_items(iterations, cols, item_number_label, event_state_labels):
 
 def get_click_locations_and_indicies(iterations, items, meta):
     # If Study/Practice, label click events
+    """
+
+    :param iterations:
+    :param items:
+    :param meta:
+    :return:
+    """
     click_idx = np.empty(len(items))
     click_pos = np.empty((len(items), 3))
     click_size = np.zeros((len(iterations), len(items)))
@@ -450,6 +496,11 @@ def get_click_locations_and_indicies(iterations, items, meta):
 
 
 def get_items_solutions(meta):
+    """
+
+    :param meta:
+    :return:
+    """
     if meta['phase'] == '0' or meta['phase'] == '3' or meta['phase'] == '6':
         times = [2, 12, 18, 25]
         directions = [2, 1, 2, 1]  # Fall = 2, Fly = 1, Stay = 0
@@ -492,6 +543,12 @@ def get_items_solutions(meta):
 
 
 def find_data_files_in_directory(directory, file_regex=""):
+    """
+
+    :param directory:
+    :param file_regex:
+    :return:
+    """
     if not os.path.exists(directory):
         raise IOError('The input path was not found.')
 
@@ -514,6 +571,11 @@ def find_data_files_in_directory(directory, file_regex=""):
 
 
 def get_exploration_metrics(iterations):
+    """
+
+    :param iterations:
+    :return:
+    """
     total_time = (iterations[-1]['datetime'] - iterations[0]['datetime']).total_seconds()
     space_travelled = 0
     time_travelled = 0
@@ -535,6 +597,12 @@ def get_exploration_metrics(iterations):
 
 
 def is_correct_color(t, solution_t):
+    """
+
+    :param t:
+    :param solution_t:
+    :return:
+    """
     bins = 15.0
     lower = float(np.floor(float(solution_t) / bins) * bins)
     upper = float(np.ceil(float(solution_t) / bins) * bins)
@@ -543,6 +611,12 @@ def is_correct_color(t, solution_t):
 
 
 def compute_accuracy(meta, items):
+    """
+
+    :param meta:
+    :param items:
+    :return:
+    """
     solution_items, times_solution, directions_solution = get_items_solutions(meta)
     xs = [item['pos'][0] for item in items]
     zs = [item['pos'][1] for item in items]
@@ -598,6 +672,11 @@ def compute_accuracy(meta, items):
 
 
 def get_item_details(pastel_factor=127):
+    """
+
+    :param pastel_factor:
+    :return:
+    """
     event_state_labels = ['stationary', 'up', 'down']
     item_number_label = ['bottle', 'icecubetray', 'clover', 'basketball', 'boot', 'crown', 'bandana', 'hammer',
                          'fireext', 'guitar']
