@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 from ..data_structures import ParticipantData
-from ..tools import validate_type
+from ..tools import validate_type, mask_dimensions
 
 
 def remove_dimensions(participant_data, removal_dim_indices=None):
@@ -51,9 +51,9 @@ def remove_dimensions(participant_data, removal_dim_indices=None):
     assert np.unique(removal_dim_indices).tolist() == removal_dim_indices, \
         'Duplicate indicies found in remova_dim_indices. Please provide only unique indicies.'
 
-    mask = [1 for i in range(0, dim) if i not in removal_dim_indices]
-
-    data.actual_points = np.transpose(np.array(data.actual_points))[mask]
-    data.data_points = np.transpose(np.array(data.data_points))[mask]
+    ap = mask_dimensions(data.actual_points, dim, removal_dim_indices)
+    data.actual_points = np.array(ap).tolist()
+    dp = mask_dimensions(data.data_points, dim, removal_dim_indices)
+    data.data_points = np.array(dp).tolist()
 
     return data

@@ -57,7 +57,7 @@ if __name__ == "__main__":
     parser.add_argument('--order_file', type=str, default=None,
                         help='the path to the file containing the order information with respect to data_coordinates')
     # Visualization Settings
-    parser.add_argument('--plot-extent', type=float, nargs=4, default=None,
+    parser.add_argument('--plot_extent', type=float, nargs=4, default=None,
                         help='a list of length 4 of values representing the visual extent of the visualization plot. '
                              'the values are ordered x_min, x_max, y_min, y_max. if None is provided, extent will be '
                              'determined automatically.')

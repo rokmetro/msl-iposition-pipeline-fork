@@ -22,6 +22,7 @@ def sum_of_distance(list1, list2):
     :param list2:
     :return:
     """
+
     return sum(np.diag(distance.cdist(list1, list2)))
 
 
@@ -83,6 +84,18 @@ def mask_points(points, keep_indicies):
     :return:
     """
     return np.array([points[idx] for idx in keep_indicies])
+
+
+def mask_dimensions(data3d, num_dims, remove_dims):
+    """
+
+    :param data3d:
+    :param num_dims:
+    :param remove_dims:
+    :return:
+    """
+    return np.transpose([np.transpose(data3d, axes=(2, 1, 0))[i] for i in range(num_dims) if i not in remove_dims],
+                        axes=(2, 1, 0))
 
 
 def collapse_unique_components(components_list):
@@ -175,6 +188,7 @@ def find_minimal_mapping(p0, p1):
     return sum_of_distance(p0, p1_reordered), lexicographic_index(assignment), p1_reordered
 
 
+# TODO: There's a problem with this function - it's always returning the identity order ([0, 1, 2, ..., n])
 # noinspection PyUnusedLocal
 def greedy_find_minimal_mapping(p0, p1, order):
     """

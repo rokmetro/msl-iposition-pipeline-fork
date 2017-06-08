@@ -174,7 +174,7 @@ class TrialData(object):
         :param value:
         """
         assert isinstance(value, list), "TrialData actual_points must be type list"
-        assert len(value) > 0, "TrialData actual_points must be non-empty"
+        # assert len(value) > 0, "TrialData actual_points must be non-empty"
         assert all([isinstance(_x, float) for _x in np.ndarray.flatten(np.array(value))]), \
             "TrialData actual_points must contain only floats"
         self._actual_points = value
@@ -186,7 +186,7 @@ class TrialData(object):
         :param value:
         """
         assert isinstance(value, list), "TrialData data_points must be type list"
-        assert len(value) > 0, "TrialData data_points must be non-empty"
+        # assert len(value) > 0, "TrialData data_points must be non-empty"
         assert all([isinstance(_x, float) for _x in np.ndarray.flatten(np.array(value))]), \
             "TrialData actual_points must contain only floats"
         self._data_points = value
@@ -230,7 +230,7 @@ class TrialData(object):
 
         :param value:
         """
-        assert isinstance(value, float), "TrialData distance_threshold must be type float"
+        assert isinstance(value, float) or value is None, "TrialData distance_threshold must be type float"
         self._distance_threshold = value
 
     @category_labels.setter
@@ -334,8 +334,10 @@ class ParticipantData(object):
         assert len(np.unique(np.array(unique_categories)).tolist()) == len(np.array(unique_categories).tolist())
 
         # Generate a split data object for each category
+        # noinspection PyTypeChecker
         split_participant_data = [ParticipantData([TrialData([], [], [], [], [], [])
-                                                   for _ in original_participant_data.trials])]
+                                                   for _ in original_participant_data.trials])
+                                  for _ in range(len(unique_categories))]
         for dat in split_participant_data:
             for t in dat.trials:
                 t.distance_accuracy_map = []  # Fill accuracy map with empty lists so we can copy that too
@@ -348,56 +350,64 @@ class ParticipantData(object):
 
         # Iterate through all the trials in the original data set
         for trial_idx, t in enumerate(original_participant_data.trials):
-            for d_points, a_points, d_labels, a_labels, c_labels, d_order, d_accuracy_map \
-                    in zip(t.data_points, t.actual_points, t.data_labels, t.actual_labels,
-                           t.category_labels, t.data_order, t.distance_accuracy_map):
+            if not t.distance_accuracy_map:
+                t_d_accuracy_map = [False] * len(t.data_points)
+            else:
+                t_d_accuracy_map = t.distance_accuracy_map
+
+            # Iterate through all the points in the trial
+            for i, (d_points, a_points, d_labels, a_labels, c_labels, d_order, d_accuracy_map) \
+                    in enumerate(zip(t.data_points, t.actual_points, t.data_labels, t.actual_labels,
+                                     t.category_labels, t.data_order, t_d_accuracy_map)):
                 # Store the distance threshold for the trial for convenience
                 dt = t.distance_threshold
-                # Iterate through all the points in the trial
-                for i in range(0, len(d_points)):
-                    # Check if there is a category label
-                    cl = None
-                    if c_labels is not None and len(c_labels) > i:
-                        cl = c_labels[i]
-                    # If there is a category label and it is in our list of unique categories
-                    if cl is not None and cl in unique_categories:
-                        # Get the index of the output data in which to store the point
-                        idx = unique_categories.index(cl)
-                        # Store the distance threshold
-                        split_participant_data[idx].trials[trial_idx].distance_threshold = dt
+                # Check if there is a category label
+                cl = None
+                if c_labels is not None:
+                    cl = t.category_labels[i]
+                # If there is a category label and it is in our list of unique categories
+                if cl is not None and cl in unique_categories:
+                    # Get the index of the output data in which to store the point
+                    idx = unique_categories.index(cl)
+                    # Store the distance threshold
+                    split_participant_data[idx].trials[trial_idx].distance_threshold = dt
 
-                        # Go through each list and, if there is a valid point at that index, append it to the new object
-                        if d_points is not None and len(d_points) > i:
-                            split_participant_data[idx].trials[trial_idx].data_points.append(d_points[i])
-                        if d_labels is not None and len(d_labels) > i:
-                            split_participant_data[idx].trials[trial_idx].data_points.append(d_labels[i])
-                        if a_labels is not None and len(a_labels) > i:
-                            split_participant_data[idx].trials[trial_idx].data_points.append(a_labels[i])
-                        if c_labels is not None and len(c_labels) > i:
-                            split_participant_data[idx].trials[trial_idx].data_points.append(c_labels[i])
-                        if d_order is not None and len(d_order) > i:
-                            split_participant_data[idx].trials[trial_idx].data_points.append(d_order[i])
-                        if d_accuracy_map is not None and len(d_accuracy_map) > i:
-                            split_participant_data[idx].trials[trial_idx].data_points.append(d_accuracy_map[i])
-                    # If either there was no category information or it was not in our list, the points belong in the
-                    # unknown category object
-                    else:
-                        # Set the distance threshold
-                        unknown_category_participant_data.trials[trial_idx].distance_threshold = dt
+                    # Go through each list and, if there is a valid point at that index, append it to the new object
+                    if d_points is not None:
+                        split_participant_data[idx].trials[trial_idx].data_points.append(d_points)
+                    if d_labels is not None:
+                        split_participant_data[idx].trials[trial_idx].data_labels.append(d_labels)
+                    if a_points is not None:
+                        split_participant_data[idx].trials[trial_idx].actual_points.append(a_points)
+                    if a_labels is not None:
+                        split_participant_data[idx].trials[trial_idx].actual_labels.append(a_labels)
+                    if c_labels is not None:
+                        split_participant_data[idx].trials[trial_idx].category_labels.append(c_labels)
+                    if d_order is not None:
+                        split_participant_data[idx].trials[trial_idx].data_order.append(d_order)
+                    if d_accuracy_map is not None:
+                        split_participant_data[idx].trials[trial_idx].distance_accuracy_map.append(d_accuracy_map)
+                # If either there was no category information or it was not in our list, the points belong in the
+                # unknown category object
+                else:
+                    # Set the distance threshold
+                    unknown_category_participant_data.trials[trial_idx].distance_threshold = dt
 
-                        # Go through each list and, if there is a valid point at that index, append it to the new object
-                        if d_points is not None and len(d_points) > i:
-                            unknown_category_participant_data.trials[trial_idx].data_points.append(d_points[i])
-                        if d_labels is not None and len(d_labels) > i:
-                            unknown_category_participant_data.trials[trial_idx].data_points.append(d_labels[i])
-                        if a_labels is not None and len(a_labels) > i:
-                            unknown_category_participant_data.trials[trial_idx].data_points.append(a_labels[i])
-                        if c_labels is not None and len(c_labels) > i:
-                            unknown_category_participant_data.trials[trial_idx].data_points.append(c_labels[i])
-                        if d_order is not None and len(d_order) > i:
-                            unknown_category_participant_data.trials[trial_idx].data_points.append(d_order[i])
-                        if d_accuracy_map is not None and len(d_accuracy_map) > i:
-                            unknown_category_participant_data.trials[trial_idx].data_points.append(d_accuracy_map[i])
+                    # Go through each list and, if there is a valid point at that index, append it to the new object
+                    if d_points is not None:
+                        split_participant_data[idx].trials[trial_idx].data_points.append(d_points)
+                    if d_labels is not None:
+                        split_participant_data[idx].trials[trial_idx].data_labels.append(d_labels)
+                    if a_points is not None:
+                        split_participant_data[idx].trials[trial_idx].actual_points.append(a_points)
+                    if a_labels is not None:
+                        split_participant_data[idx].trials[trial_idx].actual_labels.append(a_labels)
+                    if c_labels is not None:
+                        split_participant_data[idx].trials[trial_idx].category_labels.append(c_labels)
+                    if d_order is not None:
+                        split_participant_data[idx].trials[trial_idx].data_order.append(d_order)
+                    if d_accuracy_map is not None:
+                        split_participant_data[idx].trials[trial_idx].distance_accuracy_map.append(d_accuracy_map)
 
         # return the list of unique_categories sorted data and the object with unknown cateogry data
         return split_participant_data, unknown_category_participant_data

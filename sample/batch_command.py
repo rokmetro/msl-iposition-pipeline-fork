@@ -33,8 +33,8 @@ if __name__ == "__main__":
                              '.'.format(category_file_suffix))
     parser.add_argument('--order_prefixes', type=int, default=0,
                         help='if 0, one order file {0} is expected. otherwise, an order file for each data file is '
-                             'expected (with a prefix that matches the data file and a suffix matching {0}.').format(
-        order_file_suffix)
+                             'expected (with a prefix that matches the data file and a suffix matching {0}.'.format(
+                              order_file_suffix))
     parser.add_argument('--actual_coordinate_prefixes', type=int, default=0,
                         help='if 0, the normal assumption that all participants used the same {0} file will be used. '
                              'if not 0, it is assumed that all {0} files have a prefix which is '
@@ -97,7 +97,7 @@ if __name__ == "__main__":
                               data_coordinates_file_suffix, order_file_suffix))
 
     # Data Flexing/Reorganization
-    parser.add_argument('--remove-dims', metavar='N', type=int, nargs='+', default=None,
+    parser.add_argument('--remove_dims', type=int, nargs='+', default=None,
                         help='a list of dimensions (starting with 0) to remove from processing (default is None)')
 
     if len(sys.argv) > 1:

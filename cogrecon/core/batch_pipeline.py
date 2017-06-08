@@ -79,10 +79,14 @@ def validate_equal_list_shapes(l1, l2, expected_shape=None, l1_name="list1", l2_
 def get_single_file_result(actual_coordinates, dat, categories=None, data_orders=None,
                            label="", accuracy_z_value=default_z_value,
                            trial_by_trial_accuracy=True, manual_threshold=None,
-                           flags=PipelineFlags(default_pipeline_flags), remove_dims=None):
+                           flags=PipelineFlags(default_pipeline_flags), remove_dims=None,
+                           category_independence_enabled=False,
+                           order_greedy_deanonymization_enabled=False):
     """
     This function generates the results for a specific file's data structure, usually containing multiple trials
 
+    :param order_greedy_deanonymization_enabled:
+    :param category_independence_enabled:
     :param remove_dims:
     :param data_orders:
     :param categories:
@@ -120,16 +124,18 @@ def get_single_file_result(actual_coordinates, dat, categories=None, data_orders
                                                     flags=flags,
                                                     debug_labels=[label],
                                                     trial_by_trial_accuracy=trial_by_trial_accuracy,
-                                                    manual_threshold=manual_threshold)
+                                                    manual_threshold=manual_threshold,
+                                                    process_categories_independently=category_independence_enabled,
+                                                    greedy_order_deanonymization=order_greedy_deanonymization_enabled)
     if categories is None:
         categories = [None] * len(actual_coordinates)
     else:
-        validate_list_format(categories, require_numeric=False, dimension=3, list_name="categories")
+        validate_list_format(categories, require_numeric=False, dimension=2, list_name="categories")
         assert len(categories) == len(actual_coordinates), "categories must be same length as actual_coordinates"
     if data_orders is None:
         data_orders = [None] * len(actual_coordinates)
     else:
-        validate_list_format(data_orders, require_numeric=False, dimension=3, list_name="data_orders")
+        validate_list_format(data_orders, require_numeric=False, dimension=2, list_name="data_orders")
         assert len(categories) == len(dat), "data_orders must be same length as data_coordinates"
     _participant_data = ParticipantData([TrialData(_a, _d, cateogry_labels=_c, data_order=_o)
                                          for _a, _d, _c, _o in zip(actual_coordinates, dat, categories, data_orders)])
@@ -286,7 +292,8 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
                 index_check = len(categories) + 1
             if index_check < idx:
                 categories.append(copy.copy(categories[index_check]))
-                categories.append(get_coordinates_from_file(f, data_shape))
+            else:
+                categories.append(get_coordinates_from_file(f, tuple(list(data_shape[:2]) + [1])))
 
     data_orders = []
     for idx, f in enumerate(order_filenames):
@@ -299,7 +306,8 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
                 index_check = len(data_orders) + 1
             if index_check < idx:
                 data_orders.append(copy.copy(data_orders[index_check]))
-                data_orders.append(get_coordinates_from_file(f, data_shape))
+            else:
+                data_orders.append(get_coordinates_from_file(f, tuple(list(data_shape[:2]) + [1]), data_type=int))
 
     data_labels = [get_id_from_file_prefix_via_suffix(filename, data_coordinates_file_suffix) for filename in
                    data_coordinates_filenames]
@@ -347,38 +355,48 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
         results = get_single_file_result(actual, data, categories=category, data_orders=order,
                                          label=label, accuracy_z_value=accuracy_z_value,
                                          flags=flags, trial_by_trial_accuracy=trial_by_trial_accuracy,
-                                         manual_threshold=mt, remove_dims=removal_dim_indicies)
+                                         manual_threshold=mt, remove_dims=removal_dim_indicies,
+                                         category_independence_enabled=category_independence_enabled,
+                                         order_greedy_deanonymization_enabled=order_greedy_deanonymization_enabled)
 
-        new_results = []
-        # Append the across-trial variables
-        # Look for NaNs
-        for data_line in results:
-            num_rows_with_nan = 0
-            for item in data_line:
-                if item is np.nan:
-                    num_rows_with_nan += 1
-            new_results.append(np.append(data_line, [num_rows_with_nan]))
-        results = new_results
-
-        if collapse_trials:
-            # Apply the aggregation function to each value
-            result = []
-            for iidx in range(len(results[0])):
-                result.append(agg_functions[iidx]([row[iidx] for row in results]))
-            # Write to file
-            out_fp.write(
-                '{0},{1}\n'.format(
-                    label,
-                    ','.join(['"{0}"'.format(str(r)) if ',' in str(r) else str(r) for r in result]))  # Filter commas
-            )
+        if category_independence_enabled:
+            for cat_result in results:
+                output_results(cat_result, collapse_trials, agg_functions, out_fp, label)
         else:
-            for iidx, row in enumerate(results):
-                out_fp.write(
-                    '{0},{1},{2}\n'.format(label,
-                                           iidx,
-                                           ','.join(['"{0}"'.format(str(r)) if ',' in str(r) else str(r) for r in row]))
-                )
+            output_results(results, collapse_trials, agg_functions, out_fp, label)
 
     out_fp.close()
 
     logging.info('Done processing all files. Data can be found in {0}.'.format(out_filename))
+
+
+def output_results(results, collapse_trials, agg_functions, out_fp, label):
+    new_results = []
+    # Append the across-trial variables
+    # Look for NaNs
+    for data_line in results:
+        num_rows_with_nan = 0
+        for item in data_line:
+            if item is np.nan:
+                num_rows_with_nan += 1
+        new_results.append(np.append(data_line, [num_rows_with_nan]))
+    results = new_results
+
+    if collapse_trials:
+        # Apply the aggregation function to each value
+        result = []
+        for iidx in range(len(results[0])):
+            result.append(agg_functions[iidx]([row[iidx] for row in results]))
+        # Write to file
+        out_fp.write(
+            '{0},{1}\n'.format(
+                label,
+                ','.join(['"{0}"'.format(str(r)) if ',' in str(r) else str(r) for r in result]))  # Filter commas
+        )
+    else:
+        for iidx, row in enumerate(results):
+            out_fp.write(
+                '{0},{1},{2}\n'.format(label,
+                                       iidx,
+                                       ','.join(['"{0}"'.format(str(r)) if ',' in str(r) else str(r) for r in row]))
+            )

@@ -41,11 +41,17 @@ def accuracy(participant_data, analysis_configuration):
         exclusion_thresholds = []
         for actual_trial, data_trial in zip(actual_points, data_points):
             if manual_threshold is not None:
-                dists = np.diag(distance.cdist(data_trial, actual_trial))
+                if len(data_trial) == 0 or len(actual_trial) == 0:
+                    dists = []
+                else:
+                    dists = np.diag(distance.cdist(data_trial, actual_trial))
                 dist_accuracy_map.append([xd < manual_threshold for xd in dists])
                 exclusion_thresholds.append(manual_threshold)
             else:
-                dists = np.diag(distance.cdist(data_trial, actual_trial))
+                if len(data_trial) == 0 or len(actual_trial) == 0:
+                    dists = []
+                else:
+                    dists = np.diag(distance.cdist(data_trial, actual_trial))
                 mu = np.mean(dists)
                 sd = np.std(dists)
                 ste = sd / np.sqrt(len(dists))
@@ -57,14 +63,22 @@ def accuracy(participant_data, analysis_configuration):
         dist_accuracy_map = []
         if manual_threshold is not None:
             for actual_trial, data_trial in zip(actual_points, data_points):
-                dists = np.diag(distance.cdist(data_trial, actual_trial))
+                if len(data_trial) == 0 or len(actual_trial) == 0:
+                    dists = []
+                else:
+                    dists = np.diag(distance.cdist(data_trial, actual_trial))
                 dist_accuracy_map.append([xd < manual_threshold for xd in dists])
             exclusion_thresholds = [manual_threshold] * len(actual_points)
         else:
-            collapsed_actual_points = np.array(actual_points).reshape(-1, len(actual_points[0][0]))
+            collapsed_actual_points = np.array([x for sublist in actual_points for x in sublist])
+            # collapsed_actual_points = np.reshape(np.array(actual_points), (-1, len(actual_points[0][0])))
             data_points = [list(xd) for xd in data_points]
-            collapsed_data_points = np.array(data_points).reshape(-1, len(data_points[0][0]))
-            dists = np.diag(distance.cdist(collapsed_actual_points, collapsed_data_points))
+            # collapsed_data_points = np.array(data_points).reshape(-1, len(data_points[0][0]))
+            collapsed_data_points = np.array([x for sublist in data_points for x in sublist])
+            if len(collapsed_actual_points) == 0 or len(collapsed_data_points) == 0:
+                dists = []
+            else:
+                dists = np.diag(distance.cdist(collapsed_actual_points, collapsed_data_points))
             mu = np.mean(dists)
             sd = np.std(dists)
             ste = sd / np.sqrt(len(dists))
@@ -73,8 +87,11 @@ def accuracy(participant_data, analysis_configuration):
             exclusion_thresholds = [exclusion_threshold] * len(actual_points)
 
             for actual_trial, data_trial in zip(actual_points, data_points):
-                # noinspection PyTypeChecker
-                dists = np.diag(distance.cdist(data_trial, actual_trial))
+                if len(data_trial) == 0 or len(actual_trial) == 0:
+                    dists = []
+                else:
+                    # noinspection PyTypeChecker
+                    dists = np.diag(distance.cdist(data_trial, actual_trial))
                 dist_accuracy_map.append([bool(xd < exclusion_threshold) for xd in dists])
 
     participant_data.distance_accuracy_map = dist_accuracy_map
@@ -95,6 +112,9 @@ def trial_axis_swap(trial_data):
     data_points = trial_data.data_points
     actual_labels = trial_data.actual_labels
     data_labels = trial_data.data_labels
+
+    if len(data_points) < 2:
+        return 0, []
 
     if not actual_labels:
         actual_labels = range(len(actual_points))
@@ -147,6 +167,9 @@ def trial_edge_distortion(trial_data):
 
     actual_points = trial_data.actual_points
     data_points = trial_data.data_points
+
+    if len(data_points) < 2:
+        return 0, []
 
     edge_distortions_count = 0
     comparisons = 0
@@ -284,9 +307,9 @@ def swaps(participant_data, analysis_configuration):
 
     result = []
     for trial in participant_data.trials:
-        result.append(trial_swaps(trial))
+        result.append(list(trial_swaps(trial)))
 
-    return np.transpose(result)
+    return np.transpose(np.array(result, dtype=object)).tolist()
 
 
 def trial_swaps(trial_data):
@@ -410,8 +433,15 @@ def deanonymize(participant_data, analysis_configuration):
     for actual_trial, data_trial, order_trial in zip(actual_points, data_points, data_order):
 
         if analysis_configuration.greedy_order_deanonymization:
+            # First we shrink the order to unique ordered ints between 0 and len(order_trial) rather than their
+            # potentially non-contiguous, ordered ints
+            indices = list(range(len(order_trial)))
+            indices.sort(key=order_trial.__getitem__)
+            shrunk_order = [0 for _ in range(len(order_trial))]
+            for i, n in zip(indices, range(len(indices))):
+                shrunk_order[i] = n
             min_score, min_score_idx, min_permutation = greedy_find_minimal_mapping(actual_trial,
-                                                                                    data_trial, order_trial)
+                                                                                    data_trial, shrunk_order)
         else:
             min_score, min_score_idx, min_permutation = find_minimal_mapping(actual_trial, data_trial)
 
@@ -440,13 +470,18 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
     validate_type(participant_data, ParticipantData, "participant_data", "full_pipeline")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "full_pipeline")
 
+    for trial in participant_data.trials:
+        if len(trial.actual_points) == 0 or len(trial.data_points) == 0:
+            analysis_configuration = copy.deepcopy(analysis_configuration)
+            analysis_configuration.flags = PipelineFlags.Simple
+
     original_participant_data = copy.deepcopy(participant_data)
 
     if analysis_configuration.category_independence:
         if visualize:
             logging.warning('Visualization is not supported for category data at the moment.')
         categories = participant_data.category_labels
-        unique_categories = list(set(categories))
+        unique_categories = np.unique(categories).tolist()
         _category_participant_data, _unknown_category_participant_data = \
             ParticipantData.category_split_participant(participant_data, unique_categories)
         _category_analysis_configuration = copy.deepcopy(analysis_configuration)
@@ -458,6 +493,7 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
             _category_analysis_configuration.category_label = cat_label
             cat_outputs.append(full_pipeline(cat, _category_analysis_configuration))
 
+        _category_analysis_configuration.category_label = 'unknown'
         cat_outputs.append(full_pipeline(_unknown_category_participant_data, _category_analysis_configuration))
 
         return cat_outputs
@@ -478,8 +514,11 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
     for trial in participant_data.trials:
         # First calculate the two primary original metrics, misplacement and axis swaps - this has been validated
         # against the previous script via an MRE data set of 20 individuals
-        straight_misplacements.append(sum_of_distance(trial.actual_points,
-                                                      trial.data_points) / len(trial.actual_points))
+        if len(trial.data_points) == 0 or len(trial.actual_points) == 0:
+            avg_misplacement = -1
+        else:
+            avg_misplacement = sum_of_distance(trial.actual_points, trial.data_points) / len(trial.actual_points)
+        straight_misplacements.append(avg_misplacement)
         axis_swaps_element, axis_swap_pairs_element = trial_axis_swap(trial)
         axis_swaps.append(axis_swaps_element)
         axis_swap_pairs.append(axis_swap_pairs_element)
@@ -508,10 +547,11 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
         participant_data.actual_labels = actual_labels
     else:
         deanon_threshold = [np.nan] * num_trials
-        deanon_accuracies = [] * num_trials
+        deanon_accuracies = [[]] * num_trials
         raw_deanonymized_misplacement = [np.nan] * num_trials
         deanonymized_labels = [list(itertools.permutations(
             range(0, len(participant_data.actual_points[0]))))[position] for position in [0] * num_trials]
+        deanonymized_labels = [list(_x) for _x in deanonymized_labels]
         participant_data.data_labels = deanonymized_labels
         actual_labels = [range(len(actual_trial)) for actual_trial in
                          actual_coordinates]
@@ -541,7 +581,7 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
      partial_cycle_swap_distances, partial_cycle_swap_expected_distances) = swaps(participant_data,
                                                                                   analysis_configuration)
 
-    output = np.transpose(
+    output = \
         [straight_misplacements,
          axis_swaps,
          edge_resize,
@@ -583,8 +623,9 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
          [list(map(list, x)) for x in components],
          [analysis_configuration.is_category] * len(participant_data.trials),
          [analysis_configuration.category_label] * len(participant_data.trials)
-         ])
+         ]
 
+    output = np.transpose(np.array(output, dtype=object))
     # If requested, visualize the data
     if visualize:
         for idx, (trial, min_trial, transformed_trial, output_trial) in \

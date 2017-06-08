@@ -30,11 +30,13 @@ def get_coordinates_from_file(path, expected_shape, data_type=float):
                                 for line in tsv if line.strip() is not ''))
         coordinates = np.transpose(coordinates)
     if expected_shape is not None:
+        if expected_shape[-1] == 1:
+            expected_shape = expected_shape[:2]
         try:
             coordinates = np.reshape(np.array(coordinates), expected_shape)
         except ValueError:
-            logging.error("Data found in path ({0}) cannot be transformed " +
-                          "into expected shape ({1}).".format(path, expected_shape))
+            logging.error(("Data found in path ({0}) cannot be transformed " +
+                           "into expected shape ({1})).").format(path, expected_shape))
             raise ValueError("Failed to get data coordinate of expected shape.")
         assert np.array(coordinates).shape == expected_shape, \
             "shape {0} does not equal expectation {1}".format(np.array(coordinates).shape, expected_shape)
@@ -147,7 +149,7 @@ def match_file_prefixes(files, prefixes):
 
     prefix_comparison_list = np.transpose(prefixes)
     for row in prefix_comparison_list:
-        if len(filter(lambda a: a == "", list(set(row)))) != 1:
+        if len(filter(lambda a: a != "", list(set(row)))) != 1:
             logging.error("There was a problem matching up files via their prefixes. This is most commonly due to "
                           "inappropriate files being found via search. Check that your files are unique and properly "
                           "formatted then try again.")
@@ -233,11 +235,11 @@ def find_data_files_in_directory(directory, actual_coordinate_prefixes=False,
         actual_coordinates_files = enforce_single_file_contents(actual_coordinates_files,
                                                                 actual_coordinates_file_suffix)
 
-    if not category_prefixes:
+    if not category_prefixes and category_independence_enabled:
         category_files = enforce_single_file_contents(category_files,
                                                       category_file_suffix)
 
-    if not order_prefixes:
+    if not order_prefixes and order_greedy_deanonymization_enabled:
         order_files = enforce_single_file_contents(order_files,
                                                    order_file_suffix)
 
