@@ -13,9 +13,18 @@ from cogrecon.core.globals import data_coordinates_file_suffix, actual_coordinat
     category_file_suffix, default_dimensions, default_z_value, default_pipeline_flags
 from cogrecon.core.file_io import is_path_exists_or_creatable_portable
 
-# TODO: Documentation needs an audit/overhaul
+"""
+This module is meant to be run exclusively from the command line via:
+
+python batch_command.py <arguments>
+
+.
+
+Note that this function assumes its input is NOT meant to be visualized and will act accordingly.
+"""
 
 if __name__ == "__main__":
+    # Parse the inputs to the batch_pipeline function (see help=??? for details on each param)
     logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser(description='Process a single set of points from a single trial in iPosition '
@@ -100,22 +109,32 @@ if __name__ == "__main__":
     parser.add_argument('--remove_dims', type=int, nargs='+', default=None,
                         help='a list of dimensions (starting with 0) to remove from processing (default is None)')
 
+    # If we receive some parameters
     if len(sys.argv) > 1:
+        # Attempt to parse the parameters
         args = parser.parse_args()
+        # If a search directory is not provided
         if args.search_directory is None:
+            # Prompt the user for a search directory
             selected_directory = easygui.diropenbox()
         else:
+            # If a search directory is provided, store it
             selected_directory = args.search_directory
-        if len(selected_directory) == 0:  # Gracefully exit if cancel is clicked
+        # Gracefully exit if cancel is clicked
+        if len(selected_directory) == 0:
             exit()
+        # If either number of trials or number of items is not provided, it is determined automatically (via dimension)
         if not args.num_trials or not args.num_items:
             logging.warning('Either num_items or num_trials was not provided. The data shape will be automatically ' +
                             'detected from the actual coordinates.')
             d_shape = None
         else:
+            # If all 3 shape params are provided, store them
             d_shape = (args.num_trials, args.num_items, args.dimension)
         manual_swap_accuracy_threshold_list = None
+        # If a manual threshold list is provided
         if args.manual_swap_accuracy_threshold_list is not None:
+            # Read the manual threshold list
             # noinspection PyBroadException
             try:
                 with open(args.manual_swap_accuracy_threshold_list) as f:
@@ -127,10 +146,15 @@ if __name__ == "__main__":
                 logging.warning(
                     'the provided manual_swap_accuracy_threshold_list was either not found or invalid - it will be '
                     'skipped')
+        # If an output path is provided and is valid
         if args.output_filename is not None and is_path_exists_or_creatable_portable(args.output_filename):
+            # Save it
             outfilepath = args.output_filename.strip()
         else:
+            # If no output path is provided, use the current datetime
             outfilepath = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.csv")
+
+        # Run the batch pipeline with the provided parameters
         batch_pipeline(selected_directory,
                        outfilepath,
                        data_shape=d_shape,
@@ -148,4 +172,5 @@ if __name__ == "__main__":
                        removal_dim_indicies=args.remove_dims
                        )
     else:
+        # Quit gracefully if no parameters were provided
         logging.info("No arguments found - quitting.")

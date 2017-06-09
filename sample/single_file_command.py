@@ -12,11 +12,19 @@ from cogrecon.core.data_flexing.dimension_removal import remove_dimensions
 from cogrecon.core.globals import default_z_value, default_pipeline_flags, default_dimensions, \
     data_coordinates_file_suffix
 
-# TODO: Documentation needs an audit/overhaul
+"""
+This module is meant to be run exclusively from the command line via:
+
+python single_file_command.py <arguments>
+
+.
+
+Note that this function assumes its input is meant to be visualized and will act accordingly.
+"""
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-
+    # Parse the inputs to the batch_pipeline function (see help=??? for details on each param)
     parser = argparse.ArgumentParser(description='Process a single set of points from a single trial in iPosition '
                                                  'compared to a set of correct points. This will not generate an '
                                                  'output file, but will instead print the resulting values and show a '
@@ -64,7 +72,10 @@ if __name__ == "__main__":
     # Data Flexing/Reorganization
     parser.add_argument('--remove_dims', metavar='N', type=int, nargs='+', default=None,
                         help='a list of dimensions (starting with 0) to remove from processing (default is None)')
+
+    # If we receive some parameters
     if len(sys.argv) > 1:
+        # Attempt to parse the parameters
         args = parser.parse_args()
 
         # Generate configuration for analysis from args
@@ -81,16 +92,19 @@ if __name__ == "__main__":
         # Because we're just visualizing one trial, strip away all but the requested trial
         _participant_data.trials = [_participant_data.trials[args.line_number]]
 
+        # If it has been requested to remove particular dimensions, remove them
         if args.remove_dims is not None:
             _participant_data = remove_dimensions(_participant_data, removal_dim_indices=args.remove_dims)
 
+        # If a particular extent has been requeste for visualization, validate its form/shape
         if args.plot_extent is not None:
             plot_extent = np.array(args.plot_extent).reshape((2, 2)).tolist()
         else:
             plot_extent = None
 
-        # Run the pipeline
+        # Run the pipeline with visualization
         full_pipeline(_participant_data, _analysis_configuration, visualize=True, visualization_extent=plot_extent)
 
     else:
+        # Quit gracefully if no parameters were provided
         logging.info("No arguments found - quitting.")

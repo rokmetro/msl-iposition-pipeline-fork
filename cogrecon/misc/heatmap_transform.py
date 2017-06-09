@@ -8,7 +8,9 @@ import matplotlib.patches as patches
 
 def test_heatmap_transform():
     """
+    This function test the dynamic heatmap module used to help perform 2D histograms in a hex grid.
 
+    This module is mot current used in typical analysis or visualized.
     """
     circles = [patches.Circle((0, 0), 0.25, fc='r', alpha=0.5)]
     drs = []

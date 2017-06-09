@@ -3,22 +3,20 @@ import matplotlib.patches as patches
 
 
 class DraggablePoint:
-    """We use this as a public class example class.
+    """
+    This class is used to managed points which can be dragged around a grid for debugging purposes.
 
-    You never call this class before calling :func:`public_fn_with_sphinxy_docstring`.
-
-    .. note::
-
-       An example of intersphinx is this: you **cannot** use :mod:`pickle` on this class.
-
+    This class is mot current used in typical analysis or visualized.
     """
     lock = None  # only one can be animated at a time
 
     def __init__(self, point, move_callback=None):
         """
+        The DraggablePoint object creates a point which has a particular movement callback when its location change
+        is released.
 
-        :param point:
-        :param move_callback:
+        :param point: the point location to be dragged
+        :param move_callback: the callback to fire whenever a movement is completed (i.e. when on_release fires)
         """
         self.move_callback = move_callback
         self.point = point
@@ -30,8 +28,10 @@ class DraggablePoint:
 
     def connect(self, move_callback=None):
         """
+        This function is used to connect a movement callback function which can be used for redrawing based on updated
+        draggable point locations.
 
-        :param move_callback:
+        :param move_callback: the callback to fire whenever a movement is completed (i.e. when on_release fires)
         """
         self.move_callback = move_callback
         # connect to all the events we need
@@ -39,9 +39,10 @@ class DraggablePoint:
 
     def on_press(self, event):
         """
+        When the draggable object is pressed, this function fires.
 
-        :param event:
-        :return:
+        :param event: the event object associated with the object press
+        :return: None
         """
         if event.inaxes != self.point.axes:
             return
@@ -68,9 +69,10 @@ class DraggablePoint:
 
     def on_motion(self, event):
         """
+        When the draggable object is moved around, this function fires.
 
-        :param event:
-        :return:
+        :param event: the event object associated with the object movement
+        :return: None
         """
         if DraggablePoint.lock is not self:
             return
@@ -96,9 +98,10 @@ class DraggablePoint:
     # noinspection PyUnusedLocal
     def on_release(self, e):
         """
+        When the draggable point is release, this function fires.
 
-        :param e:
-        :return:
+        :param e: the event object associated with the object release
+        :return: None
         """
         if self.move_callback:
             self.move_callback()
@@ -129,7 +132,10 @@ class DraggablePoint:
 
 def test_draggable_points():
     """
+    This function allows quick, easy testing of the DraggablePoints class for the purpose of manually dragging
+    points around for debugging purposes for the algorithms in this package.
 
+    This module is mot current used in typical analysis or visualized.
     """
     fig = plt.figure()
     ax = fig.add_subplot(111)
