@@ -24,6 +24,9 @@ sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../'))
 sys.path.insert(0, os.path.abspath('../..'))
 sys.path.insert(0, os.path.abspath('../cogrecon'))
+sys.path.insert(0, os.path.abspath('../cogrecon/core'))
+sys.path.insert(0, os.path.abspath('../cogrecon/core/data_flexing'))
+sys.path.insert(0, os.path.abspath('../cogrecon/misc'))
  
 MOCK_MODULES = ['numpy', 'scipy', 'matplotlib', 'matplotlib.pyplot', 'scipy.interpolate']
 for mod_name in MOCK_MODULES:
