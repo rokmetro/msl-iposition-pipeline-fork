@@ -5,12 +5,18 @@ from ..tools import validate_type, mask_dimensions
 
 
 def remove_dimensions(participant_data, removal_dim_indices=None):
+    # type: (ParticipantData, list) -> ParticipantData
     # Validate data types
     """
+    This function filters our particular dimensions from the ParticipantData type. This is useful in cases
+    such as which space and time are combined and we wish to view the space axes independently of the time axis.
 
-    :param participant_data:
-    :param removal_dim_indices:
-    :return:
+    :rtype: ParticipantData
+    :param participant_data: A ParticipantData data structure which contains the TrialData for each trial.
+    :param removal_dim_indices: A list of integers which represent the dimensions (indices) to be removed.
+
+    :return: a ParticipantData object which has had a particular set of dimension indices (defined by
+    removal_dim_indices) which have been removed.
     """
     validate_type(removal_dim_indices, list, "removal_dim_indices", "remove_dimensions")
     validate_type(participant_data, ParticipantData, "participant_data", "remove_dimensions")

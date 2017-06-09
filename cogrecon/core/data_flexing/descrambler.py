@@ -6,7 +6,12 @@ from ..batch_pipeline import find_data_files_in_directory
 
 def descrambler():
     """
+    This descrambler performs a very specific task as requested by a researcher. It first prompts for the selection
+    of a particular directory. It searches that directory for files (any file) and parses that file as a TSV.
+    The TSV is expected to have a final element on each line which represents the order the line is actually
+    meant to be in. The file is, thus, reordered according to this last element (assumed to be an integer).
 
+    The result is written to an output path which is the input path with 'descrambled_' preprended to the filename.
     """
     selected_directory = easygui.diropenbox()
 

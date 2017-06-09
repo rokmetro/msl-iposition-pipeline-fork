@@ -14,9 +14,11 @@ import warnings
 # This helper function extracts the meta-data from the filename
 def get_filename_meta_data(fn):
     """
+    This function retrieves the meta information from a filename given the typical formatting in the Time Travel Task.
 
-    :param fn:
-    :return:
+    :param fn: a filename to parse for meta-data
+    :return: a dictionary containing keys 'subID', 'trial', 'phase', 'inverse' and 'datetime' of types string
+    with the exception of datetime which is of type datetime
     """
     parts = fn.split('_')
     dt = datetime.datetime.strptime(parts[4] + '_' + parts[5].split('.')[0], '%Y-%m-%d_%H-%M-%S')
@@ -26,9 +28,11 @@ def get_filename_meta_data(fn):
 # Lookup phase name from number
 def phase_num_to_str(phase):
     """
+    This function converts a phase integer into a nameable phase string.
 
-    :param phase:
-    :return:
+    :param phase: an integer which represents the phase type to be converted to a string
+    :return: 'VR Practice', 'VR Study', 'VR Test', 'VE Practice', 'VE Study', 'VE Test', '2D Practice', '2D Study',
+    '2D Test', in order, from 0 to 8.
     """
     names = ['VR Practice', 'VR Study', 'VR Test', 'VE Practice', 'VE Study', 'VE Test',
              '2D Practice', '2D Study', '2D Test']
@@ -43,9 +47,11 @@ def phase_num_to_str(phase):
 # This function is used in reading the binary files to read the length of the header from the beginning of the file
 def decode_7bit_int_length(fp):
     """
+    This function takes a file pointer and extracts the appropriate next information which is expected to contain a
+    .NET 7bit binary datetime encoded value and extracts the length of that datetime value.
 
-    :param fp:
-    :return:
+    :param fp: a file pointer whose next expected element is a 7bit integer length of a binary datetime in .NET
+    :return: a length value representing the string length of a binary datetime in .NET
     """
     string_length = 0
     string_length_parsed = False
@@ -64,9 +70,10 @@ def decode_7bit_int_length(fp):
 # This function is used in reading the binary files to parse the binary .NET DateTime into a Python datetime
 def datetime_from_dot_net_binary(data):
     """
+    This function converts data from a .NET datetime binary representation to a python datetime object
 
-    :param data:
-    :return:
+    :param data: some binary data which is expected to convert to a datetime value
+    :return: a datetime value corresponding to the binary .NET datetime representation from the input data
     """
     kind = (data % 2 ** 64) >> 62  # This says about UTC and stuff...
     ticks = data & 0x3FFFFFFFFFFFFFFF
@@ -79,9 +86,25 @@ def datetime_from_dot_net_binary(data):
 
 def read_binary_file(path):
     """
+    This function reads a Time Travel Task binary file in its entirety and converts it into a list of iterations which
+    can be parsed independently.
 
-    :param path:
-    :return:
+    :param path: a string absolute path to a Time Travel Task binary file
+    :return: a list of iterations (dictionaries containing values:
+    "version" - an integer version number
+    "datetime" - a python datetime object for this iteration
+    "time_val" - a time for this iteration
+    "timescale" - a timescale which the current time is proceding through
+    "x", "y", "z" - x, y, and z spatial coordinates in which the participant resides
+    "rx", "ry", "rz", "rw" - x, y, z, and w rotation quaternion coordinates in which the participant resides
+    "keys", "buttons", "keylabels", "buttonlabels" 0 the key states, button states, key labels and button labels for
+    every key and button which is registered to be logged
+    "itemsx", "itemsy", "itemsz", "itemsactive", "itemsclicked", "itemsevent", "itemstime" - the item x, y, z spatial
+     coordinates, the item active state (enabled or disabled in the environment), the item event, and time
+    "boundarystate", "br", "bg", "bb" - the boundary state and Red, Green, and Blue color intensities of the boundary
+    "inventoryitemnumbers"- the item numbers in the inventory this iteration
+    "activeinventoryitemnumber", "activeinventoryeventindex" - the active item number and event number this iteration
+    )
     """
     iterations = []
     with open(path, 'rb') as f:
@@ -238,10 +261,11 @@ def read_binary_file(path):
 
 def find_last(lst, sought_elt):
     """
+    This function finds the last index that an element of a particular value appears in a list.
 
-    :param lst:
-    :param sought_elt:
-    :return:
+    :param lst: the list to search
+    :param sought_elt: the element for which we search
+    :return: the index at which the last element matching sought_elt resides
     """
     for r_idx, elt in enumerate(reversed(lst)):
         if elt == sought_elt:
@@ -250,17 +274,22 @@ def find_last(lst, sought_elt):
 
 def parse_test_items(iterations, cols, item_number_label, event_state_labels):
     """
+    This function takes in a set of iterations parsed from read_binary_file, a set of color values, a set of item
+    labels, and a set of event labels and produces the items, reconstruction items and the order description for
+    each item in the reconstruction.
 
-    :param iterations:
-    :param cols:
-    :param item_number_label:
-    :param event_state_labels:
-    :return:
+    :param iterations: the iterations output from read_binary_file
+    :param cols: the colors of each item in canonical ordering
+    :param item_number_label: the labels for each item in canonical ordering
+    :param event_state_labels: the event labels for each item in canonical ordering
+    :return: a dictionary containing:
+    "direction" - a numeric value representing the up, down or stationary state
+    "pos" - the x, z, and t values representing the 2D position and time coordinates
+    "color" - the color value representing the indexed color value from cols associated with the item
     """
     descrambler = [1, 2, 4, 7, 0, 3, 5, 6, 8, 9]
     descrambler_type = [2, 2, 2, 2, 1, 1, 1, 1, 0, 0]
     reconstruction_items = [None] * len(item_number_label)
-    billboard_item_labels = []
     if iterations[0]['version'] == 0:
         # pos = np.empty((len(items), 3))
         # size = np.empty((len(items)))
@@ -461,17 +490,23 @@ def parse_test_items(iterations, cols, item_number_label, event_state_labels):
                 if active and not iterations[iter_idx - 1]['itemsactive'][idx]:
                     order[idx].append(order_num)
                     order_num += 1
-    return billboard_item_labels, reconstruction_items, order
+    return reconstruction_items, order
 
 
 def get_click_locations_and_indicies(iterations, items, meta):
     # If Study/Practice, label click events
     """
+    This function takes the iterations from read_binary_file, the items to be searched and the meta information from
+    the file and returns the clicked positions, indices in the iterations, size and colors for visualization.
 
-    :param iterations:
-    :param items:
-    :param meta:
-    :return:
+    :param iterations: the iterations from read_binary_file
+    :param items: the items to be visualized
+    :param meta: the meta information from the filename
+    :return: a tuple containing:
+    click_pos - the x, z, time coordinates of the click position
+    click_idx - the index in iterations at which time the click happened
+    click_size - the size the click should be visualized as
+    click_color - the color with which the click should be visualized
     """
     click_idx = np.empty(len(items))
     click_pos = np.empty((len(items), 3))
@@ -497,9 +532,15 @@ def get_click_locations_and_indicies(iterations, items, meta):
 
 def get_items_solutions(meta):
     """
+    This function returns the solution values given a particular meta-file information configuration.
 
-    :param meta:
-    :return:
+    :param meta: the meta information from get_filename_meta_data
+    :return: a tuple with items, times and directions where times contains numeric time constants, directions contains
+    numeric labels such that 2 is Fall, 1 is Fly, and 0 is Stationary/Stay, and items containts a list of dictionaries
+    containing values:
+    "direction" - the 0, 1, or 2 direction value
+    "pos" - the x, z, time coordinate of the item
+    "color" - the RGB color tuple for the item
     """
     if meta['phase'] == '0' or meta['phase'] == '3' or meta['phase'] == '6':
         times = [2, 12, 18, 25]
@@ -544,10 +585,12 @@ def get_items_solutions(meta):
 
 def find_data_files_in_directory(directory, file_regex=""):
     """
+    This function acts as a helper to search a directory for files that match a regular expression. The function
+    will raise an IOError if the input path is not found.
 
-    :param directory:
-    :param file_regex:
-    :return:
+    :param directory: the directory to search
+    :param file_regex: the regular expression to match for files
+    :return: a list of files which match the regular expression
     """
     if not os.path.exists(directory):
         raise IOError('The input path was not found.')
@@ -572,9 +615,10 @@ def find_data_files_in_directory(directory, file_regex=""):
 
 def get_exploration_metrics(iterations):
     """
+    This function gets the common exploration metrics from an iterations list returned by read_binary_file.
 
-    :param iterations:
-    :return:
+    :param iterations: the iterations from read_binary_file
+    :return: a tuple containing total_time, space_travelled, time_travelled, and space_time_travelled
     """
     total_time = (iterations[-1]['datetime'] - iterations[0]['datetime']).total_seconds()
     space_travelled = 0
@@ -596,14 +640,16 @@ def get_exploration_metrics(iterations):
     return total_time, space_travelled, time_travelled, space_time_travelled
 
 
-def is_correct_color(t, solution_t):
+def is_correct_color(t, solution_t, bins=15.0):
     """
+    This function determines if a particular item time is correct given a time, solution time and bins in which a
+    timeline is divided.
 
-    :param t:
-    :param solution_t:
-    :return:
+    :param bins: the float representing the bins into which the timeline is divided
+    :param t: the time of the item
+    :param solution_t: the correct time of the time
+    :return: a boolean value, true if the item is in the correct time region, false otherwise
     """
-    bins = 15.0
     lower = float(np.floor(float(solution_t) / bins) * bins)
     upper = float(np.ceil(float(solution_t) / bins) * bins)
     # noinspection PyTypeChecker
@@ -612,10 +658,22 @@ def is_correct_color(t, solution_t):
 
 def compute_accuracy(meta, items):
     """
+    Given some meta information from the file via get_filename_meta_data and the item information, compute the accuracy
+    of the items within and across contexts.
 
-    :param meta:
-    :param items:
-    :return:
+    :param meta: the meta information from get_filename_meta_data
+    :param items: the items from parse_test_items
+    :return: a tuple containing:
+    space_misplacement - the amount of space-only misplacement
+    time_misplacement - the amount of time-only misplacement
+    space_time_misplacement - the total space and time misplacement (treating the values equally)
+    direction_correct_count - the number of correct direction labels
+    mean_context_crossing_excluding_wrong_context_pairs - the mean of the distance between context crossing pairs
+    excluding those which are in the wrong context
+    mean_context_noncrossing_exluding_wrong_context_pairs - the mean of the distance between noncontext crossing pairs
+    excluing those which are in the wrong context
+    mean_context_crossing - the mean distance between context crossing pairs with no exclusions
+    mean_noncontext_crossing - the mean distance between non-context-crossing pairs with no exclusions
     """
     solution_items, times_solution, directions_solution = get_items_solutions(meta)
     xs = [item['pos'][0] for item in items]
@@ -673,9 +731,16 @@ def compute_accuracy(meta, items):
 
 def get_item_details(pastel_factor=127):
     """
+    This function returns detailed information about the item solutions including strings representing the event
+    state, strings with the item labels, and filename image strings (JPG), as well as RGB color tuples for each item.
 
-    :param pastel_factor:
-    :return:
+    :param pastel_factor: a factor to render the RGB values via pastel shades (default 127)
+    :return: a tuple containing:
+    event_state_labels - a set of strings containing the labels for event states given an integer
+    item_number_label - a set of strings containing the labels for items given an integer
+    item_label_filenames - a set of strings containing the filename for JPGs containing the images of items given an
+    integer
+    cols - a set of RGB colors influenced by the input pastel_factor representing the item colors
     """
     event_state_labels = ['stationary', 'up', 'down']
     item_number_label = ['bottle', 'icecubetray', 'clover', 'basketball', 'boot', 'crown', 'bandana', 'hammer',

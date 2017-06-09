@@ -15,9 +15,10 @@ else:
 
 def save_iposition_items_to_file(_filename, _items):
     """
+    This function saves a set of items in iposition (TSV) format given a filename and item dictionary list
 
-    :param _filename:
-    :param _items:
+    :param _filename: a string filename in which to save the data
+    :param _items: a dictionary containing position information stored in a "pos" key to be saved
     """
     with open(_filename, 'ab') as fp:
         poses = []
@@ -34,10 +35,12 @@ def save_iposition_items_to_file(_filename, _items):
 # noinspection PyTypeChecker
 def extract_basic_order(order_list, first=True):
     """
+    This function extracts simplified order information from an order list, assuming that we want to know the first
+    item placed as 0 and last as 'n'.
 
-    :param order_list:
-    :param first:
-    :return:
+    :param order_list: an order list of integers which contains gaps
+    :param first: a boolean determining if we want to order first to last or last to first
+    :return: an integer list 0 to 'n' ordered according to the input from smallest to largest integer
     """
     if order_list is None or len(order_list) == 0 or order_list[0] == []:
         return []
@@ -59,9 +62,11 @@ def extract_basic_order(order_list, first=True):
 
 def save_tsv(_filename, _list):
     """
+    This helper function saves simple TSV files via a _list (assumed to be 2D).
 
-    :param _filename:
-    :param _list:
+    :param _filename: the string filename in which to save the TSV
+    :param _list: a 2D list to be saved where each row (first dimension) is saved per line and each element is
+    separated by a tab
     """
     with open(_filename, 'ab') as fp:
         line = '\t'.join([str(el) for el in _list])
@@ -74,12 +79,16 @@ def time_travel_task_to_iposition(input_dir, output_dir,
                                   order_first=True, exclude_incorrect_category=False):
 
     """
+    This function is a global helper function meant to take a directory in which many Time Travel Task binary files
+    exist and convert them all into iposition (TSV) compatible files to be saved in an output directory.
 
-    :param input_dir:
-    :param output_dir:
-    :param file_regex:
-    :param order_first:
-    :param exclude_incorrect_category:
+    :param input_dir: the string directory to search for binary files via a regular expression stored in file_regex
+    :param output_dir: the string output directory in which to save files
+    :param file_regex: the string regular expression to use to determine if a file should be included as input
+    :param order_first: boolean value which, if true, order is used first-to-last - if false, order is used
+    last-to-first
+    :param exclude_incorrect_category: a boolean value which, if true, removes items which are the wrong category from
+    the output data
     """
     files = find_data_files_in_directory(input_dir, file_regex=file_regex)
 
@@ -94,8 +103,7 @@ def time_travel_task_to_iposition(input_dir, output_dir,
 
     for _path in files:
         iterations = read_binary_file(_path)
-        billboard_item_labels, reconstruction_items, order = parse_test_items(iterations, cols,
-                                                                              item_number_label, event_state_labels)
+        reconstruction_items, order = parse_test_items(iterations, cols, item_number_label, event_state_labels)
         meta = get_filename_meta_data(os.path.basename(_path))
         items, times, directions = get_items_solutions(meta)
 
@@ -125,6 +133,7 @@ def time_travel_task_to_iposition(input_dir, output_dir,
 
         save_tsv(output_dir + '\\' + category_path.format(meta['subID']), categories)
 
+# TODO: Generalize this module to be run outside of the __main__ environment
 if __name__ == "__main__":
     in_directory = 'C:\\Users\\Kevin\\Desktop\\Work\\Time Travel Task\\v2'
     path = os.path.dirname(os.path.realpath(__file__))
