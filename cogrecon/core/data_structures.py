@@ -4,7 +4,7 @@ import numpy as np
 import inspect
 
 from .file_io import get_coordinates_from_file
-from .globals import default_z_value, default_pipeline_flags
+from .cogrecon_globals import default_z_value, default_pipeline_flags
 
 
 # TODO: Documentation needs an audit/overhaul
@@ -355,10 +355,15 @@ class ParticipantData(object):
             else:
                 t_d_accuracy_map = t.distance_accuracy_map
 
+            if not t.data_order:
+                t_d_data_order = [None] * len(t.data_points)
+            else:
+                t_d_data_order = t.data_order
+
             # Iterate through all the points in the trial
             for i, (d_points, a_points, d_labels, a_labels, c_labels, d_order, d_accuracy_map) \
                     in enumerate(zip(t.data_points, t.actual_points, t.data_labels, t.actual_labels,
-                                     t.category_labels, t.data_order, t_d_accuracy_map)):
+                                     t.category_labels, t_d_data_order, t_d_accuracy_map)):
                 # Store the distance threshold for the trial for convenience
                 dt = t.distance_threshold
                 # Check if there is a category label

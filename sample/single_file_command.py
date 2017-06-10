@@ -9,7 +9,7 @@ from cogrecon.core.full_pipeline import full_pipeline
 from cogrecon.core.data_structures import ParticipantData, AnalysisConfiguration, PipelineFlags
 from cogrecon.core.file_io import get_id_from_file_prefix_via_suffix
 from cogrecon.core.data_flexing.dimension_removal import remove_dimensions
-from cogrecon.core.globals import default_z_value, default_pipeline_flags, default_dimensions, \
+from cogrecon.core.cogrecon_globals import default_z_value, default_pipeline_flags, default_dimensions, \
     data_coordinates_file_suffix
 
 """

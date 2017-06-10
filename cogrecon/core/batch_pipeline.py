@@ -8,7 +8,7 @@ from .full_pipeline import full_pipeline, get_aggregation_functions, get_header_
 from .file_io import get_coordinates_from_file, get_id_from_file_prefix_via_suffix, find_data_files_in_directory
 from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
 from .data_flexing.dimension_removal import remove_dimensions
-from .globals import default_z_value, default_pipeline_flags, default_dimensions, data_coordinates_file_suffix
+from .cogrecon_globals import default_z_value, default_pipeline_flags, default_dimensions, data_coordinates_file_suffix
 from .._version import __version__
 
 # TODO: Documentation needs an audit/overhaul
@@ -103,7 +103,7 @@ def get_single_file_result(actual_coordinates, dat, categories=None, data_orders
     accuracy calculations, when False, the thresholds are computed then collapsed across an individual's trials
     (default is True)
     :param flags: (optional) the value (PipelineFlags) describing what pipeline elements should/should not be run on
-    the data (default is stored in globals.py)
+    the data (default is stored in cogrecon_globals.py)
     :return: a list, (Nt, r), where Nt is the number of trials and r is the number of result metrics, of results values
     from the analysis for each trial on a particular file's data
     """
@@ -207,12 +207,12 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
     (default is None)
     :param out_filename: the filename and path (string) into which the data should be saved
     :param accuracy_z_value: (optional) a value (float or int) representing the z threshold for counting something as
-    accurate (default is stored in globals.py)
+    accurate (default is stored in cogrecon_globals.py)
     :param trial_by_trial_accuracy: (optional) when True, z_value thresholds are used on a trial-by-trial basis for
     accuracy calculations, when False, the thresholds are computed then collapsed across an individual's trials
     (default is True)
     :param flags: (optional) the value (PipelineFlags) describing what pipeline elements should/should not be run on
-    the data (default is stored in globals.py)
+    the data (default is stored in cogrecon_globals.py)
     :param collapse_trials: (optional) if True, the output file will contain one row per participant, otherwise each
     trial will be output in an individual row
     """
@@ -358,12 +358,12 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
                                          manual_threshold=mt, remove_dims=removal_dim_indicies,
                                          category_independence_enabled=category_independence_enabled,
                                          order_greedy_deanonymization_enabled=order_greedy_deanonymization_enabled)
-
-        if category_independence_enabled:
-            for cat_result in results:
-                output_results(cat_result, collapse_trials, agg_functions, out_fp, label)
-        else:
-            output_results(results, collapse_trials, agg_functions, out_fp, label)
+        if results != []:
+            if category_independence_enabled:
+                for cat_result in results:
+                    output_results(cat_result, collapse_trials, agg_functions, out_fp, label)
+            else:
+                output_results(results, collapse_trials, agg_functions, out_fp, label)
 
     out_fp.close()
 

@@ -11,7 +11,7 @@ from .tools import validate_type, mask_points, collapse_unique_components, \
     find_minimal_mapping, greedy_find_minimal_mapping, sum_of_distance
 from .visualization import visualization
 from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
-from .globals import default_z_value
+from .cogrecon_globals import default_z_value
 
 
 # TODO: Documentation needs an audit/overhaul
@@ -470,10 +470,10 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
     validate_type(participant_data, ParticipantData, "participant_data", "full_pipeline")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "full_pipeline")
 
-    for trial in participant_data.trials:
-        if len(trial.actual_points) == 0 or len(trial.data_points) == 0:
-            analysis_configuration = copy.deepcopy(analysis_configuration)
-            analysis_configuration.flags = PipelineFlags.Simple
+    participant_data.trials = [t for idx, t in enumerate(participant_data.trials) if not (len(t.actual_points) == 0 or len(t.data_points) == 0)]
+
+    if len(participant_data.trials) == 0:
+        return None
 
     original_participant_data = copy.deepcopy(participant_data)
 
@@ -491,10 +491,14 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
         cat_outputs = []
         for cat, cat_label in zip(_category_participant_data, unique_categories):
             _category_analysis_configuration.category_label = cat_label
-            cat_outputs.append(full_pipeline(cat, _category_analysis_configuration))
+            cat_output = full_pipeline(cat, _category_analysis_configuration)
+            if cat_output is not None:
+                cat_outputs.append(cat_output)
 
         _category_analysis_configuration.category_label = 'unknown'
-        cat_outputs.append(full_pipeline(_unknown_category_participant_data, _category_analysis_configuration))
+        unk_output = full_pipeline(_unknown_category_participant_data, _category_analysis_configuration)
+        if unk_output is not None:
+            cat_outputs.append(unk_output)
 
         return cat_outputs
 
@@ -540,7 +544,8 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
         deanon_threshold = deanon_processed_accuracy.distance_threshold
         # noinspection PyTypeChecker
         deanonymized_labels = [list(list(itertools.permutations(
-            range(0, len(participant_data.actual_points[0]))))[position]) for position in min_score_position]
+            range(0, len(participant_data.actual_points[idx]))))[position])
+                               for idx, position in enumerate(min_score_position)]
         participant_data.data_labels = deanonymized_labels
         actual_labels = [range(len(actual_trial)) for actual_trial in
                          actual_coordinates]

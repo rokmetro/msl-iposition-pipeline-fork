@@ -5,8 +5,9 @@ import sys
 import tempfile
 import errno
 import time
-from .globals import data_coordinates_file_suffix, order_file_suffix, category_file_suffix, \
+from .cogrecon_globals import data_coordinates_file_suffix, order_file_suffix, category_file_suffix, \
     actual_coordinates_file_suffix
+
 
 # TODO: Documentation needs an audit/overhaul
 
@@ -126,10 +127,12 @@ def extract_prefixes_from_file_list_via_suffix(file_list, suffix):
     for f in file_list:
         if f == "" or f == []:
             out_list.append("")
-        elif len(f) == len(suffix):
-            out_list.append(f)
+            continue
+        f_base = os.path.basename(f)
+        if len(f_base) == len(suffix):
+            out_list.append(f_base)
         else:
-            base = os.path.basename(f)
+            base = os.path.basename(f_base)
             out_list.append(base[:-len(suffix)])
     return out_list
 
@@ -149,7 +152,10 @@ def match_file_prefixes(files, prefixes):
 
     prefix_comparison_list = np.transpose(prefixes)
     for row in prefix_comparison_list:
-        if len(filter(lambda a: a != "", list(set(row)))) != 1:
+        if len(filter(lambda a: a != "" and a != actual_coordinates_file_suffix
+           and a != category_file_suffix
+           and a != order_file_suffix,
+                      list(set(row)))) != 1:
             logging.error("There was a problem matching up files via their prefixes. This is most commonly due to "
                           "inappropriate files being found via search. Check that your files are unique and properly "
                           "formatted then try again.")
@@ -160,10 +166,17 @@ def match_file_prefixes(files, prefixes):
 
 def find_data_files_in_directory(directory, actual_coordinate_prefixes=False,
                                  category_prefixes=False, category_independence_enabled=False,
-                                 order_prefixes=True, order_greedy_deanonymization_enabled=False):
+                                 order_prefixes=True, order_greedy_deanonymization_enabled=False,
+                                 _data_coordinates_file_suffix=data_coordinates_file_suffix,
+                                 _order_file_suffix=order_file_suffix, _category_file_suffix=category_file_suffix,
+                                 _actual_coordinates_file_suffix=actual_coordinates_file_suffix):
     """
     This function crawls the specified directory, recursively looking for the actual coordinate file and data files
 
+    :param _category_file_suffix:
+    :param _actual_coordinates_file_suffix:
+    :param _order_file_suffix:
+    :param _data_coordinates_file_suffix:
     :param order_prefixes:
     :param category_prefixes:
     :param order_greedy_deanonymization_enabled:
@@ -202,46 +215,46 @@ def find_data_files_in_directory(directory, actual_coordinate_prefixes=False,
     for root, f_idx in zip(file_roots_index, file_index):
         filepath = os.path.join(root, f_idx)
 
-        if filepath.endswith(data_coordinates_file_suffix):  # If we find a data file, save it to the file list
+        if filepath.endswith(_data_coordinates_file_suffix):  # If we find a data file, save it to the file list
             logging.debug('Found data file ({0}).'.format(filepath))
             data_files.append(filepath)
 
-        if filepath.endswith(order_file_suffix):  # If we find a data file, save it to the file list
+        if filepath.endswith(_order_file_suffix):  # If we find a data file, save it to the file list
             logging.debug('Found order file ({0}).'.format(filepath))
             order_files.append(filepath)
 
-        if filepath.endswith(category_file_suffix):
+        if filepath.endswith(_category_file_suffix):
             logging.debug('Found category file ({0}).'.format(filepath))
             category_files.append(filepath)
 
-        if filepath.endswith(actual_coordinates_file_suffix):
+        if filepath.endswith(_actual_coordinates_file_suffix):
             logging.debug('Found actual coordinates file ({0}).'.format(filepath))
             actual_coordinates_files.append(filepath)
 
     # Ensure that we found at least 1 of each required file and if enabled, at least one of each optional file
     assert len(actual_coordinates_files) >= 1, \
-        "there must be at least one {0} file".format(actual_coordinates_file_suffix)
+        "there must be at least one {0} file".format(_actual_coordinates_file_suffix)
     assert len(data_files) >= 1, \
-        "there must be at least one data file ending in {0}".format(data_coordinates_file_suffix)
+        "there must be at least one data file ending in {0}".format(_data_coordinates_file_suffix)
     if order_greedy_deanonymization_enabled:
         assert len(order_files) >= 1, "if order_greedy_deanonymization_enabled is True, there must be at least one " \
-                                      "order file ending in {0}".format(order_file_suffix)
+                                      "order file ending in {0}".format(_order_file_suffix)
     if category_independence_enabled:
         assert len(category_files) >= 1, "if category_independence_enabled is True, there must be at least one " \
-                                         "category file ending in {0}".format(category_file_suffix)
+                                         "category file ending in {0}".format(_category_file_suffix)
 
     # For each non-data file, we can enforce singular file contents on the file list if enabled
     if not actual_coordinate_prefixes:
         actual_coordinates_files = enforce_single_file_contents(actual_coordinates_files,
-                                                                actual_coordinates_file_suffix)
+                                                                _actual_coordinates_file_suffix)
 
     if not category_prefixes and category_independence_enabled:
         category_files = enforce_single_file_contents(category_files,
-                                                      category_file_suffix)
+                                                      _category_file_suffix)
 
     if not order_prefixes and order_greedy_deanonymization_enabled:
         order_files = enforce_single_file_contents(order_files,
-                                                   order_file_suffix)
+                                                   _order_file_suffix)
 
     # We need to generate temporary lists of equal length so we can pair off the appropriate files with each other
     # For actual_coordinates files, we expect either a list identical values or a list of all unique, prefixed values
@@ -266,10 +279,10 @@ def find_data_files_in_directory(directory, actual_coordinate_prefixes=False,
     ]
 
     prefixes = [
-        extract_prefixes_from_file_list_via_suffix(data_files, data_coordinates_file_suffix),
-        extract_prefixes_from_file_list_via_suffix(tmp_acf, actual_coordinates_file_suffix),
-        extract_prefixes_from_file_list_via_suffix(tmp_cat, category_file_suffix),
-        extract_prefixes_from_file_list_via_suffix(tmp_order, order_file_suffix)
+        extract_prefixes_from_file_list_via_suffix(data_files, _data_coordinates_file_suffix),
+        extract_prefixes_from_file_list_via_suffix(tmp_acf, _actual_coordinates_file_suffix),
+        extract_prefixes_from_file_list_via_suffix(tmp_cat, _category_file_suffix),
+        extract_prefixes_from_file_list_via_suffix(tmp_order, _order_file_suffix)
     ]
 
     data_files, actual_coordinates_files, category_files, order_files = match_file_prefixes(files, prefixes)
@@ -315,7 +328,7 @@ def is_pathname_valid(pathname):
         # environment variable); else, the typical root directory.
         root_dirname = os.environ.get('HOMEDRIVE', 'C:') \
             if sys.platform == 'win32' else os.path.sep
-        assert os.path.isdir(root_dirname)   # ...Murphy and her ironclad Law
+        assert os.path.isdir(root_dirname)  # ...Murphy and her ironclad Law
 
         # Append a path separator to this directory if needed.
         root_dirname = root_dirname.rstrip(os.path.sep) + os.path.sep
@@ -357,10 +370,10 @@ def is_pathname_valid(pathname):
     # pathname itself are valid. (Praise be to the curmudgeonly python.)
     else:
         return True
-    # If any other exception was raised, this is an unrelated fatal issue
-    # (e.g., a bug). Permit this exception to unwind the call stack.
-    #
-    # Did we mention this should be shipped with Python already?
+        # If any other exception was raised, this is an unrelated fatal issue
+        # (e.g., a bug). Permit this exception to unwind the call stack.
+        #
+        # Did we mention this should be shipped with Python already?
 
 
 def is_path_sibling_creatable(pathname):

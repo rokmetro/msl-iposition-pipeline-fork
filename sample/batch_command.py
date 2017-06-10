@@ -9,7 +9,7 @@ import scipy.stats as st
 
 from cogrecon.core.batch_pipeline import batch_pipeline
 from cogrecon.core.data_structures import PipelineFlags
-from cogrecon.core.globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, order_file_suffix, \
+from cogrecon.core.cogrecon_globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, order_file_suffix, \
     category_file_suffix, default_dimensions, default_z_value, default_pipeline_flags
 from cogrecon.core.file_io import is_path_exists_or_creatable_portable
 

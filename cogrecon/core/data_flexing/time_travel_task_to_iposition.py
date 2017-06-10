@@ -4,12 +4,12 @@ import numpy as np
 if __name__ == "__main__":
     from time_travel_task_binary_reader import find_data_files_in_directory, get_item_details, read_binary_file, \
         parse_test_items, get_filename_meta_data, get_items_solutions
-    from cogrecon.core.globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, \
+    from cogrecon.core.cogrecon_globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, \
         order_file_suffix, category_file_suffix
 else:
     from .time_travel_task_binary_reader import find_data_files_in_directory, get_item_details, read_binary_file, \
         parse_test_items, get_filename_meta_data, get_items_solutions
-    from ..globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, \
+    from ..cogrecon_globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, \
         order_file_suffix, category_file_suffix
 
 
@@ -76,12 +76,15 @@ def save_tsv(_filename, _list):
 
 def time_travel_task_to_iposition(input_dir, output_dir,
                                   file_regex="\d\d\d_\d_2_\d_\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d.dat",
-                                  order_first=True, exclude_incorrect_category=False):
+                                  order_first=True, exclude_incorrect_category=False, output_user_categories=True):
 
     """
     This function is a global helper function meant to take a directory in which many Time Travel Task binary files
     exist and convert them all into iposition (TSV) compatible files to be saved in an output directory.
 
+    :param output_user_categories: a boolean which, if true, will cause the conversion to output *categories.txt files
+    populated with the user's categorization of the items. If false, the correct categorization given the user's
+    meta information (i.e. inversion) will be used.
     :param input_dir: the string directory to search for binary files via a regular expression stored in file_regex
     :param output_dir: the string output directory in which to save files
     :param file_regex: the string regular expression to use to determine if a file should be included as input
@@ -121,7 +124,12 @@ def time_travel_task_to_iposition(input_dir, output_dir,
             else:
                 reconstruction_items, items, order = excluded_list
 
-        categories = [r['direction'] for r in reconstruction_items if (r is not None and r['direction'] is not None)]
+        if output_user_categories:
+            categories = [r['direction'] for r in reconstruction_items
+                          if (r is not None and r['direction'] is not None)]
+        else:
+            categories = [i['direction'] for i in items
+                          if (i is not None and i['direction'] is not None)]
 
         order = extract_basic_order(order, first=order_first)
 
@@ -137,9 +145,12 @@ def time_travel_task_to_iposition(input_dir, output_dir,
 if __name__ == "__main__":
     in_directory = 'C:\\Users\\Kevin\\Desktop\\Work\\Time Travel Task\\v2'
     path = os.path.dirname(os.path.realpath(__file__))
+    # time_travel_task_to_iposition(in_directory,
+    #                               path+'..\\..\\..\\..\\saved_data\\iPositionConversion',
+    #                               exclude_incorrect_category=False)
+    # time_travel_task_to_iposition(in_directory,
+    #                               path + '..\\..\\..\\..\\saved_data\\iPositionConversion_ExcludeIncorrectCategory',
+    #                               exclude_incorrect_category=True)
     time_travel_task_to_iposition(in_directory,
-                                  path+'..\\..\\..\\..\\saved_data\\iPositionConversion',
-                                  exclude_incorrect_category=False)
-    time_travel_task_to_iposition(in_directory,
-                                  path + '..\\..\\..\\..\\saved_data\\iPositionConversion_ExcludeIncorrectCategory',
-                                  exclude_incorrect_category=True)
+                                  path + '..\\..\\..\\..\\saved_data\\iPositionConversion_GlobalCategories',
+                                  exclude_incorrect_category=False, output_user_categories=False)

@@ -8,7 +8,7 @@ from scipy.spatial.distance import cdist
 from scipy.optimize import linear_sum_assignment
 from math import factorial
 
-from .globals import default_dimensions
+from .cogrecon_globals import default_dimensions
 
 # TODO: Documentation needs an audit/overhaul
 

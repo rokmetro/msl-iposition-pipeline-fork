@@ -15,7 +15,7 @@ def descrambler():
     """
     selected_directory = easygui.diropenbox()
 
-    _, files = find_data_files_in_directory(selected_directory)
+    actual_coordinates_files, files, category_files, order_files = find_data_files_in_directory(selected_directory)
 
     for f in files:
         print("descrambling file {0}".format(f))
