@@ -17,6 +17,11 @@ In a command prompt/terminal, navigate to/create an **empty directory**, then ru
     git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
     pip install .
 
+To use some of the tests, you will additionally need to run:
+::
+    activate iposition
+    conda install jupyter scikit-learn
+
 Updating
 --------
 
