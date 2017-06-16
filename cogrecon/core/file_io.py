@@ -14,9 +14,10 @@ from .cogrecon_globals import data_coordinates_file_suffix, order_file_suffix, c
 
 # This function reads a data file and shapes the data into the appropriate expected shape (usually (Nt, Ni, 2) where
 # Nt is the number of trials (rows) and Ni is the number of items (columns / dimensions)
-def get_coordinates_from_file(path, expected_shape, data_type=float):
+def get_coordinates_from_file(path, expected_shape, dimension=None, data_type=float):
     """
 
+    :param dimension:
     :param path:
     :param expected_shape:
     :param data_type:
@@ -30,6 +31,13 @@ def get_coordinates_from_file(path, expected_shape, data_type=float):
             coordinates = zip(*([element.strip() for element in line.strip().split('\t')]
                                 for line in tsv if line.strip() is not ''))
         coordinates = np.transpose(coordinates)
+
+    if expected_shape is None:
+        if dimension is None:
+            raise ValueError("Could not detect data shape for {0}. If no expected_shape is provided, a dimension must "
+                             "be provided.")
+        expected_shape = detect_shape_from_file(os.path.abspath(path), dimension)
+
     if expected_shape is not None:
         if expected_shape[-1] == 1:
             expected_shape = expected_shape[:2]
@@ -41,6 +49,7 @@ def get_coordinates_from_file(path, expected_shape, data_type=float):
             raise ValueError("Failed to get data coordinate of expected shape.")
         assert np.array(coordinates).shape == expected_shape, \
             "shape {0} does not equal expectation {1}".format(np.array(coordinates).shape, expected_shape)
+
     return coordinates.tolist()
 
 
@@ -421,3 +430,33 @@ def is_path_exists_or_creatable_portable(pathname):
     # other exceptions are unrelated fatal issues and should not be caught here.
     except OSError:
         return False
+
+
+def detect_shape_from_file(path, dimension):
+    """
+
+    :rtype: int, int
+    :param path: a value (string) containing the path of the file from which structure should be detected
+    :param dimension: a value (integer) which represents the dimensionality of the data
+    :return: the trial count, the item count
+    """
+    assert isinstance(path, str), 'path is not string: {0}'.format(path)
+    assert os.path.exists(path), 'path does not exist: {0}'.format(path)
+
+    with open(path) as tsv:
+        trial_count = 0
+        item_count_list = []
+        for tsv_line in tsv:
+            trial_count += 1
+            item_count = 0
+            split_line = tsv_line.strip().split('\t')
+            for _ in split_line:
+                item_count += 1
+            item_count_list.append(item_count)
+        assert len(item_count_list) > 0, 'no items detected in file: {0}'.format(path)
+        assert all(x == item_count_list[0] for x in item_count_list), \
+            'inconsistent item count detected in file ({1}): {0}'.format(path, item_count_list)
+        assert trial_count > 0, "no trials detected: {0}".format(path)
+        assert item_count_list[0] > 0, "no items detected".format(path)
+
+        return trial_count, int(float(item_count_list[0]) / float(dimension)), dimension

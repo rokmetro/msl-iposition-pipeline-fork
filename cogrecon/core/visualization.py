@@ -22,7 +22,7 @@ from .cogrecon_globals import default_animation_duration, default_animation_tick
 # noinspection PyDefaultArgument
 def visualization(trial_data, analysis_configuration, min_points, transformed_points, output_list,
                   animation_duration=default_animation_duration, animation_ticks=default_animation_ticks,
-                  print_output=True, extent=None):
+                  print_output=True, extent=None, fig_size=None):
     """
 
     :param trial_data:
@@ -47,6 +47,21 @@ def visualization(trial_data, analysis_configuration, min_points, transformed_po
     if print_output:
         for l, o in zip(get_header_labels(), output_list):
             print(l + ": " + str(o))
+
+    print(actual_points)
+    print(data_points)
+
+    if len(actual_points[0]) == 1:
+        logging.warning("the visualization method expects 2D points, but 1D was found. Appending 0s for 'y' for "
+                        "visualization.")
+        for i in range(len(actual_points)):
+            actual_points[i] = [actual_points[i][0], 0.]
+            data_points[i] = [data_points[i][0], 0.]
+            min_points[i] = [min_points[i][0], 0.]
+            transformed_points[i] = [transformed_points[i][0], 0.]
+
+    print(actual_points)
+    print(data_points)
 
     if len(actual_points[0]) != 2:
         logging.error("the visualization method expects 2D points, found {0}D".format(len(actual_points[0])))
@@ -118,6 +133,10 @@ def visualization(trial_data, analysis_configuration, min_points, transformed_po
         axes = plt.gca()
         axes.set_xlim(extent[0])
         axes.set_ylim(extent[1])
+
+    if fig_size is not None:
+        fig2 = plt.gcf()
+        fig2.set_size_inches(*fig_size)
 
     fig.show()
     plt.show()

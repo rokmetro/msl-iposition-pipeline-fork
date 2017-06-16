@@ -1,0 +1,1 @@
+ffmpeg -framerate 4 -i %d.png -vf fps=24 -pix_fmt yuv420p output.mp4

@@ -17,9 +17,10 @@ from .cogrecon_globals import default_z_value
 # TODO: Documentation needs an audit/overhaul
 
 
-def accuracy(participant_data, analysis_configuration):
+def accuracy(participant_data, analysis_configuration, use_manual_threshold=False):
     """
 
+    :param use_manual_threshold:
     :param participant_data:
     :param analysis_configuration:
     :return:
@@ -31,7 +32,10 @@ def accuracy(participant_data, analysis_configuration):
     data_points = participant_data.data_points
     z_value = analysis_configuration.z_value
     trial_by_trial_accuracy = analysis_configuration.trial_by_trial_accuracy
-    manual_threshold = analysis_configuration.manual_threshold
+    if use_manual_threshold:
+        manual_threshold = analysis_configuration.manual_threshold
+    else:
+        manual_threshold = None
 
     if z_value is None:
         logging.error('a z_value was not found for accuracy, using z={0}'.format(default_z_value))
@@ -303,7 +307,7 @@ def swaps(participant_data, analysis_configuration):
     validate_type(participant_data, ParticipantData, "participant_data", "swaps")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "swaps")
 
-    participant_data = accuracy(participant_data, analysis_configuration)
+    participant_data = accuracy(participant_data, analysis_configuration, use_manual_threshold=True)
 
     result = []
     for trial in participant_data.trials:
@@ -458,9 +462,10 @@ def deanonymize(participant_data, analysis_configuration):
 # The coordinates are expected to be equal in length of the for (Nt, Ni, 2) where Nt is the number of trials and Ni is
 # the number of items.
 # noinspection PyDefaultArgument
-def full_pipeline(participant_data, analysis_configuration, visualize=False, visualization_extent=None):
+def full_pipeline(participant_data, analysis_configuration, visualize=False, visualization_extent=None, fig_size=None):
     """
 
+    :param fig_size:
     :param participant_data:
     :param analysis_configuration:
     :param visualize:
@@ -470,7 +475,8 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
     validate_type(participant_data, ParticipantData, "participant_data", "full_pipeline")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "full_pipeline")
 
-    participant_data.trials = [t for idx, t in enumerate(participant_data.trials) if not (len(t.actual_points) == 0 or len(t.data_points) == 0)]
+    participant_data.trials = [t for idx, t in enumerate(participant_data.trials)
+                               if not (len(t.actual_points) == 0 or len(t.data_points) == 0)]
 
     if len(participant_data.trials) == 0:
         return None
@@ -562,6 +568,11 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
                          actual_coordinates]
         participant_data.actual_labels = actual_labels
 
+    post_deanonymized_misplacement = []
+    for trial in participant_data.trials:
+        post_deanonymized_misplacement.append(
+            sum_of_distance(trial.actual_points, trial.data_points) / len(trial.actual_points))
+
     if flags == PipelineFlags.GlobalTransformation:
         (translation, translation_magnitude, scaling, rotation_theta,
          transformation_auto_exclusion, num_geometric_transform_points_excluded,
@@ -575,6 +586,11 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
         scaling = [np.nan] * num_trials
         translation_magnitude = [np.nan] * num_trials
         geo_dist_threshold = [np.nan] * num_trials
+
+    post_transform_misplacement = []
+    for trial in participant_data.trials:
+        post_transform_misplacement.append(sum_of_distance(trial.actual_points,
+                                                           trial.data_points) / len(trial.actual_points))
 
     # Determine if the points meet the specified accuracy threshold
 
@@ -599,6 +615,7 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
          [list(x).count(False) for x in deanon_accuracies],
          deanon_threshold,
          raw_deanonymized_misplacement,
+         post_deanonymized_misplacement,
          transformation_auto_exclusion,
          num_geometric_transform_points_excluded,
          rotation_theta,
@@ -606,6 +623,7 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
          translation_magnitude,
          translation,
          geo_dist_threshold,
+         post_transform_misplacement,
          [len(x) for x in components],
          accurate_placements,
          inaccurate_placements,
@@ -637,7 +655,7 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
                 enumerate(zip(original_participant_data.trials, min_coordinates, transformed_coordinates, output)):
             # noinspection PyTypeChecker
             visualization(trial, analysis_configuration, min_trial, transformed_trial, output_trial,
-                          extent=visualization_extent)
+                          extent=visualization_extent, fig_size=fig_size)
 
     return output
 
@@ -648,11 +666,11 @@ def get_header_labels():
             "Axis Swap Pairs", "Pre-Processed Accurate Placements", "Pre-Processed Inaccurate Placements",  # 1
             "Pre-Processed Accuracy Threshold", "Deanonymized Accurate Placements",  # 2
             "Deanonymized Inaccurate Placements", "Deanonymized Accuracy Threshold",  # 3
-            "Raw Deanonymized Misplacement", "Transformation Auto-Exclusion",  # 4
+            "Raw Deanonymized Misplacement", "Post-Deanonymized Misplacement", "Transformation Auto-Exclusion",  # 4
             "Number of Points Excluded From Geometric Transform", "Rotation Theta", "Scaling",  # 5
             "Translation Magnitude",  # 6
-            "Translation", "Geometric Distance Threshold",  # 7
-            "Number of Components", "Accurate Placements", "Inaccurate Placements", "True Swaps",  # 8
+            "Translation", "Geometric Distance Threshold", "Post-Transform Misplacement",  # 7
+            "Number of Components", "Accurate Single-Item Placements", "Inaccurate Single-Item Placements", "True Swaps",  # 8
             "Partial Swaps", "Cycle Swaps", "Partial Cycle Swaps", "Misassignment", "Accurate Misassignment",  # 9
             "Inaccurate Misassignment", "Swap Distance Threshold",  # 10
             "True Swap Data Distance", "True Swap Actual Distance", "Partial Swap Data Distance",  # 11
@@ -667,10 +685,10 @@ def get_aggregation_functions():
             collapse_unique_components, np.nanmean, np.nanmean,  # 1
             np.nanmean, np.nanmean,  # 2
             np.nanmean, np.nanmean,  # 3
-            np.nanmean, np.nansum,  # 4
+            np.nanmean, np.nanmean, np.nansum,  # 4
             np.nansum, np.nanmean, np.nanmean,  # 5
             np.nanmean,  # 6
-            (lambda xs: [np.nanmean(x) for x in np.transpose(xs)]), np.nanmean,  # Mean of vectors # 7
+            (lambda xs: [np.nanmean(x) for x in np.transpose(xs)]), np.nanmean, np.nanmean,  # Mean of vectors # 7
             np.nanmean, np.nanmean, np.nanmean, np.nanmean,  # 8
             np.nanmean, np.nanmean, np.nanmean, np.nanmean, np.nanmean,  # 9
             np.nanmean, np.nanmean,  # 10

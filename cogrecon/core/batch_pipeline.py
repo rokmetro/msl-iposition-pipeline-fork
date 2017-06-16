@@ -147,36 +147,6 @@ def get_single_file_result(actual_coordinates, dat, categories=None, data_orders
     return full_pipeline(_participant_data, _analysis_configuration)
 
 
-def detect_shape_from_file(path, dimension):
-    """
-
-    :rtype: int, int
-    :param path: a value (string) containing the path of the file from which structure should be detected
-    :param dimension: a value (integer) which represents the dimensionality of the data
-    :return: the trial count, the item count
-    """
-    assert isinstance(path, str), 'path is not string: {0}'.format(path)
-    assert os.path.exists(path), 'path does not exist: {0}'.format(path)
-
-    with open(path) as tsv:
-        trial_count = 0
-        item_count_list = []
-        for tsv_line in tsv:
-            trial_count += 1
-            item_count = 0
-            split_line = tsv_line.strip().split('\t')
-            for _ in split_line:
-                item_count += 1
-            item_count_list.append(item_count)
-        assert len(item_count_list) > 0, 'no items detected in file: {0}'.format(path)
-        assert all(x == item_count_list[0] for x in item_count_list), \
-            'inconsistent item count detected in file ({1}): {0}'.format(path, item_count_list)
-        assert trial_count > 0, "no trials detected: {0}".format(path)
-        assert item_count_list[0] > 0, "no items detected".format(path)
-
-        return trial_count, int(float(item_count_list[0]) / float(dimension)), dimension
-
-
 def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=default_dimensions,
                    accuracy_z_value=default_z_value,
                    trial_by_trial_accuracy=True,
@@ -253,10 +223,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
                                          order_prefixes=order_prefxies)
     except IOError:
         logging.error('The input path was not found.')
-        raise IOError('Failed to find input file.')
-
-    if data_shape is None:
-        data_shape = detect_shape_from_file(data_coordinates_filenames[0], dimension)
+        raise IOError('Failed to find input path.')
 
     logging.info('Parsing files with expected shape {0}.'.format(data_shape))
 
@@ -265,7 +232,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
         if f is None or f == "":
             data_coordinates.append(None)
         else:
-            data_coordinates.append(get_coordinates_from_file(f, data_shape))
+            data_coordinates.append(get_coordinates_from_file(f, data_shape, dimension=dimension))
 
     actual_coordinates = []
     for idx, f in enumerate(actual_coordinates_filename):
@@ -279,7 +246,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
             if index_check < idx:
                 actual_coordinates.append(copy.copy(actual_coordinates[index_check]))
             else:
-                actual_coordinates.append(get_coordinates_from_file(f, data_shape))
+                actual_coordinates.append(get_coordinates_from_file(f, data_shape, dimension=dimension))
 
     categories = []
     for idx, f in enumerate(category_filenames):
