@@ -10,13 +10,11 @@ from math import factorial
 
 from .cogrecon_globals import default_dimensions
 
-# TODO: Documentation needs an audit/overhaul
 
-
-# This function defines the misplacement metric which is used for minimization (in de-anonymization).
-# It is also used to calculate the original misplacement metric.
 def sum_of_distance(list1, list2):
     """
+    This function defines the misplacement metric which is used for minimization (in de-anonymization).
+    It is also used to calculate the original misplacement metric.
 
     :param list1:
     :param list2:
@@ -26,13 +24,13 @@ def sum_of_distance(list1, list2):
     return sum(np.diag(distance.cdist(list1, list2)))
 
 
-# This function is for testing. It generates a set of "correct" and "incorrect" points such that the correct points are
-# randomly placed between (0,0) and (1,1) in R2. Then it generates "incorrect" points which are offset randomly up
-# to 10% in the positive direction, shuffled, and where one point is completely random.
 def generate_random_test_points(number_of_points=5, dimension=default_dimensions,
                                 shuffle_points=True, noise=(1.0 / 20.0),
                                 num_rerandomed_points=1):
     """
+    This function is for testing. It generates a set of "correct" and "incorrect" points such that the correct points
+    are randomly placed between (0,0) and (1,1) in R2. Then it generates "incorrect" points which are offset randomly up
+    to 10% in the positive direction, shuffled, and where one point is completely random.
 
     :param number_of_points:
     :param dimension:
@@ -61,9 +59,9 @@ def generate_random_test_points(number_of_points=5, dimension=default_dimensions
     return np.array(correct_points).tolist(), np.array(input_points).tolist()
 
 
-# This function performs simple vector linear interpolation on two equal length number lists
 def lerp(start, finish, t):
     """
+    This function performs simple vector linear interpolation on two equal length number lists
 
     :param start:
     :param finish:
@@ -149,9 +147,10 @@ def brute_force_find_minimal_mapping(p0, p1):
     # return min_score, min_score_idx, min_permutation
 
 
-# From https://stackoverflow.com/questions/12146910/finding-the-lexicographic-index-of-a-permutation-of-a-given-array
 def lexicographic_index(p):
     """
+    From https://stackoverflow.com/questions/12146910/finding-the-lexicographic-index-of-a-permutation-of-a-given-array
+
     Return the lexicographic index of the permutation `p` among all
     permutations of its elements. `p` must be a sequence and all elements
     of `p` must be distinct.
@@ -172,9 +171,9 @@ def lexicographic_index(p):
     return result
 
 
-# From https://stackoverflow.com/questions/39016821/minimize-total-distance-between-two-sets-of-points-in-python
 def find_minimal_mapping(p0, p1):
     """
+    From https://stackoverflow.com/questions/39016821/minimize-total-distance-between-two-sets-of-points-in-python
 
     :param p0:
     :param p1:
@@ -188,7 +187,6 @@ def find_minimal_mapping(p0, p1):
     return sum_of_distance(p0, p1_reordered), lexicographic_index(assignment), p1_reordered
 
 
-# TODO: There's a problem with this function - it's always returning the identity order ([0, 1, 2, ..., n])
 # noinspection PyUnusedLocal
 def greedy_find_minimal_mapping(p0, p1, order):
     """
@@ -198,6 +196,9 @@ def greedy_find_minimal_mapping(p0, p1, order):
     :param order:
     :return:
     """
+
+    # TODO: There's a problem with this function - it's always returning the identity order ([0, 1, 2, ..., n])
+
     assert len(p0) == len(p1) and len(p0) == len(order), "greedy_find_minimal_mapping requires all list to be equal " \
                                                          "in length "
     assert sorted(list(set(order))) == list(range(len(order))), "greedy_find_minimal_mapping order should contain " \

@@ -14,9 +14,6 @@ from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, 
 from .cogrecon_globals import default_z_value
 
 
-# TODO: Documentation needs an audit/overhaul
-
-
 def accuracy(participant_data, analysis_configuration, use_manual_threshold=False):
     """
 

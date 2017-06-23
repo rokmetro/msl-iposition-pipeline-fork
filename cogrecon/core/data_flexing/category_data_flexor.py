@@ -2,11 +2,13 @@ import easygui
 import os
 
 if __name__ == '__main__':
+    # noinspection PyUnresolvedReferences
     from cogrecon.core.file_io import match_file_prefixes, find_data_files_in_directory, \
         extract_prefixes_from_file_list_via_suffix, get_coordinates_from_file
     from cogrecon.core.cogrecon_globals import data_coordinates_file_suffix, category_file_suffix, \
         actual_coordinates_file_suffix
 else:
+    # noinspection PyUnresolvedReferences
     from ..file_io import match_file_prefixes, find_data_files_in_directory, \
         extract_prefixes_from_file_list_via_suffix, get_coordinates_from_file
     from ..cogrecon_globals import data_coordinates_file_suffix, category_file_suffix, \

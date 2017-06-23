@@ -14,17 +14,15 @@ from .cogrecon_globals import default_animation_duration, default_animation_tick
     default_visualization_accuracies_uncorrected_alpha
 
 
-# TODO: Documentation needs an audit/overhaul
-
-
-# animation length in seconds
-# animation ticks in frames
 # noinspection PyDefaultArgument
 def visualization(trial_data, analysis_configuration, min_points, transformed_points, output_list,
                   animation_duration=default_animation_duration, animation_ticks=default_animation_ticks,
                   print_output=True, extent=None, fig_size=None):
     """
+    animation length in seconds
+    animation ticks in frames
 
+    :param fig_size:
     :param trial_data:
     :param analysis_configuration:
     :param min_points:
@@ -117,8 +115,8 @@ def visualization(trial_data, analysis_configuration, min_points, transformed_po
                                 color=default_visualization_accuracies_uncorrected_color))
 
     # An update function which will set the animated scatter plot to the next interpolated points
-    def update(i):
-        scat.set_offsets(lerp_data[i % animation_ticks])
+    def update(_i):
+        scat.set_offsets(lerp_data[_i % animation_ticks])
         return scat,
 
     # Begin the animation/plot

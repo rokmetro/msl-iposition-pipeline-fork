@@ -66,7 +66,7 @@ def save_tsv(_filename, _list):
 
     :param _filename: the string filename in which to save the TSV
     :param _list: a 2D list to be saved where each row (first dimension) is saved per line and each element is
-    separated by a tab
+                  separated by a tab
     """
     with open(_filename, 'ab') as fp:
         line = '\t'.join([str(el) for el in _list])
@@ -82,16 +82,16 @@ def time_travel_task_to_iposition(input_dir, output_dir,
     This function is a global helper function meant to take a directory in which many Time Travel Task binary files
     exist and convert them all into iposition (TSV) compatible files to be saved in an output directory.
 
-    :param output_user_categories: a boolean which, if true, will cause the conversion to output *categories.txt files
-    populated with the user's categorization of the items. If false, the correct categorization given the user's
-    meta information (i.e. inversion) will be used.
+    :param output_user_categories: a boolean which, if true, will cause the conversion to output categories.txt files
+                                   populated with the user's categorization of the items. If false, the correct
+                                   categorization given the user's meta information (i.e. inversion) will be used.
     :param input_dir: the string directory to search for binary files via a regular expression stored in file_regex
     :param output_dir: the string output directory in which to save files
     :param file_regex: the string regular expression to use to determine if a file should be included as input
     :param order_first: boolean value which, if true, order is used first-to-last - if false, order is used
-    last-to-first
+                        last-to-first
     :param exclude_incorrect_category: a boolean value which, if true, removes items which are the wrong category from
-    the output data
+                                       the output data
     """
     files = find_data_files_in_directory(input_dir, file_regex=file_regex)
 
@@ -141,8 +141,8 @@ def time_travel_task_to_iposition(input_dir, output_dir,
 
         save_tsv(output_dir + '\\' + category_path.format(meta['subID']), categories)
 
-# TODO: Generalize this module to be run outside of the __main__ environment
 if __name__ == "__main__":
+    # TODO: Generalize this module to be run outside of the __main__ environment
     in_directory = 'C:\\Users\\Kevin\\Desktop\\Work\\Time Travel Task\\v2'
     path = os.path.dirname(os.path.realpath(__file__))
     # time_travel_task_to_iposition(in_directory,

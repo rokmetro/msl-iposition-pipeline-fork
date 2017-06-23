@@ -19,6 +19,14 @@ cogrecon\.core\.batch\_pipeline module
     :undoc-members:
     :show-inheritance:
 
+cogrecon\.core\.cogrecon\_globals module
+----------------------------------------
+
+.. automodule:: cogrecon.core.cogrecon_globals
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 cogrecon\.core\.data\_structures module
 ---------------------------------------
 
@@ -39,14 +47,6 @@ cogrecon\.core\.full\_pipeline module
 -------------------------------------
 
 .. automodule:: cogrecon.core.full_pipeline
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-cogrecon\.core\.globals module
-------------------------------
-
-.. automodule:: cogrecon.core.globals
     :members:
     :undoc-members:
     :show-inheritance:

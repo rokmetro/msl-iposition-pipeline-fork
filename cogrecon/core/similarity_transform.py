@@ -1,20 +1,13 @@
 import numpy as np
 
-# /usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-## References
-- [Umeyama's paper](http://localhost:3690/files/doc/Umeyama_least_square.pdf)
-- [CarloNicolini's python implementation](https://gist.github.com/CarloNicolini/7118015)
-"""
-"""
-Modified by Kevin Horecka Feb 11, 2017
-"""
-# TODO: Documentation needs an audit/overhaul
-
 
 def similarity_transform(from_points, to_points):
     """
+    References
+    - [Umeyama's paper](http://localhost:3690/files/doc/Umeyama_least_square.pdf)
+    - [CarloNicolini's python implementation](https://gist.github.com/CarloNicolini/7118015)
+
+    Modified by Kevin Horecka Feb 11, 2017
 
     :param from_points:
     :param to_points:

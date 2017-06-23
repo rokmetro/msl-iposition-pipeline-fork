@@ -9,13 +9,10 @@ from .cogrecon_globals import data_coordinates_file_suffix, order_file_suffix, c
     actual_coordinates_file_suffix
 
 
-# TODO: Documentation needs an audit/overhaul
-
-
-# This function reads a data file and shapes the data into the appropriate expected shape (usually (Nt, Ni, 2) where
-# Nt is the number of trials (rows) and Ni is the number of items (columns / dimensions)
 def get_coordinates_from_file(path, expected_shape, dimension=None, data_type=float):
     """
+    This function reads a data file and shapes the data into the appropriate expected shape (usually (Nt, Ni, 2) where
+    Nt is the number of trials (rows) and Ni is the number of items (columns / dimensions)
 
     :param dimension:
     :param path:
@@ -53,9 +50,9 @@ def get_coordinates_from_file(path, expected_shape, dimension=None, data_type=fl
     return coordinates.tolist()
 
 
-# This function grabs the first 3 characters of the filename which are assumed to be the participant id
 def get_id_from_file_prefix_via_suffix(path, suffix):
     """
+    This function grabs the first 3 characters of the filename which are assumed to be the participant id
 
     :param path:
     :param suffix:
@@ -194,7 +191,7 @@ def find_data_files_in_directory(directory, actual_coordinate_prefixes=False,
     :rtype: string (or None), list of strings (or empty list)
     :param directory: the directory (string) in which to recursively search for data files
     :return: the actual coordinate filename/path (None if no file was found), a list of the data filenames/paths
-    (empty list if no files were found)
+             (empty list if no files were found)
     """
     # Check our data types
     assert isinstance(directory, str), "directory is not a string: {0}".format(directory)
@@ -301,25 +298,27 @@ def find_data_files_in_directory(directory, actual_coordinate_prefixes=False,
     return actual_coordinates_files, data_files, category_files, order_files
 
 
-# Sadly, Python fails to provide the following magic number for us.
-ERROR_INVALID_NAME = 123
-'''
-Windows-specific error code indicating an invalid pathname.
-
-See Also
-----------
-https://msdn.microsoft.com/en-us/library/windows/desktop/ms681382%28v=vs.85%29.aspx
-    Official listing of all such codes.
-'''
-
-
 def is_pathname_valid(pathname):
     """
+
+    Sadly, Python fails to provide the following magic number for us.
+
+    ERROR_INVALID_NAME = 123
+
+    Windows-specific error code indicating an invalid pathname.
+
+    See Also: https://msdn.microsoft.com/en-us/library/windows/desktop/ms681382%28v=vs.85%29.aspx
+    Official listing of all such codes.
+
     `True` if the passed pathname is a valid pathname for the current OS;
     `False` otherwise.
     :param pathname:
     :return:
+
     """
+
+    ERROR_INVALID_NAME = 123
+
     # If this pathname is either not a string or is but is empty, this pathname
     # is invalid.
     try:

@@ -11,7 +11,8 @@ def descrambler():
     The TSV is expected to have a final element on each line which represents the order the line is actually
     meant to be in. The file is, thus, reordered according to this last element (assumed to be an integer).
 
-    The result is written to an output path which is the input path with 'descrambled_' preprended to the filename.
+    The result is written to an output path which is the input path with descrambled preprended to the filename.
+
     """
     selected_directory = easygui.diropenbox()
 
@@ -27,7 +28,7 @@ def descrambler():
         for line in lines:
             line_split = line.split('\t')
             output[int(line_split[0].strip())-1] = '\t'.join(line_split[1:])
-        outpath = os.path.join(os.path.dirname(f), "descrambled_" + os.path.basename(f))
+        outpath = os.path.join(os.path.dirname(f), 'descrambled' + os.path.basename(f))
         print("writing to {0}".format(outpath))
         with open(outpath, 'wb') as fp:
             fp.writelines(output)

@@ -18,7 +18,7 @@ def get_filename_meta_data(fn):
 
     :param fn: a filename to parse for meta-data
     :return: a dictionary containing keys 'subID', 'trial', 'phase', 'inverse' and 'datetime' of types string
-    with the exception of datetime which is of type datetime
+             with the exception of datetime which is of type datetime
     """
     parts = fn.split('_')
     dt = datetime.datetime.strptime(parts[4] + '_' + parts[5].split('.')[0], '%Y-%m-%d_%H-%M-%S')
@@ -32,7 +32,7 @@ def phase_num_to_str(phase):
 
     :param phase: an integer which represents the phase type to be converted to a string
     :return: 'VR Practice', 'VR Study', 'VR Test', 'VE Practice', 'VE Study', 'VE Test', '2D Practice', '2D Study',
-    '2D Test', in order, from 0 to 8.
+             '2D Test', in order, from 0 to 8.
     """
     names = ['VR Practice', 'VR Study', 'VR Test', 'VE Practice', 'VE Study', 'VE Test',
              '2D Practice', '2D Study', '2D Test']
@@ -85,27 +85,42 @@ def datetime_from_dot_net_binary(data):
 
 
 def read_binary_file(path):
+
     """
+
     This function reads a Time Travel Task binary file in its entirety and converts it into a list of iterations which
     can be parsed independently.
 
     :param path: a string absolute path to a Time Travel Task binary file
+
     :return: a list of iterations (dictionaries containing values:
-    "version" - an integer version number
-    "datetime" - a python datetime object for this iteration
-    "time_val" - a time for this iteration
-    "timescale" - a timescale which the current time is proceding through
-    "x", "y", "z" - x, y, and z spatial coordinates in which the participant resides
-    "rx", "ry", "rz", "rw" - x, y, z, and w rotation quaternion coordinates in which the participant resides
-    "keys", "buttons", "keylabels", "buttonlabels" 0 the key states, button states, key labels and button labels for
-    every key and button which is registered to be logged
-    "itemsx", "itemsy", "itemsz", "itemsactive", "itemsclicked", "itemsevent", "itemstime" - the item x, y, z spatial
-     coordinates, the item active state (enabled or disabled in the environment), the item event, and time
-    "boundarystate", "br", "bg", "bb" - the boundary state and Red, Green, and Blue color intensities of the boundary
-    "inventoryitemnumbers"- the item numbers in the inventory this iteration
-    "activeinventoryitemnumber", "activeinventoryeventindex" - the active item number and event number this iteration
-    )
+             'version' - an integer version number
+
+             'datetime' - a python datetime object for this iteration
+
+             'time_val' - a time for this iteration
+
+             'timescale' - a timescale which the current time is proceding through
+
+             'x', 'y', 'z' - x, y, and z spatial coordinates in which the participant resides
+
+             'rx', 'ry', 'rz', 'rw' - x, y, z, and w rotation quaternion coordinates in which the participant resides
+             'keys', 'buttons', 'keylabels', 'buttonlabels' 0 the key states, button states, key labels and button
+             labels for every key and button which is registered to be logged
+
+             'itemsx', 'itemsy', 'itemsz', 'itemsactive', 'itemsclicked', 'itemsevent', 'itemstime' - the item x, y, z
+             spatial coordinates, the item active state (enabled or disabled in the environment), the item event,
+             and time
+             'boundarystate', 'br', 'bg', 'bb' - the boundary state and Red, Green, and Blue color intensities of the
+             boundary
+
+             'inventoryitemnumber'- the item numbers in the inventory this iteration
+
+             'activeinventoryitemnumber','activeinventoryeventinder' - the active item number and event number this
+             iteration)
+
     """
+
     iterations = []
     with open(path, 'rb') as f:
         header_length = decode_7bit_int_length(f)
@@ -283,9 +298,9 @@ def parse_test_items(iterations, cols, item_number_label, event_state_labels):
     :param item_number_label: the labels for each item in canonical ordering
     :param event_state_labels: the event labels for each item in canonical ordering
     :return: a dictionary containing:
-    "direction" - a numeric value representing the up, down or stationary state
-    "pos" - the x, z, and t values representing the 2D position and time coordinates
-    "color" - the color value representing the indexed color value from cols associated with the item
+             "direction" - a numeric value representing the up, down or stationary state
+             "pos" - the x, z, and t values representing the 2D position and time coordinates
+             "color" - the color value representing the indexed color value from cols associated with the item
     """
     descrambler = [1, 2, 4, 7, 0, 3, 5, 6, 8, 9]
     descrambler_type = [2, 2, 2, 2, 1, 1, 1, 1, 0, 0]
@@ -503,10 +518,10 @@ def get_click_locations_and_indicies(iterations, items, meta):
     :param items: the items to be visualized
     :param meta: the meta information from the filename
     :return: a tuple containing:
-    click_pos - the x, z, time coordinates of the click position
-    click_idx - the index in iterations at which time the click happened
-    click_size - the size the click should be visualized as
-    click_color - the color with which the click should be visualized
+             click_pos - the x, z, time coordinates of the click position
+             click_idx - the index in iterations at which time the click happened
+             click_size - the size the click should be visualized as
+             click_color - the color with which the click should be visualized
     """
     click_idx = np.empty(len(items))
     click_pos = np.empty((len(items), 3))
@@ -536,11 +551,11 @@ def get_items_solutions(meta):
 
     :param meta: the meta information from get_filename_meta_data
     :return: a tuple with items, times and directions where times contains numeric time constants, directions contains
-    numeric labels such that 2 is Fall, 1 is Fly, and 0 is Stationary/Stay, and items containts a list of dictionaries
-    containing values:
-    "direction" - the 0, 1, or 2 direction value
-    "pos" - the x, z, time coordinate of the item
-    "color" - the RGB color tuple for the item
+             numeric labels such that 2 is Fall, 1 is Fly, and 0 is Stationary/Stay, and items containts a list of
+             dictionaries containing values:
+             "direction" - the 0, 1, or 2 direction value
+             "pos" - the x, z, time coordinate of the item
+             "color" - the RGB color tuple for the item
     """
     if meta['phase'] == '0' or meta['phase'] == '3' or meta['phase'] == '6':
         times = [2, 12, 18, 25]
@@ -664,16 +679,18 @@ def compute_accuracy(meta, items):
     :param meta: the meta information from get_filename_meta_data
     :param items: the items from parse_test_items
     :return: a tuple containing:
-    space_misplacement - the amount of space-only misplacement
-    time_misplacement - the amount of time-only misplacement
-    space_time_misplacement - the total space and time misplacement (treating the values equally)
-    direction_correct_count - the number of correct direction labels
-    mean_context_crossing_excluding_wrong_context_pairs - the mean of the distance between context crossing pairs
-    excluding those which are in the wrong context
-    mean_context_noncrossing_exluding_wrong_context_pairs - the mean of the distance between noncontext crossing pairs
-    excluing those which are in the wrong context
-    mean_context_crossing - the mean distance between context crossing pairs with no exclusions
-    mean_noncontext_crossing - the mean distance between non-context-crossing pairs with no exclusions
+             space_misplacement - the amount of space-only misplacement
+             time_misplacement - the amount of time-only misplacement
+             space_time_misplacement - the total space and time misplacement (treating the values equally)
+             direction_correct_count - the number of correct direction labels
+             mean_context_crossing_excluding_wrong_context_pairs - the mean of the distance between context
+             crossing pairs
+             excluding those which are in the wrong context
+             mean_context_noncrossing_exluding_wrong_context_pairs - the mean of the distance between noncontext
+             crossing pairs
+             excluing those which are in the wrong context
+             mean_context_crossing - the mean distance between context crossing pairs with no exclusions
+             mean_noncontext_crossing - the mean distance between non-context-crossing pairs with no exclusions
     """
     solution_items, times_solution, directions_solution = get_items_solutions(meta)
     xs = [item['pos'][0] for item in items]
@@ -736,11 +753,11 @@ def get_item_details(pastel_factor=127):
 
     :param pastel_factor: a factor to render the RGB values via pastel shades (default 127)
     :return: a tuple containing:
-    event_state_labels - a set of strings containing the labels for event states given an integer
-    item_number_label - a set of strings containing the labels for items given an integer
-    item_label_filenames - a set of strings containing the filename for JPGs containing the images of items given an
-    integer
-    cols - a set of RGB colors influenced by the input pastel_factor representing the item colors
+             event_state_labels - a set of strings containing the labels for event states given an integer
+             item_number_label - a set of strings containing the labels for items given an integer
+             item_label_filenames - a set of strings containing the filename for JPGs containing the images of items
+             given an integer
+             cols - a set of RGB colors influenced by the input pastel_factor representing the item colors
     """
     event_state_labels = ['stationary', 'up', 'down']
     item_number_label = ['bottle', 'icecubetray', 'clover', 'basketball', 'boot', 'crown', 'bandana', 'hammer',
