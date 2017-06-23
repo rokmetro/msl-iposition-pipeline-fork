@@ -13,10 +13,46 @@ from cogrecon.core.cogrecon_globals import default_z_value, default_pipeline_fla
     data_coordinates_file_suffix
 
 """
-This module is meant to be run exclusively from the command line via:
+Process a single set of points from a single trial in iPosition compared to a set of correct points. This will not 
+generate an output file, but will instead print the resulting values and show a visualizer of the results.
+
+Note: This module is meant to be run exclusively from the command line via:
 
 python single_file_command.py <arguments>
 
+actual_coordinates ; the path to the file containing the actual coordinates
+
+data_coordinates ; the path to the file containing the data coordinates
+
+dimension ; The dimensionality of the data. The dimension will be used to help determine num_items automatically 
+if not specified manually (default is 2).
+    
+num_trials ; The number of trials in each file (will be detected automatically from newlines if left out) 
+    (default is None).
+    
+num_items ; The number of items to be analyzed (will be detected automaticall from tabs if left out) 
+    (default is None).
+
+line_number ; the line number to be processed (starting with 0) - typically the last trial number minus 1.
+
+--pipeline_mode ; The mode in which the pipeline should process (default is 3); 
+        0 for just accuracy+swaps,
+        1 for accuracy+deanonymization+swaps,
+        2 for accuracy+global transformations+swaps,
+        3 for accuracy+deanonymization+global transformations+swaps.
+
+--accuracy_z_value ; The z value to be used for accuracy exclusion (default is typically 1.96, corresponding 
+to 95% confidence).
+
+--category_file ; the path to the file containing the category data with respect to both actual_coordinates and 
+data_coordinates
+
+--order_file ; the path to the file containing the order information with respect to data_coordinates
+
+--plot_extent ; a list of length 4 of values representing the visual extent of the visualization plot. the values are 
+ordered x_min, x_max, y_min, y_max. if None is provided, extent will be determined automatically.
+
+--remove_dims ; a list of dimensions (starting with 0) to remove from processing (default is None)
 .
 
 Note that this function assumes its input is meant to be visualized and will act accordingly.

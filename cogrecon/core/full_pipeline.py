@@ -16,11 +16,14 @@ from .cogrecon_globals import default_z_value
 
 def accuracy(participant_data, analysis_configuration, use_manual_threshold=False):
     """
+    This function computes the accuracy of each item in a ParticipantData object, optionally using a manual threshold.
 
-    :param use_manual_threshold:
-    :param participant_data:
-    :param analysis_configuration:
-    :return:
+    :param participant_data: the ParticipantData object
+    :param analysis_configuration: the AnalysisConfiguration object
+    :param use_manual_threshold: if True, the manual threshold from the AnalysisConfiguration object will be used
+                                 instead of an automatically computed threshold
+
+    :return: the input ParticipantData object with the distance_accuracy_map and distance_threshold attributes populated
     """
     validate_type(participant_data, ParticipantData, "participant_data", "accuracy")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "accuracy")
@@ -103,9 +106,10 @@ def accuracy(participant_data, analysis_configuration, use_manual_threshold=Fals
 
 def trial_axis_swap(trial_data):
     """
+    This function calculates the original axis swap metrics on a TrialData object.
 
-    :param trial_data:
-    :return:
+    :param trial_data: a TrialData object
+    :return: the axis swap value
     """
     validate_type(trial_data, TrialData, "trial_data", "trial_axis_swap")
 
@@ -137,9 +141,10 @@ def trial_axis_swap(trial_data):
 
 def trial_edge_resizing(trial_data):
     """
+    This function calculates the original edge resizing metrics on a TrialData object.
 
-    :param trial_data:
-    :return:
+    :param trial_data: a TrialData object
+    :return: the edge resizing value
     """
     validate_type(trial_data, TrialData, "trial_data", "trial_edge_resizing")
 
@@ -160,9 +165,11 @@ def trial_edge_resizing(trial_data):
 
 def trial_edge_distortion(trial_data):
     """
+    This function calculates the original edge distortion metrics on a TrialData object.
 
-    :param trial_data:
-    :return:
+    :param trial_data: a TrialData object
+
+    :return: the edge distortion value
     """
     validate_type(trial_data, TrialData, "trial_data", "trial_edge_distortion")
 
@@ -190,10 +197,13 @@ def trial_edge_distortion(trial_data):
 # noinspection PyDefaultArgument
 def geometric_transform(participant_data, analysis_configuration):
     """
+    This function performs the geometric transform computation on an entire ParticipantData object.
 
-    :param participant_data:
-    :param analysis_configuration:
-    :return:
+    :param participant_data: the ParticipantData object
+    :param analysis_configuration: the AnalysisConfiguration object
+
+    :return: a list of the geometric transform results from trial_geometric_transform for each trial in the
+             ParticipantData object
     """
     validate_type(participant_data, ParticipantData, "participant_data", "geometric_transform")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "geometric_transform")
@@ -208,14 +218,18 @@ def geometric_transform(participant_data, analysis_configuration):
     return np.transpose(result)
 
 
-# TODO: Addition transformation/de-anonymization methods(see https://en.wikipedia.org/wiki/Point_set_registration)
 # noinspection PyDefaultArgument
 def trial_geometric_transform(trial_data, analysis_configuration):
+    # TODO: Addition transformation/de-anonymization methods(see https://en.wikipedia.org/wiki/Point_set_registration)
     """
+    This function calculates the geometric transform metrics on a TrialData object.
 
-    :param trial_data:
-    :param analysis_configuration:
-    :return:
+    :param trial_data: a TrialData object
+    :param analysis_configuration: the AnalysisConfiguration object
+
+    :return: a tuple containing: translation, translation_magnitude, scaling, rotation_theta,
+             transformation_auto_exclusion, num_geometric_transform_points_excluded, transformed_coordinates,
+             dist_threshold
     """
     validate_type(trial_data, TrialData, "trial_data", "trial_geometric_transform")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "trial_geometric_transform")
@@ -296,10 +310,12 @@ def trial_geometric_transform(trial_data, analysis_configuration):
 
 def swaps(participant_data, analysis_configuration):
     """
+    This function computes the swap metrics across all trials in a ParticipantData object.
 
-    :param participant_data:
-    :param analysis_configuration:
-    :return:
+    :param participant_data: the ParticipantData object
+    :param analysis_configuration: the AnalysisConfiguration object
+
+    :return: a list of results from the trial_swaps function for all trials in ParticipantData in order
     """
     validate_type(participant_data, ParticipantData, "participant_data", "swaps")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "swaps")
@@ -315,9 +331,15 @@ def swaps(participant_data, analysis_configuration):
 
 def trial_swaps(trial_data):
     """
+    This function calculates the swap metrics on a particular TrialData object.
 
-    :param trial_data:
-    :return:
+    :param trial_data: a TrialData object
+    :return: a tuple containing: accurate_placements, inaccurate_placements, true_swaps, partial_swaps, cycle_swaps,
+             partial_cycle_swaps, components, misassignment, accurate_misassignment, inaccurate_misassignment,
+             dist_threshold, mean true_swap_distances, mean true_swap_expected_distances,
+             mean partial_swap_distances, mean partial_swap_expected_distances,
+             mean cycle_swap_distances, mean cycle_swap_expected_distances,
+             mean partial_cycle_swap_distances, mean partial_cycle_swap_expected_distances
     """
     validate_type(trial_data, TrialData, "trial_data", "trial_swaps")
 
@@ -415,10 +437,13 @@ def trial_swaps(trial_data):
 
 def deanonymize(participant_data, analysis_configuration):
     """
+    This function performs the deanonymization routine on ParticipantData.
 
-    :param participant_data:
-    :param analysis_configuration:
-    :return:
+    :param participant_data: the ParticipantData object
+    :param analysis_configuration: the AnalysisConfiguration object
+
+    :return: the minimal mapping coordinates, minimal distance scores, minimal score lexicographical positions, and
+             misplacement values for each trial
     """
     validate_type(participant_data, ParticipantData, "participant_data", "deanonymize")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "deanonymize")
@@ -453,21 +478,23 @@ def deanonymize(participant_data, analysis_configuration):
     return min_coordinates, min_scores, min_score_positions, raw_deanonymized_misplacements
 
 
-# This function is the main pipeline for the new processing methods. When run alone, it just returns the values
-# for a single trial. With visualize=True it will display the results. debug_labels is used to help specify
-# which participant/trial is being observed when running from an external process (it is appended to the debug info).
-# The coordinates are expected to be equal in length of the for (Nt, Ni, 2) where Nt is the number of trials and Ni is
-# the number of items.
 # noinspection PyDefaultArgument
 def full_pipeline(participant_data, analysis_configuration, visualize=False, visualization_extent=None, fig_size=None):
     """
+    This function is the main pipeline for the new processing methods. When run alone, it just returns the values
+    for a single trial. With visualize=True it will display the results. debug_labels is used to help specify
+    which participant/trial is being observed when running from an external process (it is appended to the debug info).
+    The coordinates are expected to be equal in length of the for (Nt, Ni, 2) where Nt is the number of trials and Ni is
+    the number of items.
 
-    :param fig_size:
-    :param participant_data:
-    :param analysis_configuration:
-    :param visualize:
-    :param visualization_extent:
-    :return:
+
+    :param participant_data: the ParticipantData object to process
+    :param analysis_configuration: the AnalysisConfiguration object to determine the pipeline configuration
+    :param visualize: if True, the output will be visualized
+    :param visualization_extent: the data bounds to be used for visualization
+    :param fig_size: the size of the output figure in visualization (in inches)
+
+    :return: an output list of all metrics produces in the pipeline whose headers are defined by get_header_labels
     """
     validate_type(participant_data, ParticipantData, "participant_data", "full_pipeline")
     validate_type(analysis_configuration, AnalysisConfiguration, "analysis_configuration", "full_pipeline")
@@ -657,8 +684,12 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
     return output
 
 
-# This function is responsible for returning the names of the values returned in full_pipeline
 def get_header_labels():
+    """
+    This function is responsible for returning the names of the values returned in full_pipeline
+
+    :return: a list of header names for each output column
+    """
     return ["Original Misplacement", "Original Swap", "Original Edge Resizing", "Original Edge Distortion",  # 0
             "Axis Swap Pairs", "Pre-Processed Accurate Placements", "Pre-Processed Inaccurate Placements",  # 1
             "Pre-Processed Accuracy Threshold", "Deanonymized Accurate Placements",  # 2
@@ -678,6 +709,12 @@ def get_header_labels():
 
 # (lambda x: list(array(x).flatten())) for append
 def get_aggregation_functions():
+    """
+    This function gets a list of functions which should be used when collapsing trial data for each column in the
+    output.
+
+    :return: a list of functions to be applied to cross-trial data to collapse it appropriately
+    """
     return [np.nanmean, np.nanmean, np.nanmean, np.nanmean,  # 0
             collapse_unique_components, np.nanmean, np.nanmean,  # 1
             np.nanmean, np.nanmean,  # 2

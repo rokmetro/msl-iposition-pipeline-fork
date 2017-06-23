@@ -9,9 +9,10 @@ def similarity_transform(from_points, to_points):
 
     Modified by Kevin Horecka Feb 11, 2017
 
-    :param from_points:
-    :param to_points:
-    :return:
+    :param from_points: a list of points (list of floats) from which to find a transform
+    :param to_points: a list points (list of floats) to which to find a transform
+
+    :return: the rotation matrix, scaling, and translation between from_points and to_points via SVD
     """
     assert len(from_points.shape) == 2, \
         "from_points must be a m x n array"

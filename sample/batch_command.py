@@ -232,7 +232,7 @@ if __name__ == "__main__":
                        category_independence_enabled=args.category_independence_enabled != 0,
                        category_prefixes=args.category_prefixes != 0,
                        order_greedy_deanonymization_enabled=args.order_greedy_deanonymization_enabled != 0,
-                       order_prefxies=args.order_prefixes != 0,
+                       order_prefixes=args.order_prefixes != 0,
                        removal_dim_indicies=args.remove_dims
                        )
     else:

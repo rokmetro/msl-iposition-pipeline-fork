@@ -19,20 +19,18 @@ def visualization(trial_data, analysis_configuration, min_points, transformed_po
                   animation_duration=default_animation_duration, animation_ticks=default_animation_ticks,
                   print_output=True, extent=None, fig_size=None):
     """
-    animation length in seconds
-    animation ticks in frames
+    This function visualizes TrialData, showing all the steps in the pipeline.
 
-    :param fig_size:
-    :param trial_data:
-    :param analysis_configuration:
-    :param min_points:
-    :param transformed_points:
-    :param output_list:
-    :param animation_duration:
-    :param animation_ticks:
-    :param print_output:
-    :param extent:
-    :return:
+    :param trial_data: the TrialData to be visualized
+    :param analysis_configuration: the AnalysisConfiguration to use to visualize (for accuracy visualization mainly)
+    :param min_points: the points output from the deanonymization task
+    :param transformed_points: the points output from the transformation task
+    :param output_list: the final outputs produced by full_pipeline
+    :param animation_duration: a time in seconds specifying the duration of the transform animation
+    :param animation_ticks: the number of ticks (frame updates) which should occur throughout the animation
+    :param print_output: if True, the output_list values will be printed in a user friendly form
+    :param extent: the extents to plot in the data space
+    :param fig_size: a tuple containing the size of the figure in inches
     """
     from full_pipeline import get_header_labels, accuracy
 

@@ -25,6 +25,10 @@ def process_category_files(selected_directory=None, output_path='..\\..\\..\\sav
     generates ###_nocategory_actual_corodinates.txt, ###_category_actual_coordinates.txt files for each participant.
 
     The result is written to a specified output path (created if it does not already exist).
+
+    :param selected_directory: The string path to a directory to scan for files ending in study_iposition_data.txt.
+                               If left empty, a popup dialog will be presented to select a directory.
+    :param output_path: The directory into which the output files should be saved.
     """
     if selected_directory is None:
         selected_directory = easygui.diropenbox()

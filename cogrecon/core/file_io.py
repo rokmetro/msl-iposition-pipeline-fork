@@ -14,11 +14,12 @@ def get_coordinates_from_file(path, expected_shape, dimension=None, data_type=fl
     This function reads a data file and shapes the data into the appropriate expected shape (usually (Nt, Ni, 2) where
     Nt is the number of trials (rows) and Ni is the number of items (columns / dimensions)
 
-    :param dimension:
-    :param path:
-    :param expected_shape:
-    :param data_type:
-    :return:
+    :param dimension: the dimensionality of the data (i.e. 2, for 2D for x and y)
+    :param path: a path to a coordinate file
+    :param expected_shape: the expected shape of a coordinate file (if None, the shape will be detected using dimension)
+    :param data_type: the data type of the coordinate file
+
+    :return: a list of shape expected_shape and type data_type
     """
     with open(os.path.abspath(path), 'rU') as tsv:
         if data_type is not None:
@@ -54,18 +55,19 @@ def get_id_from_file_prefix_via_suffix(path, suffix):
     """
     This function grabs the first 3 characters of the filename which are assumed to be the participant id
 
-    :param path:
-    :param suffix:
-    :return:
+    :param path: the path to a file ending in suffix
+    :param suffix: the ending part of a filename
+    :return: the os.path.basename of path with characters of length of suffix removed from the end
     """
     return os.path.basename(path)[:-len(suffix)]
 
 
 def file_list_contents_equal(file_list):
     """
+    This function checks a list of files to ensure the contents are all equal across each file.
 
-    :param file_list:
-    :return:
+    :param file_list: a list of file paths
+    :return: True if all files are equal in contents, False otherwise
     """
     contents = None
     for f in file_list:
@@ -80,10 +82,12 @@ def file_list_contents_equal(file_list):
 
 def enforce_single_file_contents(file_list, name):
     """
+    This function ensures that if file_list contains multiple unique files, an error is thrown, otherwise it simply
+    returns the first element.
 
-    :param file_list:
-    :param name:
-    :return:
+    :param file_list: a list of files which should all be the same
+    :param name: the name of the file list type for debugging purposes
+    :return: a path to a unique single file or empty list if none was found
     """
     if file_list is None or len(file_list) == 0:
         return []
@@ -107,10 +111,16 @@ def enforce_single_file_contents(file_list, name):
 
 def make_singular_filename_values_list(value, expected_length):
     """
+    This function takes a value and produces an appropriate length list of values. If the input is a list of values
+    already, the list will have empty strings appended to it until it is the expected length. If it is greater
+    than the expected length already, it will simply be returned as-is. If it is a list with one element, that element
+    will be duplicated to make the list expected_length and returned. If it is a value, a list containing
+    expected_length numbers of that value will be returned. If none of these apply, a list of empty strings is returned.
 
-    :param value:
-    :param expected_length:
-    :return:
+    :param value: the value contents of the output list
+    :param expected_length: the expected length of the output list
+
+    :return: a list of length expected_length with contents reflected by value
     """
     if isinstance(value, list) and len(value) > 1:
         return value + ([""] * (expected_length - len(value)))
@@ -124,10 +134,11 @@ def make_singular_filename_values_list(value, expected_length):
 
 def extract_prefixes_from_file_list_via_suffix(file_list, suffix):
     """
+    This function will return a list of prefixes from files given an expected suffix.
 
-    :param file_list:
-    :param suffix:
-    :return:
+    :param file_list: a list of file paths
+    :param suffix: a suffix whose contents should be removed from the end of the file_list element's basename
+    :return: a list of file prefixes
     """
     out_list = []
     for f in file_list:
@@ -145,10 +156,11 @@ def extract_prefixes_from_file_list_via_suffix(file_list, suffix):
 
 def match_file_prefixes(files, prefixes):
     """
+    This function attempts to sort and match the list of files to a list of prefixes for each file.
 
-    :param files:
-    :param prefixes:
-    :return:
+    :param files: a list of file paths which should be associated with each prefix
+    :param prefixes: a list of prefixes which should be associated with each file path
+    :return: a list of files, sorted according to prefixes
     """
     for idx, (file_list, prefix_list) in enumerate(zip(files, prefixes)):
         sort_idxs = list(range(len(file_list)))
@@ -177,21 +189,34 @@ def find_data_files_in_directory(directory, actual_coordinate_prefixes=False,
                                  _order_file_suffix=order_file_suffix, _category_file_suffix=category_file_suffix,
                                  _actual_coordinates_file_suffix=actual_coordinates_file_suffix):
     """
-    This function crawls the specified directory, recursively looking for the actual coordinate file and data files
+    This function crawls the specified directory, recursively looking for the actual coordinate file and data files.
 
-    :param _category_file_suffix:
-    :param _actual_coordinates_file_suffix:
-    :param _order_file_suffix:
-    :param _data_coordinates_file_suffix:
-    :param order_prefixes:
-    :param category_prefixes:
-    :param order_greedy_deanonymization_enabled:
-    :param category_independence_enabled:
-    :param actual_coordinate_prefixes:
-    :rtype: string (or None), list of strings (or empty list)
     :param directory: the directory (string) in which to recursively search for data files
+
+    :param _category_file_suffix: the category file suffix for which to search
+    :param _actual_coordinates_file_suffix: the actual coordinate file suffix for which to search
+    :param _order_file_suffix: the order file suffix for which to search
+    :param _data_coordinates_file_suffix: the data file suffix for which to search
+
+    :param order_prefixes: if True, it is assumed there will be an equal number of order files as data files with
+                           identical prefixes, otherwise one file is expected
+    :param category_prefixes: if True, it is assumed there will be an equal number of category files as data files with
+                              identical prefixes, otherwise one file is expected
+    :param actual_coordinate_prefixes: if True, it is assumed there will be an equal number of actual coordinate files
+                                       as data files with identical prefixes, otherwise one file is expected
+
+    :param order_greedy_deanonymization_enabled: whether the greedy, order based deanonymization method
+                                                 should be used in determining the mapping of object to location.
+                                                 Note that if enabled, an order file (or files) is expected.
+    :param category_independence_enabled: whether the items involved have associated categorical information
+                                          such that they should be processed independently.
+                                          Note that if enabled, a category file (or files) is expected.
+
+    :rtype: string (or None), list of strings (or empty list)
+
     :return: the actual coordinate filename/path (None if no file was found), a list of the data filenames/paths
-             (empty list if no files were found)
+             (empty list if no files were found), a list of category filenames/paths (empty list if no files were found
+             or requested), and a list of order filenames/paths (empty list if no files were found or requested)
     """
     # Check our data types
     assert isinstance(directory, str), "directory is not a string: {0}".format(directory)
@@ -300,23 +325,19 @@ def find_data_files_in_directory(directory, actual_coordinate_prefixes=False,
 
 def is_pathname_valid(pathname):
     """
-
-    Sadly, Python fails to provide the following magic number for us.
-
-    ERROR_INVALID_NAME = 123
-
     Windows-specific error code indicating an invalid pathname.
 
     See Also: https://msdn.microsoft.com/en-us/library/windows/desktop/ms681382%28v=vs.85%29.aspx
     Official listing of all such codes.
 
-    `True` if the passed pathname is a valid pathname for the current OS;
-    `False` otherwise.
-    :param pathname:
-    :return:
+
+    :param pathname: the pathname about which to determine validity
+    :return: `True` if the passed pathname is a valid pathname for the current OS;
+             `False` otherwise.
 
     """
 
+    # Sadly, Python fails to provide the following magic number for us.
     ERROR_INVALID_NAME = 123
 
     # If this pathname is either not a string or is but is empty, this pathname
@@ -386,11 +407,12 @@ def is_pathname_valid(pathname):
 
 def is_path_sibling_creatable(pathname):
     """
-    `True` if the current user has sufficient permissions to create **siblings**
-    (i.e., arbitrary files in the parent directory) of the passed pathname;
-    `False` otherwise.
-    :param pathname:
-    :return:
+    This function helps determine if a path is creatable.
+
+    :param pathname: the pathname about which to determine if it is creatable
+    :return: `True` if the current user has sufficient permissions to create **siblings**
+             (i.e., arbitrary files in the parent directory) of the passed pathname;
+             `False` otherwise.
     """
     # Parent directory of the passed path. If empty, we substitute the current
     # working directory (CWD) instead.
@@ -411,13 +433,14 @@ def is_path_sibling_creatable(pathname):
 
 def is_path_exists_or_creatable_portable(pathname):
     """
-    `True` if the passed pathname is a valid pathname on the current OS _and_
-    either currently exists or is hypothetically creatable in a cross-platform
-    manner optimized for POSIX-unfriendly filesystems; `False` otherwise.
+    This function helps determine if a pathname exists or is creatable.
 
     This function is guaranteed to _never_ raise exceptions.
-    :param pathname:
-    :return:
+
+    :param pathname: the pathname about which it should be determined if it exists or is creatable
+    :return: `True` if the passed pathname is a valid pathname on the current OS _and_
+             either currently exists or is hypothetically creatable in a cross-platform
+             manner optimized for POSIX-unfriendly filesystems; `False` otherwise.
     """
     try:
         # To prevent "os" module calls from raising undesirable exceptions on
@@ -433,11 +456,15 @@ def is_path_exists_or_creatable_portable(pathname):
 
 def detect_shape_from_file(path, dimension):
     """
+    This function uses the requested dimensionality and path contents of a coordinate file to automatically
+    determine the data shape.
 
-    :rtype: int, int
+
     :param path: a value (string) containing the path of the file from which structure should be detected
     :param dimension: a value (integer) which represents the dimensionality of the data
-    :return: the trial count, the item count
+
+    :rtype: int, int, int
+    :return: a tuple containing the trial count, the item count, and the dimensionality
     """
     assert isinstance(path, str), 'path is not string: {0}'.format(path)
     assert os.path.exists(path), 'path does not exist: {0}'.format(path)

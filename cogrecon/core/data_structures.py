@@ -7,17 +7,17 @@ from .file_io import get_coordinates_from_file
 from .cogrecon_globals import default_z_value, default_pipeline_flags
 
 
-# TODO: Documentation needs an audit/overhaul
-
-
 class PipelineFlags(Enum):
-    """We use this as a public class example class.
+    """
+    This class serves as an Enum in order to describe which, if any, pipeline steps should be run on execution.
 
-    You never call this class before calling :func:`public_fn_with_sphinxy_docstring`.
+    It acts as a set of flags for each pipeline step (Deanonymize and Global Transform currently), enabling them or
+    disabling them as appropriate. When used as an integer, the integer value can be through of as a binary value whose
+    digit places are associated with boolean values specifying the enabled/disabled state of each pipeline step.
 
     .. note::
 
-       An example of intersphinx is this: you **cannot** use :mod:`pickle` on this class.
+       Simple and Unknown both disable all pipeline stages except accuracy and cycle/swap analysis. All runs all steps.
 
     """
     Unknown = 0
@@ -30,28 +30,29 @@ class PipelineFlags(Enum):
     def __or__(self, other):
         """
 
-        :param other:
-        :return:
+        :param other: the other value to be 'or'-ed with
+        :return: the result of the bitwise 'or' operation
         """
         return PipelineFlags(self.value | other.value)
 
     def __eq__(self, other):
         """
 
-        :param other:
-        :return:
+        :param other: the value against which equality should be compared
+        :return: the result of the equality check (an 'and' operation comparing each bit)
         """
         return (self.value & other.value) != 0
 
 
 class TrialData(object):
-    """We use this as a public class example class.
+    """
 
-    You never call this class before calling :func:`public_fn_with_sphinxy_docstring`.
+    This class is used to store individual trial data. Some functions can and should be only run on a single trial
+    worth of data rather than a whole participant worth.
 
     .. note::
 
-       An example of intersphinx is this: you **cannot** use :mod:`pickle` on this class.
+       This object is typically contained within a ParticipantData object.
 
     """
     def __init__(self, actual_points=None, data_points=None, actual_labels=None, data_labels=None,
@@ -107,7 +108,7 @@ class TrialData(object):
     def category_labels(self):
         """
 
-        :return:
+        :return: the category label list
         """
         return self._category_labels
 
@@ -115,7 +116,7 @@ class TrialData(object):
     def data_order(self):
         """
 
-        :return:
+        :return: the data order list
         """
         return self._data_order
 
@@ -123,7 +124,7 @@ class TrialData(object):
     def distance_accuracy_map(self):
         """
 
-        :return:
+        :return: the distance accuracy map, if set by the accuracy function
         """
         return self._distance_accuracy_map
 
@@ -131,7 +132,7 @@ class TrialData(object):
     def distance_threshold(self):
         """
 
-        :return:
+        :return: the distance threshold, if set by the accuracy function
         """
         return self._distance_threshold
 
@@ -139,7 +140,7 @@ class TrialData(object):
     def actual_points(self):
         """
 
-        :return:
+        :return: the actual/correct/target points
         """
         return self._actual_points
 
@@ -147,7 +148,7 @@ class TrialData(object):
     def data_points(self):
         """
 
-        :return:
+        :return: the participant data points
         """
         return self._data_points
 
@@ -155,7 +156,7 @@ class TrialData(object):
     def actual_labels(self):
         """
 
-        :return:
+        :return: the actual/correct/target labels
         """
         return self._actual_labels
 
@@ -163,7 +164,7 @@ class TrialData(object):
     def data_labels(self):
         """
 
-        :return:
+        :return: the participant data labels
         """
         return self._data_labels
 
@@ -171,7 +172,7 @@ class TrialData(object):
     def actual_points(self, value):
         """
 
-        :param value:
+        :param value: a float list of actual/correct/target point lists (i.e. [[0., 0.], [1., 1.,]] etc)
         """
         assert isinstance(value, list), "TrialData actual_points must be type list"
         # assert len(value) > 0, "TrialData actual_points must be non-empty"
@@ -183,7 +184,7 @@ class TrialData(object):
     def data_points(self, value):
         """
 
-        :param value:
+        :param value: a float list of data point lists (i.e. [[0., 0.], [1., 1.,]] etc)
         """
         assert isinstance(value, list), "TrialData data_points must be type list"
         # assert len(value) > 0, "TrialData data_points must be non-empty"
@@ -195,7 +196,7 @@ class TrialData(object):
     def actual_labels(self, value):
         """
 
-        :param value:
+        :param value: a list of unique values of any type to label the actual/correct/target points
         """
         assert isinstance(value, list), "TrialData actual_labels must be type list"
         assert np.unique(value).shape == np.array(value).shape, \
@@ -206,7 +207,7 @@ class TrialData(object):
     def data_labels(self, value):
         """
 
-        :param value:
+        :param value: a list of unique values of any type to label the participant data points
         """
         assert isinstance(value, list), "TrialData data_labels must be type list"
         assert np.unique(value).shape == np.array(value).shape, \
@@ -217,7 +218,7 @@ class TrialData(object):
     def distance_accuracy_map(self, value):
         """
 
-        :param value:
+        :param value: a list of bool values describing the accuracy of each data_points element
         """
         assert isinstance(value, list), "TrialData distance_accuracy_map must be type list"
         assert all([isinstance(x, (bool, np.bool_)) for x in value]), \
@@ -228,7 +229,7 @@ class TrialData(object):
     def distance_threshold(self, value):
         """
 
-        :param value:
+        :param value: a float describing the threshold used to determine the distance_accuracy_map
         """
         assert isinstance(value, float) or value is None, "TrialData distance_threshold must be type float"
         self._distance_threshold = value
@@ -237,7 +238,7 @@ class TrialData(object):
     def category_labels(self, value):
         """
 
-        :param value:
+        :param value: a list of labels for the categories of each data_points element
         """
         assert isinstance(value, list), "TrialData category_labels must be type list"
         self._category_labels = value
@@ -246,7 +247,7 @@ class TrialData(object):
     def data_order(self, value):
         """
 
-        :param value:
+        :param value: a list of integers describing the order in which data_points elements were placed
         """
         assert isinstance(value, list), "TrialData data_order must be type list"
         assert all([isinstance(x, int) for x in value]), "TrialData data_order must only contain int"
@@ -254,20 +255,22 @@ class TrialData(object):
 
 
 class ParticipantData(object):
-    """We use this as a public class example class.
-
-    You never call this class before calling :func:`public_fn_with_sphinxy_docstring`.
+    """
+    This object contains an entire participant's data across all trials. It really just wraps up the TrialData object
+    in a list such that any attribute in TrialData can be called in ParticipantData, but the getting and setting
+    functionality will include the trial dimension. This allows data to be conveniently gotten and set in a
+    multi-dimensional way rather than always trial-by-trial.
 
     .. note::
 
-       An example of intersphinx is this: you **cannot** use :mod:`pickle` on this class.
+       All attributes in TrialData can be called in ParticipantData.
 
     """
     def __init__(self, trials, identity=None):
         """
 
-        :param trials:
-        :param identity:
+        :param trials: a non-empty list of TrialData objects
+        :param identity: a label for the ParticipantData
         """
         assert isinstance(trials, list) and len(trials) > 0 and all([isinstance(t, TrialData) for t in trials]), \
             "ParticipantData trials must be a non-empty list containing TrialData objects"
@@ -279,17 +282,19 @@ class ParticipantData(object):
 
     def get_all_from_trials(self, attribute):
         """
+        A helper function which wil lget all the attributes in the TrialData in self.trials as a list of values.
 
-        :param attribute:
-        :return:
+        :param attribute: the attribute in a TrialData object in self.trials to get
+        :return: a list of values from every self.trials element corresponding to the given attribute
         """
         return list(map(attrgetter(attribute), self.trials))
 
     def set_all_to_trials(self, attribute, value):
         """
+        A helper function which will set all the attributes in the TrialData in self.trials to a list of values.
 
-        :param attribute:
-        :param value:
+        :param attribute: the attribute in a TrialData object in self.trials to set
+        :param value: the value list to which each self.trials element should be set
         """
         for v, trial in zip(value, self.trials):
             setattr(trial, attribute, v)
@@ -297,8 +302,8 @@ class ParticipantData(object):
     def __getattr__(self, attribute):
         """
 
-        :param attribute:
-        :return:
+        :param attribute: the attribute to be gotten
+        :return: the value at the attribute
         """
         if attribute in self.__dict__.keys():
             return self.__dict__[attribute]
@@ -309,8 +314,8 @@ class ParticipantData(object):
     def __setattr__(self, attribute, value):
         """
 
-        :param attribute:
-        :param value:
+        :param attribute: the attribute to be set
+        :param value: the value to which the attribute should be set
         """
         if attribute in self.__dict__.keys():
             self.__dict__[attribute] = value
@@ -322,14 +327,21 @@ class ParticipantData(object):
     # noinspection PyUnusedLocal
     @staticmethod
     def category_split_participant(original_participant_data, unique_categories):
-        # Confirm unique_categories are, in fact, unique
+
         # noinspection PyTypeChecker
         """
+        This helper function splits a ParticipantData object into multiple objects containing unique categories defined
+        by unique_categories. If an item has no category label or does not match one of the labels in unique_categories,
+        it will be added to the unknown_category_participant_data object (the second output in output tuple)
 
-        :param original_participant_data:
-        :param unique_categories:
-        :return:
+        :param original_participant_data: a ParticipantData object containing categorical data
+        :param unique_categories: a unique list of category labels
+        :return: a tuple whose first element is a list of ParticipantData objects associated one-to-one with each
+                 unique category and whose second element is a ParticipantData object containing all unlabelled or
+                 unknown category items
         """
+
+        # Confirm unique_categories are, in fact, unique
         # noinspection PyTypeChecker
         assert len(np.unique(np.array(unique_categories)).tolist()) == len(np.array(unique_categories).tolist())
 
@@ -421,13 +433,18 @@ class ParticipantData(object):
     def load_from_file(actual_coordinates_filepath, data_coordinates_filepath, expected_shape,
                        category_filepath=None, order_filepath=None):
         """
+        This helper function takes paths to data files and an expected shape and generates a ParticipantData object
+        which contains the file data.
 
-        :param actual_coordinates_filepath:
-        :param data_coordinates_filepath:
-        :param expected_shape:
-        :param category_filepath:
-        :param order_filepath:
-        :return:
+        :param actual_coordinates_filepath: the path to the actual_coordinates.txt file, containing actual/correct/target
+                                            data coordinates
+        :param data_coordinates_filepath: the path to the position_data_coordinates.txt file, containing
+                                          participant data coordinates
+        :param expected_shape: a tuple of integers specifying the shape the data should be
+        :param category_filepath: a path to the category.txt file, specifying item categories
+        :param order_filepath: a path to the order.txt file, specifying order of placement
+
+        :return: the ParticipantData object containing all appropriate information given the input file paths
         """
         actual = get_coordinates_from_file(actual_coordinates_filepath, expected_shape)
         data = get_coordinates_from_file(data_coordinates_filepath, expected_shape)
@@ -450,13 +467,10 @@ class ParticipantData(object):
 
 
 class AnalysisConfiguration:
-    """We use this as a public class example class.
+    """
+    The AnalysisConfiguration object is used to store the various global analysis variables of interest which
+    determine the behavior of the pipeline. It is passed to functions which require one of these variables.
 
-    You never call this class before calling :func:`public_fn_with_sphinxy_docstring`.
-
-    .. note::
-
-       An example of intersphinx is this: you **cannot** use :mod:`pickle` on this class.
 
     """
     # noinspection PyDefaultArgument
@@ -468,15 +482,23 @@ class AnalysisConfiguration:
                  debug_labels=['']):
         """
 
-        :param z_value:
-        :param trial_by_trial_accuracy:
-        :param manual_threshold:
-        :param flags:
-        :param greedy_order_deanonymization:
-        :param process_categories_independently:
-        :param is_category:
-        :param category_label:
-        :param debug_labels:
+        :param z_value: a value (float or int) representing the z threshold for counting something as accurate
+        :param trial_by_trial_accuracy: when True, z_value thresholds are used on a trial-by-trial basis for
+                                        accuracy calculations, when False, the thresholds are computed then collapsed
+                                        across an individual's trials
+        :param manual_threshold: a list of manual swap threshold values associated with the specified participant
+                                 prefixes and trials in the batch process (should be of the same length as the number
+                                 of trials)
+        :param flags: the value (PipelineFlags) describing what pipeline elements should/should not be run on the data
+        :param greedy_order_deanonymization: whether the greedy, order based deanonymization method
+                                             should be used in determining the mapping of object to location.
+                                             Note that if enabled, an order file (or files) is expected.
+        :param process_categories_independently: whether the items involved have associated categorical information
+                                                 such that they should be processed independently.
+                                                 Note that if enabled, a category file (or files) is expected.
+        :param is_category: if true, this particular run of data is categorical
+        :param category_label: the label of this category (only valid if is_category is True)
+        :param debug_labels: a list of labels to be printed during debugging
         """
         self.z_value = float(z_value)
         self.trial_by_trial_accuracy = bool(trial_by_trial_accuracy)

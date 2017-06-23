@@ -11,7 +11,6 @@ from tzlocal import get_localzone
 import warnings
 
 
-# This helper function extracts the meta-data from the filename
 def get_filename_meta_data(fn):
     """
     This function retrieves the meta information from a filename given the typical formatting in the Time Travel Task.
@@ -25,7 +24,6 @@ def get_filename_meta_data(fn):
     return {"subID": parts[0], "trial": parts[1], "phase": parts[2], "inverse": parts[3], "datetime": dt}
 
 
-# Lookup phase name from number
 def phase_num_to_str(phase):
     """
     This function converts a phase integer into a nameable phase string.
@@ -43,10 +41,11 @@ def phase_num_to_str(phase):
     return names[lookup]
 
 
-# From http://stackoverflow.com/questions/1550560/encoding-an-integer-in-7-bit-format-of-c-sharp-binaryreader-readstring
-# This function is used in reading the binary files to read the length of the header from the beginning of the file
 def decode_7bit_int_length(fp):
     """
+    From:
+    http://stackoverflow.com/questions/1550560/encoding-an-integer-in-7-bit-format-of-c-sharp-binaryreader-readstring
+
     This function takes a file pointer and extracts the appropriate next information which is expected to contain a
     .NET 7bit binary datetime encoded value and extracts the length of that datetime value.
 
@@ -66,10 +65,10 @@ def decode_7bit_int_length(fp):
     return string_length
 
 
-# From http://stackoverflow.com/questions/15919598/serialize-datetime-as-binary
-# This function is used in reading the binary files to parse the binary .NET DateTime into a Python datetime
 def datetime_from_dot_net_binary(data):
     """
+    From http://stackoverflow.com/questions/15919598/serialize-datetime-as-binary
+
     This function converts data from a .NET datetime binary representation to a python datetime object
 
     :param data: some binary data which is expected to convert to a datetime value
@@ -85,9 +84,7 @@ def datetime_from_dot_net_binary(data):
 
 
 def read_binary_file(path):
-
     """
-
     This function reads a Time Travel Task binary file in its entirety and converts it into a list of iterations which
     can be parsed independently.
 
@@ -118,9 +115,7 @@ def read_binary_file(path):
 
              'activeinventoryitemnumber','activeinventoryeventinder' - the active item number and event number this
              iteration)
-
     """
-
     iterations = []
     with open(path, 'rb') as f:
         header_length = decode_7bit_int_length(f)
@@ -297,6 +292,7 @@ def parse_test_items(iterations, cols, item_number_label, event_state_labels):
     :param cols: the colors of each item in canonical ordering
     :param item_number_label: the labels for each item in canonical ordering
     :param event_state_labels: the event labels for each item in canonical ordering
+
     :return: a dictionary containing:
              "direction" - a numeric value representing the up, down or stationary state
              "pos" - the x, z, and t values representing the 2D position and time coordinates
@@ -686,9 +682,9 @@ def compute_accuracy(meta, items):
              mean_context_crossing_excluding_wrong_context_pairs - the mean of the distance between context
              crossing pairs
              excluding those which are in the wrong context
-             mean_context_noncrossing_exluding_wrong_context_pairs - the mean of the distance between noncontext
+             mean_context_noncrossing_excluding_wrong_context_pairs - the mean of the distance between non-context
              crossing pairs
-             excluing those which are in the wrong context
+             excluding those which are in the wrong context
              mean_context_crossing - the mean distance between context crossing pairs with no exclusions
              mean_noncontext_crossing - the mean distance between non-context-crossing pairs with no exclusions
     """

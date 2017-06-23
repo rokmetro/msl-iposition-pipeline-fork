@@ -23,10 +23,9 @@ def validate_list_format(l, require_numeric=False, dimension=None, list_name="li
 
     :param l: a list whose type, dimensionality, and contents should be checked; valid types are list, tuple, or
               numpy array, dimensionality should match dimension, and the contents should all be int or float
-    :param require_numeric: (optional) if True, elements must be int or float
-    :param dimension: (optional) the expected number of dimensions (integer greater than 0) of the list
-                      (default is None, meaning it is not checked)
-    :param list_name: (optional) the name (string) of the list for debugging purposes (default is "list")
+    :param require_numeric: if True, elements must be int or float
+    :param dimension: the expected number of dimensions (integer greater than 0) of the list
+    :param list_name: the name (string) of the list for debugging purposes
 
     """
 
@@ -58,10 +57,10 @@ def validate_equal_list_shapes(l1, l2, expected_shape=None, l1_name="list1", l2_
                and expected_shape (if specified)
     :param l2: a list, tuple, or numpy array whose shape should be equal to the shape of l2
                and expected_shape (if specified)
-    :param expected_shape: (optional) a shape (list, tuple or numpy array) against which both l1 and l2 should be
+    :param expected_shape: a shape (list, tuple or numpy array) against which both l1 and l2 should be
                            compared to ensure they are equal to it and each other
-    :param l1_name: (optional) the name (string) of l1 for debugging
-    :param l2_name: (optional) the name (string) of l2 for debugging
+    :param l1_name: the name (string) of l1 for debugging
+    :param l2_name: the name (string) of l2 for debugging
 
     """
 
@@ -100,29 +99,25 @@ def get_single_file_result(actual_coordinates, dat, categories=None, data_orders
     :param dat: the data coordinates for the points - an (Nt, Ni, d) sized list of floats where Nt is the number of
                 trials, Ni is the number of items, and d is the dimensionality of the points
 
-    :param order_greedy_deanonymization_enabled: (optional) whether the greedy, order based deanonymization method
-                                                 should be used in determining the mapping of object to location
-                                                 (enabled if True, default is False). Note that if enabled, an order
-                                                 file (or files) is expected.
-    :param category_independence_enabled: (optional) whether the items involved have associated categorical information
-                                          such that they should be processed independently (enabled if
-                                          True, default is False). Note that if enabled, a category file (or files) is
-                                          expected.
-    :param remove_dims: (optional) a list of dimension indicies to remove from processing (default is None)
-    :param data_orders: (optional) a list of integer order values for the associated dat input data
-                        (default is None; should be same shape as dat but without multiple axis dimensions)
-    :param categories: (optional) a list of values for the associated dat input categories
-                       (default is None; should be same shape as dat but without multiple axis dimensions)
-    :param manual_threshold: (optional) a list of manual swap threshold values associated with the specified
-                             trials in dat (default is None; should be of the same length as the number of trials)
-    :param label: (optional) the label (string) identifying the participant ID for this file, used for debugging
-                  purposes only (default is empty string)
-    :param accuracy_z_value: (optional) a value (float or int) representing the z threshold for counting something as
-    :param trial_by_trial_accuracy: (optional) when True, z_value thresholds are used on a trial-by-trial basis for
+    :param order_greedy_deanonymization_enabled: whether the greedy, order based deanonymization method
+                                                 should be used in determining the mapping of object to location.
+                                                 Note that if enabled, an order file (or files) is expected.
+    :param category_independence_enabled: whether the items involved have associated categorical information
+                                          such that they should be processed independently.
+                                          Note that if enabled, a category file (or files) is expected.
+    :param remove_dims: a list of dimension indicies to remove from processing
+    :param data_orders: a list of integer order values for the associated dat input data
+                        (should be same shape as dat but without multiple axis dimensions)
+    :param categories: a list of values for the associated dat input categories
+                       (should be same shape as dat but without multiple axis dimensions)
+    :param manual_threshold: a list of manual swap threshold values associated with the specified
+                             trials in dat (should be of the same length as the number of trials)
+    :param label: the label (string) identifying the participant ID for this file, used for debugging purposes only
+    :param accuracy_z_value: a value (float or int) representing the z threshold for counting something as
+    :param trial_by_trial_accuracy: when True, z_value thresholds are used on a trial-by-trial basis for
                                     accuracy calculations, when False, the thresholds are computed then collapsed
-                                    across an individual's trials (default is True)
-    :param flags: (optional) the value (PipelineFlags) describing what pipeline elements
-                  should/should not be run on the data (default is stored in cogrecon_globals.py)
+                                    across an individual's trials
+    :param flags: the value (PipelineFlags) describing what pipeline elements should/should not be run on the data
 
     :return: a list, (Nt, r), where Nt is the number of trials and r is the number of result metrics, of results values
              from the analysis for each trial on a particular file's data
@@ -177,7 +172,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
                    collapse_trials=True, manual_threshold=None,
                    actual_coordinate_prefixes=False,
                    category_independence_enabled=False, category_prefixes=False,
-                   order_greedy_deanonymization_enabled=False, order_prefxies=True,
+                   order_greedy_deanonymization_enabled=False, order_prefixes=True,
                    removal_dim_indicies=None):
 
     """
@@ -189,37 +184,34 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
     :param search_directory: the directory (string) in which to recursively search for data files
     :param out_filename: the filename and path (string) into which the data should be saved
 
-    :param data_shape: (optional) a shape (list, tuple or numpy array) which describes the structure of the date;
+    :param data_shape: a shape (list, tuple or numpy array) which describes the structure of the date;
                        (Nt, Ni, d) such that Nt is the number of trials, Ni is the number of items and d is the number
                        of dimensions; if None is given, an attempt will be made to automatically detect the shape from
-                       the actual_coordinates file (default is None)
-    :param accuracy_z_value: (optional) a value (float or int) representing the z threshold for counting something as
-                             accurate (default is stored in cogrecon_globals.py)
-    :param trial_by_trial_accuracy: (optional) when True, z_value thresholds are used on a trial-by-trial basis for
+                       the actual_coordinates file
+    :param accuracy_z_value: a value (float or int) representing the z threshold for counting something as accurate
+    :param trial_by_trial_accuracy: when True, z_value thresholds are used on a trial-by-trial basis for
                                     accuracy calculations, when False, the thresholds are computed then collapsed
-                                    across an individual's trials (default is True)
-    :param flags: (optional) the value (PipelineFlags) describing what pipeline elements should/should not be run on
-                  the data (default is stored in cogrecon_globals.py)
-    :param collapse_trials: (optional) if True, the output file will contain one row per participant, otherwise each
+                                    across an individual's trials
+    :param flags: the value (PipelineFlags) describing what pipeline elements should/should not be run on the data
+    :param collapse_trials: if True, the output file will contain one row per participant, otherwise each
                             trial will be output in an individual row
-    :param removal_dim_indicies: (optional) a list of dimension indicies to remove from processing (default is None)
-    :param dimension: (optional) the number of dimensions of the input data
-    :param order_greedy_deanonymization_enabled: (optional) whether the greedy, order based deanonymization method
-                                                 should be used in determining the mapping of object to location
-                                                 (enabled if True, default is False). Note that if enabled, an order
-                                                 file (or files) is expected.
-    :param category_independence_enabled: (optional) whether the items involved have associated categorical information
-                                          such that they should be processed independently (enabled if True, default is
-                                          False). Note that if enabled, a category file (or files) is expected.
-    :param manual_threshold: (optional) a list of manual swap threshold values associated with the specified participant
-                             prefixes and trials in the batch process (default is None; should be of the same length as
-                             the number of trials)
-    :param order_prefxies: (optional) whether or not we will look for files associated with order in a one-to-one
-                           fashion with data files based on the prefix values (default is False)
-    :param category_prefixes: (optional) whether or not we will look for files associated with category in a one-to-one
-                              fashion with data files based on the prefix values (default is False)
-    :param actual_coordinate_prefixes: (optional) whether or not we will look for actual coordinate files in a
-                                       one-to-one fashion with data files based on the prefix values (default is False)
+    :param removal_dim_indicies: a list of dimension indicies to remove from processing
+    :param dimension: the number of dimensions of the input data
+    :param order_greedy_deanonymization_enabled: whether the greedy, order based deanonymization method
+                                                 should be used in determining the mapping of object to location.
+                                                 Note that if enabled, an order file (or files) is expected.
+    :param category_independence_enabled: whether the items involved have associated categorical information
+                                          such that they should be processed independently.
+                                          Note that if enabled, a category file (or files) is expected.
+    :param manual_threshold: a list of manual swap threshold values associated with the specified participant
+                             prefixes and trials in the batch process (should be of the same length as the number
+                             of trials)
+    :param order_prefixes: whether or not we will look for files associated with order in a one-to-one
+                           fashion with data files based on the prefix values
+    :param category_prefixes: whether or not we will look for files associated with category in a one-to-one
+                              fashion with data files based on the prefix values
+    :param actual_coordinate_prefixes: whether or not we will look for actual coordinate files in a
+                                       one-to-one fashion with data files based on the prefix values
 
     :rtype: None
 
@@ -259,7 +251,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
                                          category_independence_enabled=category_independence_enabled,
                                          order_greedy_deanonymization_enabled=order_greedy_deanonymization_enabled,
                                          category_prefixes=category_prefixes,
-                                         order_prefixes=order_prefxies)
+                                         order_prefixes=order_prefixes)
     except IOError:
         logging.error('The input path was not found.')
         raise IOError('Failed to find input path.')
