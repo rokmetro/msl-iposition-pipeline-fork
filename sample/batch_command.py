@@ -9,7 +9,8 @@ import scipy.stats as st
 
 from cogrecon.core.batch_pipeline import batch_pipeline
 from cogrecon.core.data_structures import PipelineFlags
-from cogrecon.core.cogrecon_globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, order_file_suffix, \
+from cogrecon.core.cogrecon_globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, \
+    order_file_suffix, \
     category_file_suffix, default_dimensions, default_z_value, default_pipeline_flags
 from cogrecon.core.file_io import is_path_exists_or_creatable_portable
 
@@ -18,7 +19,70 @@ This module is meant to be run exclusively from the command line via:
 
 python batch_command.py <arguments>
 
-.
+where the arguments are as follows:
+
+    --search_directory ; The root directory in which to search for the actual and data coordinate files 
+    (default is None which will result in a popup dialog for selecting the directory).
+    
+    --category_prefixes ; If 0, one category file (typically named category.txt) is expected. Otherwise, a category 
+    file for each data file is expected (with a prefix that matches the data file and a suffix matching the configured 
+    suffix - typically category.txt) (default is 0).
+    
+    --order_prefixes ; If 0, one order file (typically named order.txt) is expected. Otherwise, an order file for each 
+    data file is expected (with a prefix that matches the data file and a suffix matching the configured suffix - 
+    typically order.txt) (default is 0).
+    
+    --actual_coordinate_prefixes ; If 0, the normal assumption that all participants used the same (typically 
+    actual_coordinates.txt) file will be used. If not 0, it is assumed that all files (typically ending with 
+    actual_coordinates.txt) have a prefix which is matched in the data file prefix. Thus, there should be a one-to-one 
+    correspondence between data and actual coordinate files and their content shapes (default is 0).
+    
+    --output_filename ; If None, the current datetime and local directory are used. If a valid path string, the output 
+    file will be saved as that filepath (including relative and absolute location; default is None).
+    
+    --num_trials ; The number of trials in each file (will be detected automatically from newlines if left out) 
+    (default is None).
+    
+    --num_items ; The number of items to be analyzed (will be detected automaticall from tabs if left out) 
+    (default is None).
+    
+    --dimension ; The dimensionality of the data. The dimension will be used to help determine num_items automatically 
+    if not specified manually (default is 2).
+    
+    --pipeline_mode ; The mode in which the pipeline should process (default is 3); 
+        0 for just accuracy+swaps,
+        1 for accuracy+deanonymization+swaps,
+        2 for accuracy+global transformations+swaps,
+        3 for accuracy+deanonymization+global transformations+swaps.
+    
+    --collapse_trials ; If 0, one row per trial will be output, otherwise one row per participant will be output 
+    (default is 1).
+    
+    --accuracy_z_value ; The z value to be used for accuracy exclusion (default is typically 1.96, 
+    corresponding to 95% confidence).
+    
+    --trial_by_trial_accuracy ; When not 0, z_value thresholds are used on a trial-by-trial basis for accuracy 
+    calculations, when 0, the thresholds are computed then collapsed across participant trials (default is 0).
+    
+    --manual_swap_accuracy_threshold_list ; If empty string or none, the value is ignored. If a string (path) pointing 
+    to a text file containing a new line separated list of id,threshold pairs is provided, any files whose participant 
+    id matches the first matching id in the list will have the associated threshold applied instead of being 
+    automatically computed (default is empty string).
+    
+    --category_independence_enabled ; If 0, the program will run without an assumption of categories. If 1, the program 
+    will search the search_directory for a category file (typically category.txt with the appropriate shape (same as 
+    the data shape with only 1 final dimension), and the category data will be used to break up the analysis such that 
+    item categories will be processed independently from one another (default is 0).
+    
+    --order_greedy_deanonymization_enabled ; If 0, the program will run without using order information in 
+    deanonymization (a global minimum will be used which may take longer to compute). If 1, the program will take a 
+    greedy approach to deanonymization. First it will search for appropriate order files which should be associated 
+    with the data files in a 1-to-1 fashion (or an order.txt file which will be used across all participants). Then the 
+    item being placed first will be associated with its minimum-distance true value, then the second will be associated 
+    with the minimum distance remaining values, etc until all values are associated. This effectively weights the 
+    importance of deanonymization minimization in accordance with the placement order (default is 0).
+    
+    --remove_dims ; A list of dimensions (starting with 0) to remove from processing (default is None).
 
 Note that this function assumes its input is NOT meant to be visualized and will act accordingly.
 """
@@ -76,7 +140,7 @@ if __name__ == "__main__":
                         help='the z value to be used for accuracy exclusion (default is {0}, corresponding to {1}% '
                              'confidence'.format(default_z_value,
                                                  int(np.round((1 - st.norm.sf(default_z_value) * 2) * 100))))
-    parser.add_argument('--trial_by_trial_accuracy', type=int, default=1,
+    parser.add_argument('--trial_by_trial_accuracy', type=int, default=0,
                         help='when not 0, z_value thresholds are used on a trial-by-trial basis for accuracy '
                              'calculations, when 0, the thresholds are computed then collapsed across an individual\'s '
                              'trials')

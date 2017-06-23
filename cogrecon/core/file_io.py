@@ -443,7 +443,7 @@ def detect_shape_from_file(path, dimension):
     assert isinstance(path, str), 'path is not string: {0}'.format(path)
     assert os.path.exists(path), 'path does not exist: {0}'.format(path)
 
-    with open(path) as tsv:
+    with open(path, 'rU') as tsv:
         trial_count = 0
         item_count_list = []
         for tsv_line in tsv:

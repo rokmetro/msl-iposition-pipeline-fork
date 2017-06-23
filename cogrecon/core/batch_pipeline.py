@@ -1,5 +1,4 @@
 import logging
-import os
 import numpy as np
 import copy
 import datetime
@@ -48,7 +47,8 @@ def validate_list_format(l, require_numeric=False, dimension=None, list_name="li
 
 def validate_equal_list_shapes(l1, l2, expected_shape=None, l1_name="list1", l2_name="list2"):
     """
-    This function validates that two numeric
+    This function validates that two numeric lists have equal shape.
+
     :param l1: a list, tuple, or numpy array whose shape should be equal to the shape of l1
     and expected_shape (if specified)
     :param l2: a list, tuple, or numpy array whose shape should be equal to the shape of l2
@@ -85,27 +85,36 @@ def get_single_file_result(actual_coordinates, dat, categories=None, data_orders
     """
     This function generates the results for a specific file's data structure, usually containing multiple trials
 
-    :param order_greedy_deanonymization_enabled:
-    :param category_independence_enabled:
-    :param remove_dims:
-    :param data_orders:
-    :param categories:
-    :param manual_threshold:
-    :rtype: list (or empty list)
     :param actual_coordinates: the correct coordinates for the points - an (Nt, Ni, d) sized list of floats where Nt is
     the number of trials, Ni is the number of items, and d is the dimensionality of the points
     :param dat: the data coordinates for the points - an (Nt, Ni, d) sized list of floats where Nt is the number of
     trials, Ni is the number of items, and d is the dimensionality of the points
+
+    :param order_greedy_deanonymization_enabled: (optional) whether the greedy, order based deanonymization method
+    should be used in determining the mapping of object to location (enabled if True, default is False). Note that if
+    enabled, an order file (or files) is expected.
+    :param category_independence_enabled: (optional) whether the items
+    involved have associated categorical information such that they should be processed independently (enabled if
+    True, default is False). Note that if enabled, a category file (or files) is expected.
+    :param remove_dims: (optional) a list of dimension indicies to remove from processing (default is None)
+    :param data_orders: (optional) a list of integer order values for the associated dat input data
+    (default is None; should be same shape as dat but without multiple axis dimensions)
+    :param categories: (optional) a list of values for the associated dat input
+    categories  (default is None; should be same shape as dat but without multiple axis dimensions)
+    :param manual_threshold: (optional) a list of manual swap threshold values associated with the specified trials in
+    dat (default is None; should be of the same length as the number of trials)
     :param label: (optional) the label (string) identifying the participant ID for this file, used for debugging
     purposes only (default is empty string)
     :param accuracy_z_value: (optional) a value (float or int) representing the z threshold for counting something as
     :param trial_by_trial_accuracy: (optional) when True, z_value thresholds are used on a trial-by-trial basis for
-    accuracy calculations, when False, the thresholds are computed then collapsed across an individual's trials
-    (default is True)
-    :param flags: (optional) the value (PipelineFlags) describing what pipeline elements should/should not be run on
-    the data (default is stored in cogrecon_globals.py)
+    accuracy calculations, when False, the thresholds are computed then collapsed across an individual's trials (
+    default is True)
+    :param flags: (optional) the value (PipelineFlags) describing what pipeline elements
+    should/should not be run on the data (default is stored in cogrecon_globals.py)
+
     :return: a list, (Nt, r), where Nt is the number of trials and r is the number of result metrics, of results values
     from the analysis for each trial on a particular file's data
+    :rtype: list (or empty list)
     """
     validate_list_format(actual_coordinates, require_numeric=True, dimension=3, list_name="actual_coordinates")
     validate_list_format(dat, require_numeric=True, dimension=3, list_name="dat")
@@ -161,21 +170,13 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
     subdirectories. It will search for the actual coordinates and data files and process them all as specified
     by the other parameters.
 
-    :param removal_dim_indicies:
-    :param dimension:
-    :param order_prefxies:
-    :param category_prefixes:
-    :param order_greedy_deanonymization_enabled:
-    :param category_independence_enabled:
-    :param manual_threshold:
-    :param actual_coordinate_prefixes: 
-    :rtype: None
     :param search_directory: the directory (string) in which to recursively search for data files
+    :param out_filename: the filename and path (string) into which the data should be saved
+
     :param data_shape: (optional) a shape (list, tuple or numpy array) which describes the structure of the date;
     (Nt, Ni, d) such that Nt is the number of trials, Ni is the number of items and d is the number of dimensions;
     if None is given, an attempt will be made to automatically detect the shape from the actual_coordinates file
     (default is None)
-    :param out_filename: the filename and path (string) into which the data should be saved
     :param accuracy_z_value: (optional) a value (float or int) representing the z threshold for counting something as
     accurate (default is stored in cogrecon_globals.py)
     :param trial_by_trial_accuracy: (optional) when True, z_value thresholds are used on a trial-by-trial basis for
@@ -185,6 +186,24 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
     the data (default is stored in cogrecon_globals.py)
     :param collapse_trials: (optional) if True, the output file will contain one row per participant, otherwise each
     trial will be output in an individual row
+    :param removal_dim_indicies: (optional) a list of dimension indicies to remove from processing (default is None)
+    :param dimension: (optional) the number of dimensions of the input data
+    :param order_greedy_deanonymization_enabled: (optional) whether the greedy, order based deanonymization method
+    should be used in determining the mapping of object to location (enabled if True, default is False). Note that if
+    enabled, an order file (or files) is expected.
+    :param category_independence_enabled: (optional) whether the items
+    involved have associated categorical information such that they should be processed independently (enabled if
+    True, default is False). Note that if enabled, a category file (or files) is expected.
+    :param manual_threshold: (optional) a list of manual swap threshold values associated with the specified participant
+    prefixes and trials in the batch process (default is None; should be of the same length as the number of trials)
+    :param order_prefxies: (optional) whether or not we will look for files associated with order in a one-to-one
+    fashion with data files based on the prefix values (default is False)
+    :param category_prefixes: (optional) whether or not we will look for files associated with category in a one-to-one
+    fashion with data files based on the prefix values (default is False)
+    :param actual_coordinate_prefixes: (optional) whether or not we will look for actual coordinate files in a
+    one-to-one fashion with data files based on the prefix values (default is False)
+
+    :rtype: None
     """
     assert isinstance(search_directory, str), \
         "search_directory must be a string: {0}".format(search_directory)
@@ -325,6 +344,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
                                          manual_threshold=mt, remove_dims=removal_dim_indicies,
                                          category_independence_enabled=category_independence_enabled,
                                          order_greedy_deanonymization_enabled=order_greedy_deanonymization_enabled)
+        # noinspection PySimplifyBooleanCheck
         if results != []:
             if category_independence_enabled:
                 for cat_result in results:
