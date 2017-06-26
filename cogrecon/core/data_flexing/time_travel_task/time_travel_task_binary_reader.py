@@ -532,7 +532,7 @@ def get_click_locations_and_indicies(iterations, items, meta):
                         click_size[idx][idxx] = 0.5
                     if not i1 == i2:
                         click_idx[idxx] = idx
-                        click_pos[idxx] = (i['x'], i['z'], i['time'])
+                        click_pos[idxx] = (i['x'], i['z'], i['time_val'])
                         click_color[idxx] = (128, 128, 128, 255)
             else:
                 for idxx, i1 in enumerate(i['itemsclicked']):

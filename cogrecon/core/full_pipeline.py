@@ -1,17 +1,18 @@
+import copy
+import itertools
 import logging
 import warnings
-import itertools
-import copy
+
 import networkx as nx
 import numpy as np
 from scipy.spatial import distance
 
+from cogrecon.core.visualization.vis_iposition import visualization
+from .cogrecon_globals import default_z_value
+from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
 from .similarity_transform import similarity_transform
 from .tools import validate_type, mask_points, collapse_unique_components, \
     find_minimal_mapping, greedy_find_minimal_mapping, sum_of_distance
-from .visualization import visualization
-from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
-from .cogrecon_globals import default_z_value
 
 
 def accuracy(participant_data, analysis_configuration, use_manual_threshold=False):

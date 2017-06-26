@@ -9,7 +9,7 @@ if __name__ == "__main__":
 else:
     from .time_travel_task_binary_reader import find_data_files_in_directory, get_item_details, read_binary_file, \
         parse_test_items, get_filename_meta_data, get_items_solutions
-    from ..cogrecon_globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, \
+    from cogrecon.core.cogrecon_globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, \
         order_file_suffix, category_file_suffix
 
 

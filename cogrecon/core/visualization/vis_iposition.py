@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import logging
 
-from .tools import lerp
-from .data_structures import TrialData, ParticipantData, AnalysisConfiguration
-from .cogrecon_globals import default_animation_duration, default_animation_ticks, \
+from cogrecon.core.tools import lerp
+from cogrecon.core.data_structures import TrialData, ParticipantData, AnalysisConfiguration
+from cogrecon.core.cogrecon_globals import default_animation_duration, default_animation_ticks, \
     default_visualization_transformed_points_color, default_visualization_transformed_points_alpha, \
     default_visualization_actual_points_color, default_visualization_data_points_color, \
     default_visualization_actual_points_size, default_visualization_data_points_size, default_visualization_font_size, \

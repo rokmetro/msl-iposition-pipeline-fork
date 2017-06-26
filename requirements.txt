@@ -10,3 +10,6 @@ easygui
 statsmodels
 tzlocal
 mock
+pyqtgraph
+pyopengl
+pillow
