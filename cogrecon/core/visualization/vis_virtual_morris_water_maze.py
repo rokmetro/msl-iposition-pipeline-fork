@@ -19,6 +19,7 @@ else:
         read_binary_file, trial_num_to_str
 
 
+# TODO: Fix issue with pyqt globals (should not used globals)
 def visualize(path=None):
     """
     This function visualizes data for the virtual morris water maze task.

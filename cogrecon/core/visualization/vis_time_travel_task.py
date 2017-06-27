@@ -24,6 +24,7 @@ else:
         get_filename_meta_data, find_data_files_in_directory
 
 
+# TODO: Fix issue with pyqt globals (should not used globals)
 def visualize_time_travel_data(path=None, automatically_rotate=True):
     """
     This function visualizes data from the Time Travel Task in 3D.
