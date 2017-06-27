@@ -1,5 +1,5 @@
-cogrecon\.core package
-======================
+cogrecon.core package
+=====================
 
 Subpackages
 -----------
@@ -7,70 +7,63 @@ Subpackages
 .. toctree::
 
     cogrecon.core.data_flexing
+    cogrecon.core.visualization
 
 Submodules
 ----------
 
-cogrecon\.core\.batch\_pipeline module
---------------------------------------
+cogrecon.core.batch_pipeline module
+-----------------------------------
 
 .. automodule:: cogrecon.core.batch_pipeline
     :members:
     :undoc-members:
     :show-inheritance:
 
-cogrecon\.core\.cogrecon\_globals module
-----------------------------------------
+cogrecon.core.cogrecon_globals module
+-------------------------------------
 
 .. automodule:: cogrecon.core.cogrecon_globals
     :members:
     :undoc-members:
     :show-inheritance:
 
-cogrecon\.core\.data\_structures module
----------------------------------------
+cogrecon.core.data_structures module
+------------------------------------
 
 .. automodule:: cogrecon.core.data_structures
     :members:
     :undoc-members:
     :show-inheritance:
 
-cogrecon\.core\.file\_io module
--------------------------------
+cogrecon.core.file_io module
+----------------------------
 
 .. automodule:: cogrecon.core.file_io
     :members:
     :undoc-members:
     :show-inheritance:
 
-cogrecon\.core\.full\_pipeline module
--------------------------------------
+cogrecon.core.full_pipeline module
+----------------------------------
 
 .. automodule:: cogrecon.core.full_pipeline
     :members:
     :undoc-members:
     :show-inheritance:
 
-cogrecon\.core\.similarity\_transform module
---------------------------------------------
+cogrecon.core.similarity_transform module
+-----------------------------------------
 
 .. automodule:: cogrecon.core.similarity_transform
     :members:
     :undoc-members:
     :show-inheritance:
 
-cogrecon\.core\.tools module
-----------------------------
+cogrecon.core.tools module
+--------------------------
 
 .. automodule:: cogrecon.core.tools
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-cogrecon\.core\.visualization module
-------------------------------------
-
-.. automodule:: cogrecon.core.visualization
     :members:
     :undoc-members:
     :show-inheritance:

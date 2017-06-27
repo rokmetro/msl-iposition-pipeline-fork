@@ -323,8 +323,8 @@ nav_summary_regex_search_key = 'C:.*\\\SummaryLog.*'
 test2d_raw_regex_search_key = 'C:.*\\\GMDA.*_Raw\.csv'
 
 """
-These values represent the search string (*_search_key) to be used to determine what phase a file is while the
-*_store_key_* and *_store_key values represent the internal dictionary representations which are used
+These values represent the search string (_search_key) to be used to determine what phase a file is while the
+_store_key_ and _store_key values represent the internal dictionary representations which are used
 to store the various file types in the parser dictionary. The search key may need to be adjusted if file naming
 changes one day, but the store keys should almost never have a reason to be changed.
 """
@@ -973,7 +973,7 @@ def parse_path_file(path, subject_id, trial_number, summary_file_path):
     :param summary_file_path: the file path to the summary data file
 
     :return: a list of rows with the following contents: subject_id,trial_number,time,x,y,z,room_by_order,room_by_color,
-    items_clicked,distance_from_last_point,time_since_last_point
+             items_clicked,distance_from_last_point,time_since_last_point
     """
     return parse_nav_file(path, subject_id, trial_number, summary_file_path, process_as_look=False)
 
@@ -990,7 +990,7 @@ def parse_look_file(path, subject_id, trial_number, summary_file_path):
     :param summary_file_path: the file path to the summary data file
 
     :return: a list of rows with the following contents: subject_id,trial_number,time,x,y,z,w,euler_x,euler_y,euler_z,
-    room_by_order,room_by_color,items_clicked,distance_from_last_point,time_since_last_point
+             room_by_order,room_by_color,items_clicked,distance_from_last_point,time_since_last_point
     """
     return parse_nav_file(path, subject_id, trial_number, summary_file_path, process_as_look=True)
 
@@ -1007,8 +1007,8 @@ def parse_test_2d_file(path, subject_id, trial_number, summary_file_path):
     :param summary_file_path: the file path to the summary data file
 
     :return: a list of rows with the following contents: subject_id,trial_number,item_id,x_placed,y_placed,x_expected,
-    y_expected,order_clicked_study,expected_room_by_order,expected_room_by_color,actual_room_by_order,
-    actual_room_by_color
+             y_expected,order_clicked_study,expected_room_by_order,expected_room_by_color,actual_room_by_order,
+             actual_room_by_color
     """
     f = open(path, 'rb')
 
