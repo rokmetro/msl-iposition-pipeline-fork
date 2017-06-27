@@ -25,7 +25,6 @@ else:
 
 
 def visualize_time_travel_data(path=None, automatically_rotate=True):
-    # noinspection PyGlobalUndefined
     """
     This function visualizes data from the Time Travel Task in 3D.
 
@@ -35,6 +34,7 @@ def visualize_time_travel_data(path=None, automatically_rotate=True):
 
     :return: Nothing
     """
+    # noinspection PyGlobalUndefined
     global path_line, idx, timer, iterations, click_scatter, click_pos, click_color, click_size, window, meta, \
         reconstruction_items, num_points_to_update, line_color, line_color_state, auto_rotate
 

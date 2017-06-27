@@ -72,6 +72,7 @@ def datetime_from_dot_net_binary(data):
     This function converts data from a .NET datetime binary representation to a python datetime object
 
     :param data: some binary data which is expected to convert to a datetime value
+
     :return: a datetime value corresponding to the binary .NET datetime representation from the input data
     """
     kind = (data % 2 ** 64) >> 62  # This says about UTC and stuff...
@@ -601,6 +602,7 @@ def find_data_files_in_directory(directory, file_regex=""):
 
     :param directory: the directory to search
     :param file_regex: the regular expression to match for files
+
     :return: a list of files which match the regular expression
     """
     if not os.path.exists(directory):
