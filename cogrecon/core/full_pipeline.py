@@ -7,12 +7,12 @@ import networkx as nx
 import numpy as np
 from scipy.spatial import distance
 
-from cogrecon.core.visualization.vis_iposition import visualization
+from .visualization.vis_iposition import visualization
 from .cogrecon_globals import default_z_value
 from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
 from .similarity_transform import similarity_transform
 from .tools import validate_type, mask_points, collapse_unique_components, \
-    find_minimal_mapping, greedy_find_minimal_mapping, sum_of_distance
+    find_minimal_mapping, greedy_find_minimal_mapping, sum_of_distance, permutation_from_index
 
 
 def accuracy(participant_data, analysis_configuration, use_manual_threshold=False):
@@ -457,6 +457,7 @@ def deanonymize(participant_data, analysis_configuration):
     min_scores = []
     min_score_positions = []
     raw_deanonymized_misplacements = []
+
     for actual_trial, data_trial, order_trial in zip(actual_points, data_points, data_order):
 
         if analysis_configuration.greedy_order_deanonymization:
@@ -574,9 +575,9 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
         deanon_accuracies = deanon_processed_accuracy.distance_accuracy_map
         deanon_threshold = deanon_processed_accuracy.distance_threshold
         # noinspection PyTypeChecker
-        deanonymized_labels = [list(list(itertools.permutations(
-            range(0, len(participant_data.actual_points[idx]))))[position])
-                               for idx, position in enumerate(min_score_position)]
+        deanonymized_labels = [permutation_from_index(
+            list(range(0, len(participant_data.actual_points[idx]))), position)
+            for idx, position in enumerate(min_score_position)]
         participant_data.data_labels = deanonymized_labels
         actual_labels = [range(len(actual_trial)) for actual_trial in
                          actual_coordinates]
@@ -585,8 +586,8 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
         deanon_threshold = [np.nan] * num_trials
         deanon_accuracies = [[]] * num_trials
         raw_deanonymized_misplacement = [np.nan] * num_trials
-        deanonymized_labels = [list(itertools.permutations(
-            range(0, len(participant_data.actual_points[0]))))[position] for position in [0] * num_trials]
+        deanonymized_labels = [permutation_from_index(list(range(0, len(participant_data.actual_points[0]))), position)
+                               for position in [0] * num_trials]
         deanonymized_labels = [list(_x) for _x in deanonymized_labels]
         participant_data.data_labels = deanonymized_labels
         actual_labels = [range(len(actual_trial)) for actual_trial in
@@ -627,6 +628,10 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
      partial_cycle_swap_distances, partial_cycle_swap_expected_distances) = swaps(participant_data,
                                                                                   analysis_configuration)
 
+    # TODO: This is a patch fix, but it doesn't address the problem. For some reason, edge_distort occasionally returns
+    # (0, []). I have no idea where it's coming from, but replacing it with nan is a stopgap as that metric isn't used.
+    if isinstance(edge_distort, list) and isinstance(edge_distort[0], list) and (0, []) in edge_distort:
+        edge_distort = [[_x if _x is not (0, []) else np.nan for _x in sublist] for sublist in edge_distort]
     output = \
         [straight_misplacements,
          axis_swaps,
@@ -676,10 +681,15 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
     output = np.transpose(np.array(output, dtype=object))
     # If requested, visualize the data
     if visualize:
-        for idx, (trial, min_trial, transformed_trial, output_trial) in \
-                enumerate(zip(original_participant_data.trials, min_coordinates, transformed_coordinates, output)):
+        for idx, (trial, min_trial, transformed_trial, output_trial, pre_process_threshold_trial,
+                  swap_dist_threshold_trial, pre_processed_accuracy_trial, post_distance_accuracy_map_trial) in \
+                enumerate(zip(original_participant_data.trials, min_coordinates, transformed_coordinates, output,
+                              pre_process_threshold, swap_dist_threshold, pre_processed_accuracy.distance_accuracy_map,
+                              participant_data.distance_accuracy_map)):
             # noinspection PyTypeChecker
             visualization(trial, analysis_configuration, min_trial, transformed_trial, output_trial,
+                          pre_process_threshold_trial, swap_dist_threshold_trial,
+                          pre_processed_accuracy_trial, post_distance_accuracy_map_trial,
                           extent=visualization_extent, fig_size=fig_size)
 
     return output
@@ -699,13 +709,14 @@ def get_header_labels():
             "Number of Points Excluded From Geometric Transform", "Rotation Theta", "Scaling",  # 5
             "Translation Magnitude",  # 6
             "Translation", "Geometric Distance Threshold", "Post-Transform Misplacement",  # 7
-            "Number of Components", "Accurate Single-Item Placements", "Inaccurate Single-Item Placements", "True Swaps",  # 8
-            "Partial Swaps", "Cycle Swaps", "Partial Cycle Swaps", "Misassignment", "Accurate Misassignment",  # 9
-            "Inaccurate Misassignment", "Swap Distance Threshold",  # 10
-            "True Swap Data Distance", "True Swap Actual Distance", "Partial Swap Data Distance",  # 11
-            "Partial Swap Actual Distance", "Cycle Swap Data Distance", "Cycle Swap Actual Distance",  # 12
-            "Partial Cycle Swap Data Distance", "Partial Cycle Swap Actual Distance",  # 13
-            "Unique Components", "Contains Category Data", "Category Label"]  # 14
+            "Number of Components", "Accurate Single-Item Placements", "Inaccurate Single-Item Placements",  # 8
+            "True Swaps",  # 9
+            "Partial Swaps", "Cycle Swaps", "Partial Cycle Swaps", "Misassignment", "Accurate Misassignment",  # 10
+            "Inaccurate Misassignment", "Swap Distance Threshold",  # 11
+            "True Swap Data Distance", "True Swap Actual Distance", "Partial Swap Data Distance",  # 12
+            "Partial Swap Actual Distance", "Cycle Swap Data Distance", "Cycle Swap Actual Distance",  # 13
+            "Partial Cycle Swap Data Distance", "Partial Cycle Swap Actual Distance",  # 14
+            "Unique Components", "Contains Category Data", "Category Label"]  # 15
 
 
 # (lambda x: list(array(x).flatten())) for append
@@ -724,10 +735,11 @@ def get_aggregation_functions():
             np.nansum, np.nanmean, np.nanmean,  # 5
             np.nanmean,  # 6
             (lambda xs: [np.nanmean(x) for x in np.transpose(xs)]), np.nanmean, np.nanmean,  # Mean of vectors # 7
-            np.nanmean, np.nanmean, np.nanmean, np.nanmean,  # 8
-            np.nanmean, np.nanmean, np.nanmean, np.nanmean, np.nanmean,  # 9
-            np.nanmean, np.nanmean,  # 10
-            np.nanmean, np.nanmean, np.nanmean,  # 11
+            np.nanmean, np.nanmean, np.nanmean,  # 8
+            np.nanmean,  # 9
+            np.nanmean, np.nanmean, np.nanmean, np.nanmean, np.nanmean,  # 10
+            np.nanmean, np.nanmean,  # 11
             np.nanmean, np.nanmean, np.nanmean,  # 12
-            np.nanmean, np.nanmean,  # 13
-            collapse_unique_components, any, collapse_unique_components]  # 14
+            np.nanmean, np.nanmean, np.nanmean,  # 13
+            np.nanmean, np.nanmean,  # 14
+            collapse_unique_components, any, collapse_unique_components]  # 15

@@ -291,7 +291,10 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
             if index_check < idx:
                 categories.append(copy.copy(categories[index_check]))
             else:
-                categories.append(get_coordinates_from_file(f, tuple(list(data_shape[:2]) + [1])))
+                if data_shape is None:
+                    categories.append(get_coordinates_from_file(f, None, dimension=1))
+                else:
+                    categories.append(get_coordinates_from_file(f, tuple(list(data_shape[:2]) + [1]), dimension=1))
 
     data_orders = []
     for idx, f in enumerate(order_filenames):
@@ -305,7 +308,11 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
             if index_check < idx:
                 data_orders.append(copy.copy(data_orders[index_check]))
             else:
-                data_orders.append(get_coordinates_from_file(f, tuple(list(data_shape[:2]) + [1]), data_type=int))
+                if data_shape is None:
+                    data_orders.append(get_coordinates_from_file(f, None, data_type=int, dimension=1))
+                else:
+                    data_orders.append(get_coordinates_from_file(f, tuple(list(data_shape[:2]) + [1]),
+                                                                 data_type=int, dimension=1))
 
     data_labels = [get_id_from_file_prefix_via_suffix(filename, data_coordinates_file_suffix) for filename in
                    data_coordinates_filenames]
@@ -385,7 +392,13 @@ def output_results(results, collapse_trials, agg_functions, out_fp, label):
         # Apply the aggregation function to each value
         result = []
         for iidx in range(len(results[0])):
-            result.append(agg_functions[iidx]([row[iidx] for row in results]))
+            # noinspection PyBroadException
+            try:
+                result.append(agg_functions[iidx]([row[iidx] for row in results]))
+            except Exception:
+                logging.error('index {0} in result {1} failed to aggregate, '
+                              'nan will be returned instead'.format(iidx, np.array(results)[:, iidx]))
+                result.append(np.nan)
         # Write to file
         out_fp.write(
             '{0},{1}\n'.format(

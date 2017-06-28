@@ -1,8 +1,8 @@
 import numpy as np
 import itertools
 import random
-import sys
 
+from functools import reduce
 import scipy.spatial.distance as distance
 from scipy.spatial.distance import cdist
 from scipy.optimize import linear_sum_assignment
@@ -214,6 +214,9 @@ def greedy_find_minimal_mapping(p0, p1, order):
     in which the points should be processed, finding the minimal association on a point-by-point basis. This
     will often leave the final points with very suboptimal mappings.
 
+    NOTE: This function makes a very strong assumption that the nearest neighbor mapping of items in order of placement
+    will produce a reasonable outcome. If the point cloud is even remotely dense, this assumption will likely be false.
+
     :param p0: a list of points
     :param p1: a list of points
     :param order: a list of integers specifying the order in which to associate points from p0 to p1 minimally
@@ -236,17 +239,45 @@ def greedy_find_minimal_mapping(p0, p1, order):
     sorted_p1 = list(map(p1.__getitem__, indices))
 
     map_order = []
-    for idx, p in enumerate(sorted_p1):
-        min_dist = sys.float_info.max
-        min_idx = -1
-        for idxx, pp in enumerate(sorted_p0):
-            dist = distance.euclidean(p, pp)
-            if dist < min_dist:
-                min_dist = dist
-                min_idx = idx
-        map_order.append(min_idx)
-        del sorted_p1[min_idx]
+    dists = distance.cdist(np.array(sorted_p0), np.array(sorted_p1))
+    for idx in range(len(sorted_p0)):
+        p0_to_p1_map = np.argmin(dists[:, idx])
+        map_order.append(p0_to_p1_map)
+        dists[p0_to_p1_map, :] = np.finfo(dists.dtype).max
 
     p1_reordered = [p1[idx] for idx in map_order]
 
     return sum_of_distance(p0, p1_reordered), lexicographic_index(map_order), p1_reordered
+
+
+def n_perms(seq):
+    """
+    Computes the factorial of the length of seq.
+
+    From: https://code.activestate.com/recipes/126037-getting-nth-permutation-of-a-sequence/
+
+    :param seq: the sequence whose factorial length should be returned
+    :return: the factorial of the length of seq
+    """
+    return reduce(lambda x, y: x * y, range(1, len(seq) + 1), 1)
+
+
+def permutation_from_index(seq, index):
+    """
+    Returns the th permutation of (in proper order).
+
+    From: https://code.activestate.com/recipes/126037-getting-nth-permutation-of-a-sequence/
+
+    :param seq: the sequence to reorder according to the lexicographical index
+    :param index: the lexicographical index with which to reorder seq
+    :return: seq reordered according to the lexicographical index
+    """
+    seqc = list(seq[:])
+    result = []
+    fact = n_perms(seq)
+    index %= fact
+    while seqc:
+        fact = fact / len(seqc)
+        choice, index = index // fact, index % fact
+        result += [seqc.pop(int(choice))]
+    return result

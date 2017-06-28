@@ -190,8 +190,8 @@ def quat2euler(q):
 
     :return: a tuple containing roll, pitch and yaw
     """
-    roll = np.arctan2(2*(q[1]*q[3] + q[0]*q[2]), 1-2*(q[1]*q[1]+q[2]*q[2]))
-    pitch = np.arctan2(2*(q[0]*q[3]+q[1]*q[2]), 1-2*(q[0]*q[0]+q[2]*q[2]))
+    roll = np.arctan2(2 * (q[1] * q[3] + q[0] * q[2]), 1 - 2 * (q[1] * q[1] + q[2] * q[2]))
+    pitch = np.arctan2(2 * (q[0] * q[3] + q[1] * q[2]), 1 - 2 * (q[0] * q[0] + q[2] * q[2]))
     yaw = np.arcsin(2 * (q[0] * q[1] - q[2] * q[3]))
     return roll, pitch, yaw
 
@@ -208,7 +208,7 @@ def get_simple_orientation_path_from_raw_iterations(raw_iterations):
     for i in raw_iterations:
         p = i['state']['First Person Controller']['rotation']
         x, y, z = quat2euler(p)
-        angles.append(np.pi - x - np.pi/2.)
+        angles.append(np.pi - x - np.pi / 2.)
     return angles
 
 
@@ -254,6 +254,7 @@ def compare_summary_and_raw_events():  # raw_events, summary_events):
     raw events from read_raw_file match.
     """
     raise NotImplemented
+
 
 ########################################################################################################################
 # 4-Room Parser
@@ -318,9 +319,9 @@ nav_time_format_string = "%H_%M_%S_%d-%m-%Y"
 """
 These values represent the regular expressions being used to find the three types of files of interest
 """
-nav_raw_regex_search_key = 'C:.*\\\RawLog.*'
-nav_summary_regex_search_key = 'C:.*\\\SummaryLog.*'
-test2d_raw_regex_search_key = 'C:.*\\\GMDA.*_Raw\.csv'
+nav_raw_regex_search_key = '.*\\\RawLog.*\.csv'
+nav_summary_regex_search_key = '.*\\\SummaryLog.*\.csv'
+test2d_raw_regex_search_key = '.*\\\GMDA.*_Raw\.csv'
 
 """
 These values represent the search string (_search_key) to be used to determine what phase a file is while the
@@ -518,6 +519,10 @@ def catalog_files(files, min_num_trials, exclude_incomplete_trials):
             test_2d_raw_files.append(f)
         else:
             non_matching_files.append(f)
+
+    logging.info('Found {0} raw files, {1} summary files, {2} test 2d raw files, and {3} non-matching files. '
+                 'Attempting to associate files.'.format(len(raw_files), len(summary_files), len(test_2d_raw_files),
+                                                         len(non_matching_files)))
 
     # Generate dictionary of individuals for various phases (practice, study, test)
     subject_dict = dict()

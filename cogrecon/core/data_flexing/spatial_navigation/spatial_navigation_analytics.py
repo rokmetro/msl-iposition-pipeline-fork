@@ -10,6 +10,9 @@ from scipy.spatial import distance
 
 import spatial_navigation_parser as log_parser
 
+from ...cogrecon_globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, category_file_suffix, \
+    order_file_suffix
+
 
 def generate_intermediate_files_command_line():
     # Parse inputs
@@ -120,7 +123,7 @@ def generate_intermediate_files(search_path, full_study_path=False, full_study_l
     # Check if there aren't any files and early stop if there aren't
     if not files:
         logging.error("No files found in directory. Closing without creation of output files.")
-        exit()
+        return
 
     logging.info("Found %d files. Attempting to catalog filenames by Individual, Trial, and Phase" % len(files))
 
@@ -770,14 +773,6 @@ def generate_segmentation_analysis(input_path, output_path, log_level=20):
     :return: Nothing
     """
 
-    test_labels = ["purse", "crown", "basketball", "boot", "emerald", "clover", "bandana", "guitar",
-                   "fire extinguisher",
-                   "hammer", "lemon", "ice cube", "bottle", "ketchup", "boxing gloves", "crab"]
-    study_labels = ["PurseCube", "CrownCube", "BasketballCube", "BootCube", "EmeraldCube", "CloverCube", "BandanaCube",
-                    "GuitarCube", "FireExtCube",
-                    "HammerCube", "LemonCube", "IceCubeCube", "BottleCube", "KetchupCube", "BoxingGloveCube",
-                    "CrabCube"]
-
     # These values represent the context-triples set of for testing segmentation effects (and labels for convenience)
     # noinspection PyUnusedLocal
     triples_labels = ["red->green", "green->yellow", "yellow->blue", "blue->red"]
@@ -829,13 +824,13 @@ def generate_segmentation_analysis(input_path, output_path, log_level=20):
     def compute_metrics(lines):
         out_lines = []
 
-        is_study = (lines[0][2] in study_labels)
+        is_study = (lines[0][2] in log_parser.study_labels)
 
         for pair in context_crossing_triples_indicies:
             if is_study:
-                labels_to_use = study_labels
+                labels_to_use = log_parser.study_labels
             else:
-                labels_to_use = test_labels
+                labels_to_use = log_parser.test_labels
             first_pair_name = labels_to_use[pair[0]]
             second_pair_name = labels_to_use[pair[1]]
             first_pair_loc_actual = None
@@ -872,9 +867,9 @@ def generate_segmentation_analysis(input_path, output_path, log_level=20):
 
         for pair in noncontext_crossing_triples_indicies:
             if is_study:
-                labels_to_use = study_labels
+                labels_to_use = log_parser.study_labels
             else:
-                labels_to_use = test_labels
+                labels_to_use = log_parser.test_labels
             first_pair_name = labels_to_use[pair[0]]
             second_pair_name = labels_to_use[pair[1]]
             first_pair_loc_actual = None
@@ -920,3 +915,109 @@ def generate_segmentation_analysis(input_path, output_path, log_level=20):
     fp_writer.close()
 
     logging.info("Done!")
+
+
+def convert_to_iposition(input_path, output_path, expected_number_of_trials=4):
+    """
+    This function takes a path to a test intermediate file and generates a directory of iPosition formatted files.
+
+    Note: The correct coordinates are from log_parser.study_realX, log_parser.study_realY, thus the assumption is made
+    that this will only be run on the VR form of the task (not the 2D form), or that the 2D form data will be converted
+    to the coordinate system of the VR task.
+
+    :param expected_number_of_trials: the expected number of trials to output (error will throw if number exceeds
+                                      expectation, but no error will occur if the data is incomplete)
+    :param output_path: the output directory into which to save the iposition files (will be created if doesn't exist)
+    :param input_path: the path to the test intermediate file
+    """
+
+    # Read the file
+    fp_reader = open(input_path, 'rb')
+    reader = csv.reader(fp_reader)
+    # noinspection PyUnusedLocal
+    header = reader.next()
+
+    if not os.path.exists(output_path):
+        os.mkdir(os.path.abspath(output_path))
+
+    write_data = {}
+    order_data = {}
+    category_data = {}
+    # Iterate through trial/subid data
+    for line in reader:
+        sub_id = line[0]
+        if sub_id not in write_data:
+            write_data[sub_id] = [[[] for _ in range(len(log_parser.study_labels))]
+                                  for _ in range(expected_number_of_trials)]
+        if sub_id not in order_data:
+            order_data[sub_id] = [[] for _ in range(expected_number_of_trials)]
+        if sub_id not in category_data:
+            category_data[sub_id] = [[0 for _ in range(len(log_parser.study_labels))]
+                                     for _ in range(expected_number_of_trials)]
+        # Iterate through items
+        # Find the index of the items in the lut and placed coordinates
+        trial = line[1]
+        item_idx = log_parser.study_labels.index(line[2])
+        x = line[3]
+        y = line[4]
+        room_color = line[11]
+        category_number = log_parser.context_labels.index(room_color)
+        # Add them to the appropriate output section
+        if int(trial) > expected_number_of_trials:
+            logging.error('trial number {0} exceeds expected number {1} on '
+                          'participant {2}.'.format(int(trial), expected_number_of_trials, sub_id))
+        if item_idx > len(log_parser.study_labels):
+            logging.error('item with name {0} found index {1} which exceeds the length of the labels ({2}) on '
+                          'participant {3}.'.format(line[2], item_idx, len(log_parser.study_labels), sub_id))
+        write_data[sub_id][int(trial)][item_idx] = [x, y]
+        order_data[sub_id][int(trial)].append(item_idx)
+        category_data[sub_id][int(trial)][item_idx] = category_number
+        # Flatten the trial coordinates and tab separate them in the proper order
+    for sub_id in write_data:
+        out_lines = []
+        coords = write_data[sub_id]
+        for trial_coords in coords:
+            flattened_trial_coords = [item for sublist in trial_coords for item in sublist]
+            out_lines.append('\t'.join([str(_a) for _a in flattened_trial_coords]) + '\r\n')
+        # Write the position data to file
+        with open(os.path.abspath(os.path.join(output_path, '{0}{1}'.format(sub_id, data_coordinates_file_suffix))),
+                  'wb') as fp:
+            fp.writelines(out_lines)
+
+    for sub_id in order_data:
+        out_lines = []
+        coords = order_data[sub_id]
+        for trial_coords in coords:
+            out_lines.append('\t'.join([str(_a) for _a in trial_coords]) + '\r\n')
+        # Write the position data to file
+        with open(os.path.abspath(os.path.join(output_path, '{0}{1}'.format(sub_id, order_file_suffix))),
+                  'wb') as fp:
+            fp.writelines(out_lines)
+
+    for sub_id in category_data:
+        out_lines = []
+        coords = category_data[sub_id]
+        for trial_coords in coords:
+            out_lines.append('\t'.join([str(_a) for _a in trial_coords]) + '\r\n')
+        # Write the position data to file
+        with open(os.path.abspath(os.path.join(output_path, '{0}{1}'.format(sub_id, category_file_suffix))),
+                  'wb') as fp:
+            fp.writelines(out_lines)
+
+    with open(os.path.abspath(os.path.join(output_path, actual_coordinates_file_suffix)), 'wb') as fp:
+        actual_coordinates = [item for sublist in
+                              np.transpose([log_parser.study_realX, log_parser.study_realY]).tolist()
+                              for item in sublist]
+        for _ in range(expected_number_of_trials):
+            fp.write('\t'.join([str(_a) for _a in actual_coordinates]) + '\r\n')
+
+    categories = [0 for _ in range(len([item for sublist in log_parser.context_item_indicies for item in sublist]))]
+    for cat, idxs in enumerate(log_parser.context_item_indicies):
+        for idx in idxs:
+            categories[idx] = cat
+
+    with open(os.path.abspath(os.path.join(output_path, category_file_suffix)), 'wb') as fp:
+        for _ in range(expected_number_of_trials):
+            fp.write('\t'.join([str(_a) for _a in categories]) + '\r\n')
+
+    fp_reader.close()

@@ -4,7 +4,7 @@ import numpy as np
 import inspect
 
 from .file_io import get_coordinates_from_file
-from .cogrecon_globals import default_z_value, default_pipeline_flags
+from .cogrecon_globals import default_z_value, default_pipeline_flags, default_dimensions
 
 
 class PipelineFlags(Enum):
@@ -431,37 +431,48 @@ class ParticipantData(object):
 
     @staticmethod
     def load_from_file(actual_coordinates_filepath, data_coordinates_filepath, expected_shape,
+                       dimension=default_dimensions,
                        category_filepath=None, order_filepath=None):
         """
         This helper function takes paths to data files and an expected shape and generates a ParticipantData object
         which contains the file data.
 
-        :param actual_coordinates_filepath: the path to the actual_coordinates.txt file, containing actual/correct/target
-                                            data coordinates
+        :param actual_coordinates_filepath: the path to the actual_coordinates.txt file, containing
+                                            actual/correct/target data coordinates
         :param data_coordinates_filepath: the path to the position_data_coordinates.txt file, containing
                                           participant data coordinates
         :param expected_shape: a tuple of integers specifying the shape the data should be
+        :param dimension: the expected dimensionality of the data
         :param category_filepath: a path to the category.txt file, specifying item categories
         :param order_filepath: a path to the order.txt file, specifying order of placement
 
         :return: the ParticipantData object containing all appropriate information given the input file paths
         """
-        actual = get_coordinates_from_file(actual_coordinates_filepath, expected_shape)
-        data = get_coordinates_from_file(data_coordinates_filepath, expected_shape)
+        actual = get_coordinates_from_file(actual_coordinates_filepath, expected_shape, dimension=dimension)
+        data = get_coordinates_from_file(data_coordinates_filepath, expected_shape, dimension=dimension)
         category = [None] * len(actual)
         order = [None] * len(actual)
         if category_filepath is not None:
             # categories are always 1D, so we strip the dimensionality and add a [1] to the list
             # categories can be any type, so we set type to None
-            category = get_coordinates_from_file(category_filepath, tuple(list(expected_shape[:2]) + [1]),
-                                                 data_type=None)
+            if expected_shape is None:
+                category = get_coordinates_from_file(category_filepath, None, dimension=1,
+                                                     data_type=None)
+            else:
+                category = get_coordinates_from_file(category_filepath, tuple(list(expected_shape[:2]) + [1]),
+                                                     data_type=None, dimension=1)
         if order_filepath is not None:
             # order is always 1D, so we strip the dimensionality and add a [1] to the list
             # order should be an integer, so we set type to int
-            order = get_coordinates_from_file(order_filepath, tuple(list(expected_shape[:2]) + [1]),
-                                              data_type=int)
+            if expected_shape is None:
+
+                order = get_coordinates_from_file(order_filepath, None, dimension=1,
+                                                  data_type=int)
+            else:
+                order = get_coordinates_from_file(order_filepath, tuple(list(expected_shape[:2]) + [1]),
+                                                  data_type=int, dimension=1)
         _participant_data = ParticipantData([TrialData(_a, _d, cateogry_labels=_c, data_order=_o)
-                                             for _a, _d, _o, _c in zip(actual, data, category, order)])
+                                             for _a, _d, _c, _o in zip(actual, data, category, order)])
 
         return _participant_data
 
@@ -475,7 +486,7 @@ class AnalysisConfiguration:
     """
     # noinspection PyDefaultArgument
     def __init__(self, z_value=default_z_value,
-                 trial_by_trial_accuracy=True, manual_threshold=None,
+                 trial_by_trial_accuracy=False, manual_threshold=None,
                  flags=PipelineFlags(default_pipeline_flags),
                  greedy_order_deanonymization=False,
                  process_categories_independently=False, is_category=False, category_label=None,
