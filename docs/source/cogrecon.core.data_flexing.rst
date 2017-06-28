@@ -1,5 +1,5 @@
-cogrecon.core.data_flexing package
-==================================
+cogrecon\.core\.data\_flexing package
+=====================================
 
 Subpackages
 -----------
@@ -13,24 +13,24 @@ Subpackages
 Submodules
 ----------
 
-cogrecon.core.data_flexing.category_data_flexor module
-------------------------------------------------------
+cogrecon\.core\.data\_flexing\.category\_data\_flexor module
+------------------------------------------------------------
 
 .. automodule:: cogrecon.core.data_flexing.category_data_flexor
     :members:
     :undoc-members:
     :show-inheritance:
 
-cogrecon.core.data_flexing.descrambler module
----------------------------------------------
+cogrecon\.core\.data\_flexing\.descrambler module
+-------------------------------------------------
 
 .. automodule:: cogrecon.core.data_flexing.descrambler
     :members:
     :undoc-members:
     :show-inheritance:
 
-cogrecon.core.data_flexing.dimension_removal module
----------------------------------------------------
+cogrecon\.core\.data\_flexing\.dimension\_removal module
+--------------------------------------------------------
 
 .. automodule:: cogrecon.core.data_flexing.dimension_removal
     :members:

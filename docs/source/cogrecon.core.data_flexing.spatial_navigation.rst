@@ -1,19 +1,19 @@
-cogrecon.core.data_flexing.spatial_navigation package
-=====================================================
+cogrecon\.core\.data\_flexing\.spatial\_navigation package
+==========================================================
 
 Submodules
 ----------
 
-cogrecon.core.data_flexing.spatial_navigation.spatial_navigation_analytics module
----------------------------------------------------------------------------------
+cogrecon\.core\.data\_flexing\.spatial\_navigation\.spatial\_navigation\_analytics module
+-----------------------------------------------------------------------------------------
 
 .. automodule:: cogrecon.core.data_flexing.spatial_navigation.spatial_navigation_analytics
     :members:
     :undoc-members:
     :show-inheritance:
 
-cogrecon.core.data_flexing.spatial_navigation.spatial_navigation_parser module
-------------------------------------------------------------------------------
+cogrecon\.core\.data\_flexing\.spatial\_navigation\.spatial\_navigation\_parser module
+--------------------------------------------------------------------------------------
 
 .. automodule:: cogrecon.core.data_flexing.spatial_navigation.spatial_navigation_parser
     :members:

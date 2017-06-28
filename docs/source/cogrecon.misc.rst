@@ -1,19 +1,19 @@
-cogrecon.misc package
-=====================
+cogrecon\.misc package
+======================
 
 Submodules
 ----------
 
-cogrecon.misc.draggable_points module
--------------------------------------
+cogrecon\.misc\.draggable\_points module
+----------------------------------------
 
 .. automodule:: cogrecon.misc.draggable_points
     :members:
     :undoc-members:
     :show-inheritance:
 
-cogrecon.misc.heatmap_transform module
---------------------------------------
+cogrecon\.misc\.heatmap\_transform module
+-----------------------------------------
 
 .. automodule:: cogrecon.misc.heatmap_transform
     :members:
