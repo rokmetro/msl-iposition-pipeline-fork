@@ -10,19 +10,14 @@ Install Git: https://git-scm.com/downloads if you don't already have it.
 
 Install Anaconda Python: https://www.continuum.io/downloads if you don't already have it.
 
-In a command prompt/terminal, navigate to/create an **empty directory**, then run:
+In a command prompt/terminal (you may need to run as administrator), navigate to/create an **empty directory**, then run:
 
 ::
-    conda create -n iposition python=2.7 scipy --yes
+    conda create -n iposition python=2.7 --yes
     activate iposition
+    conda install scipy jupyter scikit-learn --yes
     git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
     pip install .
-
-To use some of the tests, you will additionally need to run:
-
-::
-    activate iposition
-    conda install jupyter scikit-learn
 
 Updating
 --------
@@ -46,75 +41,16 @@ Usage
 
 Note: this section is incomplete and will be updated as new features are added.
 
-Command Line Options
---------------------
-
-The easiest way to run the program is in batch mode via the command line. Running
+Although there are many ways to interface with this analysis software, the easiest is to use a Jupyter Notebook in your web browser. To begin, navigate to wherever you downloaded the github repository (from the installation steps), and open a command prompt/terminal window. Then run:
 
 ::
-    python batch_pipeline.py
+    activate iposition
+    jupyter notebook
 
-runs the program in default mode (with a directory selection dialog popup).
+A window in your default web browser (preferrably Chrome) will open with a listing of the files and subdirectories in that github repository directory. Click on the 'tests' folder. This folder contains a variety of interactive scripts to perform various functions using the software package. To run a simple analysis on a directory of data, generating an output CSV, click Pipeline-Test.ipynb. This will open a new window in which there are cells containing code as well as additional documentation.
 
-Command Line Arguments
-----------------------
+To run the simple analysis, scroll down to Batch Pipeline Test and select the first code cell. Press Shift+Enter and you will see the cell execute (the first cell imports the software). Click Shift+Enter again and wait. A popup asking you to select a folder will appear. Select your data folder and click OK. The data will be processed and a CSV file will be created locally in the 'tests' folder. 
 
-* --search_directory - the root directory in which to search for the actual and data coordinate files (actual_coordinates.txt and ###position_data_coordinates.txt, respectively (will prompt with dialog if left empty)
-* --num_trials - the number of trials in each file (will be detected automatically if left empty)
-* --num_items - the number of items in each trial (will be detected automatically if left empty)
-* --pipeline_mode - the mode in which the pipeline should process (default is 3); 
+If you want to run with different settings/paramters, see the documentation for the batch_pipeline function here: http://msl-iposition-pipeline.readthedocs.io/en/latest/source/cogrecon.core.html#module-cogrecon.core.batch_pipeline
 
-  * 0 for just accuracy+swaps, 
-  * 1 for accuracy+deanonymization+swaps, 
-  * 2 for accuracy+global transformations+swaps, 
-  * 3 for accuracy+deanonymization+global transformations+swaps
-
-* --accuracy_z_value - the z value to be used for accuracy exclusion (default is 1.96, corresponding to 95% confidence)
-* --collapse_trials - if 0, one row per trial will be output, otherwise one row per participant will be output (default is 1)
-* --dimension - the dimensionality of the data (default is 2)
-* --trial_by_trial_accuracy - when not 0, z_value thresholds are used on a trial-by-trial basis for accuracy calculations, when 0, the thresholds are computed then collapsed across an individual\'s trials (default is 1)
-* --prefix_length - the length of the subject ID prefix at the beginning of the data filenames (default is 3)
-
-Advanced usage example
-----------------------
-
-In this example, the "C:\\Users Folder\\Data" folder and its subfolders will be searched for actual_coordinates.txt and files with length 5 participant IDs followed by position_data_coordinates.txt. Each file will be expected to have 15 trials and 6 items/trial with 3 dimensions each. The accuracy will be computed on a trial by trial basis using a 90% confidence interval. Each trial will be output independently (one per row).
-
-::
-    python batch_pipeline.py --search_directory="C:\User Folder\Data" --num_trials=15 --num_items=6 --accuracy_z_value=1.64 --collapse_trials=0 --dimension=3 --trial_by_trial_accuracy=1 --prefix_length=5
-
-Visualization of Single Trials
-------------------------------
-
-Individual trials can be visualized by calling the full_pipeline.py file with appropriate arguments. The required arguments are (in this order):
-
-* actual_coordinates - the path to the file containing the actual coordinates
-* data_coordinates - the path to the file containing the data coordinates
-* num_trials
-* num_items
-* line_number
-
-The optional arguments are:
-
-* --pipeline_mode - the mode in which the pipeline should process (default is 3); 
-
-  * 0 for just accuracy+swaps, 
-  * 1 for accuracy+deanonymization+swaps, 
-  * 2 for accuracy+global transformations+swaps, 
-  * 3 for accuracy+deanonymization+global transformations+swaps
-
-* --accuracy_z_value - the z value to be used for accuracy exclusion (default is 1.96, corresponding to 95% confidence)
-* --dimension - the dimensionality of the data (default is 2)
-
-Visualization Usage Example
----------------------------
-
-To visualize the second of participant 101's data (assuming 15 trials and 5 items), the command line should be:
-
-::
-    python full_pipeline.py "actual_coordinates.txt" "101position_data_coordinates.txt" 15 5 1
-
-Scripted Usage
---------------
-
-Each program can be run from another python script. The easiest way to learn to do this is to look at the examples built into the buttom of each script (below the "# Test code" comment). 
+In particular, note if you have trial_by_trial_accuracy set to True or False (to determine if accuracy is computer within or across trials) and if you need actual_coordinate_prefixes set to True or False (if you have an actual_coordinates.txt file for every participant).
