@@ -28,17 +28,22 @@ Updating
 
 To update the script to the latest version navigate to/create an **empty directory**, then run:
 
-::
     activate iposition
+    
     git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
+    
     pip install --upgrade .
+    
 
 If you'd like to update without changing the dependencies you can instead, from an **empty directory**, run:
 
-::
+
     activate iposition
+    
     git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
+    
     pip install --upgrade . --no-deps
+    
 
 Usage
 -----
@@ -47,9 +52,10 @@ Note: this section is incomplete and will be updated as new features are added.
 
 Although there are many ways to interface with this analysis software, the easiest is to use a Jupyter Notebook in your web browser. To begin, navigate to wherever you downloaded the github repository (from the installation steps), and open a command prompt/terminal window. Then run:
 
-::
     activate iposition
+    
     jupyter notebook
+    
 
 A window in your default web browser (preferrably Chrome) will open with a listing of the files and subdirectories in that github repository directory. Click on the 'tests' folder. This folder contains a variety of interactive scripts to perform various functions using the software package. To run a simple analysis on a directory of data, generating an output CSV, click Pipeline-Test.ipynb. This will open a new window in which there are cells containing code as well as additional documentation.
 
