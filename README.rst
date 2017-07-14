@@ -13,10 +13,15 @@ Install Anaconda Python: https://www.continuum.io/downloads if you don't already
 In a command prompt/terminal (you may need to run as administrator), navigate to/create an **empty directory**, then run:
 
     conda create -n iposition python=2.7 --yes
+    
     activate iposition
+    
     conda install scipy jupyter scikit-learn --yes
+    
     git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
+    
     pip install .
+    
 
 Updating
 --------
