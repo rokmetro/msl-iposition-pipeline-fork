@@ -415,6 +415,8 @@ def trial_swaps(trial_data):
                 partial_cycle_swap_distances.append(np.mean(dists_data))
                 partial_cycle_swap_expected_distances.append(np.mean(dists_actual))
 
+    accurate_misassignment_pairs = []
+    inaccurate_misassignment_pairs = []
     misassignment = 0
     accurate_misassignment = 0
     inaccurate_misassignment = 0
@@ -422,8 +424,10 @@ def trial_swaps(trial_data):
         if actual_label != data_label:
             misassignment += 1
             if acc:
+                accurate_misassignment_pairs.append([actual_label, data_label])
                 accurate_misassignment += 1
             else:
+                inaccurate_misassignment_pairs.append([actual_label, data_label])
                 inaccurate_misassignment += 1
 
     with warnings.catch_warnings():  # Ignore empty mean warnings
@@ -433,7 +437,8 @@ def trial_swaps(trial_data):
                 np.nanmean(true_swap_distances), np.nanmean(true_swap_expected_distances),
                 np.nanmean(partial_swap_distances), np.nanmean(partial_swap_expected_distances),
                 np.nanmean(cycle_swap_distances), np.nanmean(cycle_swap_expected_distances),
-                np.nanmean(partial_cycle_swap_distances), np.nanmean(partial_cycle_swap_expected_distances))
+                np.nanmean(partial_cycle_swap_distances), np.nanmean(partial_cycle_swap_expected_distances),
+                accurate_misassignment_pairs, inaccurate_misassignment_pairs)
 
 
 def deanonymize(participant_data, analysis_configuration):
@@ -625,8 +630,9 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
      true_swap_distances, true_swap_expected_distances,
      partial_swap_distances, partial_swap_expected_distances,
      cycle_swap_distances, cycle_swap_expected_distances,
-     partial_cycle_swap_distances, partial_cycle_swap_expected_distances) = swaps(participant_data,
-                                                                                  analysis_configuration)
+     partial_cycle_swap_distances, partial_cycle_swap_expected_distances,
+     accurate_misassignment_pairs, inaccurate_miassignment_pairs) = swaps(participant_data,
+                                                                          analysis_configuration)
 
     # TODO: This is a patch fix, but it doesn't address the problem. For some reason, edge_distort occasionally returns
     # (0, []). I have no idea where it's coming from, but replacing it with nan is a stopgap as that metric isn't used.
@@ -675,7 +681,9 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
          partial_cycle_swap_expected_distances,
          [list(map(list, x)) for x in components],
          [analysis_configuration.is_category] * len(participant_data.trials),
-         [analysis_configuration.category_label] * len(participant_data.trials)
+         [analysis_configuration.category_label] * len(participant_data.trials),
+         [list(map(list, x)) for x in accurate_misassignment_pairs],
+         [list(map(list, x)) for x in inaccurate_miassignment_pairs]
          ]
 
     output = np.transpose(np.array(output, dtype=object))
@@ -716,7 +724,8 @@ def get_header_labels():
             "True Swap Data Distance", "True Swap Actual Distance", "Partial Swap Data Distance",  # 12
             "Partial Swap Actual Distance", "Cycle Swap Data Distance", "Cycle Swap Actual Distance",  # 13
             "Partial Cycle Swap Data Distance", "Partial Cycle Swap Actual Distance",  # 14
-            "Unique Components", "Contains Category Data", "Category Label"]  # 15
+            "Unique Components", "Contains Category Data", "Category Label", # 15
+            "Accurate Misassignment Pairs", "Inaccurate Misassignment Pairs"]  # 16
 
 
 # (lambda x: list(array(x).flatten())) for append
@@ -742,4 +751,5 @@ def get_aggregation_functions():
             np.nanmean, np.nanmean, np.nanmean,  # 12
             np.nanmean, np.nanmean, np.nanmean,  # 13
             np.nanmean, np.nanmean,  # 14
-            collapse_unique_components, any, collapse_unique_components]  # 15
+            collapse_unique_components, any, collapse_unique_components,  # 15
+            collapse_unique_components, collapse_unique_components] # 16# 16
