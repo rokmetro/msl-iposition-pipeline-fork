@@ -7,7 +7,8 @@ from .full_pipeline import full_pipeline, get_aggregation_functions, get_header_
 from .file_io import get_coordinates_from_file, get_id_from_file_prefix_via_suffix, find_data_files_in_directory
 from .data_structures import TrialData, ParticipantData, AnalysisConfiguration, PipelineFlags
 from .data_flexing.dimension_removal import remove_dimensions
-from .cogrecon_globals import default_z_value, default_pipeline_flags, default_dimensions, data_coordinates_file_suffix
+from .cogrecon_globals import default_z_value, default_pipeline_flags, default_dimensions, \
+    data_coordinates_file_suffix, order_file_suffix, category_file_suffix, actual_coordinates_file_suffix
 from .._version import __version__
 
 
@@ -173,7 +174,12 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
                    actual_coordinate_prefixes=False,
                    category_independence_enabled=False, category_prefixes=False,
                    order_greedy_deanonymization_enabled=False, order_prefixes=True,
-                   removal_dim_indicies=None):
+                   removal_dim_indicies=None,
+                   _data_coordinates_file_suffix=data_coordinates_file_suffix,
+                   _order_file_suffix=order_file_suffix,
+                   _category_file_suffix=category_file_suffix,
+                   _actual_coordinates_file_suffix=actual_coordinates_file_suffix
+                   ):
 
     """
 
@@ -181,6 +187,11 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
     subdirectories. It will search for the actual coordinates and data files and process them all as specified
     by the other parameters.
 
+    :param _data_coordinates_file_suffix: (string) the file suffix to search for for data files in batch processing
+    :param _actual_coordinates_file_suffix: (string) the file suffix to search for for actual coordinate files in
+    batch processing
+    :param _category_file_suffix: (string) the file suffix to search for for category files in batch processing
+    :param _order_file_suffix: (string) the file suffix to search for for order files in batch processing
     :param search_directory: the directory (string) in which to recursively search for data files
     :param out_filename: the filename and path (string) into which the data should be saved
 
@@ -251,7 +262,11 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
                                          category_independence_enabled=category_independence_enabled,
                                          order_greedy_deanonymization_enabled=order_greedy_deanonymization_enabled,
                                          category_prefixes=category_prefixes,
-                                         order_prefixes=order_prefixes)
+                                         order_prefixes=order_prefixes,
+                                         _data_coordinates_file_suffix=_data_coordinates_file_suffix,
+                                         _order_file_suffix=_order_file_suffix,
+                                         _category_file_suffix=_category_file_suffix,
+                                         _actual_coordinates_file_suffix=_actual_coordinates_file_suffix)
     except IOError:
         logging.error('The input path was not found.')
         raise IOError('Failed to find input path.')
@@ -314,7 +329,7 @@ def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=de
                     data_orders.append(get_coordinates_from_file(f, tuple(list(data_shape[:2]) + [1]),
                                                                  data_type=int, dimension=1))
 
-    data_labels = [get_id_from_file_prefix_via_suffix(filename, data_coordinates_file_suffix) for filename in
+    data_labels = [get_id_from_file_prefix_via_suffix(filename, _data_coordinates_file_suffix) for filename in
                    data_coordinates_filenames]
 
     logging.info('The following ids were found and are being processed: {0}'.format(data_labels))

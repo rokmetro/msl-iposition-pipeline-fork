@@ -638,6 +638,7 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
     # (0, []). I have no idea where it's coming from, but replacing it with nan is a stopgap as that metric isn't used.
     if isinstance(edge_distort, list) and isinstance(edge_distort[0], list) and (0, []) in edge_distort:
         edge_distort = [[_x if _x is not (0, []) else np.nan for _x in sublist] for sublist in edge_distort]
+
     output = \
         [straight_misplacements,
          axis_swaps,
@@ -657,7 +658,8 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
          rotation_theta,
          scaling,
          translation_magnitude,
-         translation,
+         [x for x, y in translation],
+         [y for x, y in translation],
          geo_dist_threshold,
          post_transform_misplacement,
          [len(x) for x in components],
@@ -715,8 +717,8 @@ def get_header_labels():
             "Deanonymized Inaccurate Placements", "Deanonymized Accuracy Threshold",  # 3
             "Raw Deanonymized Misplacement", "Post-Deanonymized Misplacement", "Transformation Auto-Exclusion",  # 4
             "Number of Points Excluded From Geometric Transform", "Rotation Theta", "Scaling",  # 5
-            "Translation Magnitude",  # 6
-            "Translation", "Geometric Distance Threshold", "Post-Transform Misplacement",  # 7
+            "Translation Magnitude", "TranslationX", "TranslationY",  # 6
+            "Geometric Distance Threshold", "Post-Transform Misplacement",  # 7
             "Number of Components", "Accurate Single-Item Placements", "Inaccurate Single-Item Placements",  # 8
             "True Swaps",  # 9
             "Partial Swaps", "Cycle Swaps", "Partial Cycle Swaps", "Misassignment", "Accurate Misassignment",  # 10
@@ -742,8 +744,8 @@ def get_aggregation_functions():
             np.nanmean, np.nanmean,  # 3
             np.nanmean, np.nanmean, np.nansum,  # 4
             np.nansum, np.nanmean, np.nanmean,  # 5
-            np.nanmean,  # 6
-            (lambda xs: [np.nanmean(x) for x in np.transpose(xs)]), np.nanmean, np.nanmean,  # Mean of vectors # 7
+            np.nanmean, np.nanmean, np.nanmean,  # 6
+            np.nanmean, np.nanmean,  # Mean of vectors # 7
             np.nanmean, np.nanmean, np.nanmean,  # 8
             np.nanmean,  # 9
             np.nanmean, np.nanmean, np.nanmean, np.nanmean, np.nanmean,  # 10

@@ -473,6 +473,8 @@ def detect_shape_from_file(path, dimension):
         trial_count = 0
         item_count_list = []
         for tsv_line in tsv:
+            if tsv_line.strip() == '':
+                continue
             trial_count += 1
             item_count = 0
             split_line = tsv_line.strip().split('\t')
