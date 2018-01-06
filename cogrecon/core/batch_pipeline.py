@@ -168,7 +168,7 @@ def get_single_file_result(actual_coordinates, dat, categories=None, data_orders
 
 def batch_pipeline(search_directory, out_filename, data_shape=None, dimension=default_dimensions,
                    accuracy_z_value=default_z_value,
-                   trial_by_trial_accuracy=True,
+                   trial_by_trial_accuracy=False,
                    flags=PipelineFlags(default_pipeline_flags),
                    collapse_trials=True, manual_threshold=None,
                    actual_coordinate_prefixes=False,
