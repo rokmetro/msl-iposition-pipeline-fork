@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import matplotlib.animation as animation
 import logging
 
@@ -81,16 +82,16 @@ def visualization(trial_data, analysis_configuration, min_points, transformed_po
     labels = range(len(actual_points))
     x = [float(v) for v in list(np.transpose(transformed_points)[0])]
     y = [float(v) for v in list(np.transpose(transformed_points)[1])]
-    ax.scatter(x, y, c=default_visualization_transformed_points_color,
-               alpha=default_visualization_transformed_points_alpha,
-               label='Transformed Points')
+    transformed_scatter = ax.scatter(x, y, c=default_visualization_transformed_points_color,
+                                     alpha=default_visualization_transformed_points_alpha,
+                                     label='Transformed Points')
     scat = ax.scatter(x, y, c=default_visualization_transformed_points_color, animated=True)
-    ax.scatter(np.transpose(actual_points)[0], np.transpose(actual_points)[1],
-               c=default_visualization_actual_points_color, s=default_visualization_actual_points_size,
-               label='Actual Points')
-    ax.scatter(np.transpose(data_points)[0], np.transpose(data_points)[1],
-               c=default_visualization_data_points_color, s=default_visualization_data_points_size,
-               label='Data Points')
+    actual_scatter = ax.scatter(np.transpose(actual_points)[0], np.transpose(actual_points)[1],
+                                c=default_visualization_actual_points_color, s=default_visualization_actual_points_size,
+                                label='Actual Points')
+    data_scatter = ax.scatter(np.transpose(data_points)[0], np.transpose(data_points)[1],
+                              c=default_visualization_data_points_color, s=default_visualization_data_points_size,
+                              label='Data Points')
     # Label the stationary points (actual and data)
     for idx, xy in enumerate(zip(np.transpose(actual_points)[0], np.transpose(actual_points)[1])):
         ax.annotate(labels[idx], xy=xy, textcoords='data', fontsize=default_visualization_font_size)
@@ -101,29 +102,39 @@ def visualization(trial_data, analysis_configuration, min_points, transformed_po
                  np.linspace(0.0, 1.0, animation_ticks)]
 
     # Generate accuracy patches
-    corrected_patch = None
-    uncorrected_patch = None
     for acc, x, y in zip(start_accuracy_map, np.transpose(transformed_points)[0], np.transpose(transformed_points)[1]):
         color = default_visualization_accuracies_incorrect_color
         if acc:
             color = default_visualization_accuracies_correct_color
-        corrected_patch = ax.add_patch(plt.Circle((x, y), start_threshold, alpha=default_visualization_accuracies_corrected_alpha,
-                                       color=color))
+        ax.add_patch(plt.Circle((x, y), start_threshold, alpha=default_visualization_accuracies_corrected_alpha,
+                                color=color))
 
     for acc, x, y in zip(end_accuracy_map, np.transpose(min_points)[0], np.transpose(min_points)[1]):
-        uncorrected_patch = ax.add_patch(plt.Circle((x, y), end_threshold,
-                                         alpha=default_visualization_accuracies_uncorrected_alpha,
-                                         color=default_visualization_accuracies_uncorrected_color))
+        ax.add_patch(plt.Circle((x, y), end_threshold,
+                                alpha=default_visualization_accuracies_uncorrected_alpha,
+                                color=default_visualization_accuracies_uncorrected_color))
 
     # Generate legend
-    if corrected_patch is not None:
-        plt.legend(handles=[corrected_patch])
-    if uncorrected_patch is not None:
-        plt.legend(handles=[uncorrected_patch])
+    transformed_threshold_incorrect_patch = mpatches.Patch(color=default_visualization_accuracies_incorrect_color,
+                                                           alpha=default_visualization_accuracies_corrected_alpha,
+                                                           label='Transformed Threshold, Incorrect')
+    transformed_threshold_correct_patch = mpatches.Patch(color=default_visualization_accuracies_correct_color,
+                                                         alpha=default_visualization_accuracies_corrected_alpha,
+                                                         label='Transformed Threshold, Correct')
+    pre_transformed_threshold = mpatches.Patch(color=default_visualization_accuracies_uncorrected_color,
+                                               alpha=default_visualization_accuracies_uncorrected_alpha,
+                                               label='Pre-Transformed Threshold')
+
     if legend_args is None:
-        plt.legend()
+        plt.legend(handles=[transformed_scatter, actual_scatter, data_scatter,
+                            transformed_threshold_incorrect_patch,
+                            transformed_threshold_correct_patch,
+                            pre_transformed_threshold])
     else:
-        plt.legend(*legend_args)
+        plt.legend(handles=[transformed_scatter, actual_scatter, data_scatter,
+                            transformed_threshold_incorrect_patch,
+                            transformed_threshold_correct_patch,
+                            pre_transformed_threshold], *legend_args)
 
     # An update function which will set the animated scatter plot to the next interpolated points
     def update(_i):
@@ -143,9 +154,11 @@ def visualization(trial_data, analysis_configuration, min_points, transformed_po
         axes.set_xlim(extent[0])
         axes.set_ylim(extent[1])
 
+    fig2 = plt.gcf()
     if fig_size is not None:
-        fig2 = plt.gcf()
         fig2.set_size_inches(*fig_size)
+    else:
+        fig2.set_size_inches(15, 9)
 
     fig.show()
     plt.show()
