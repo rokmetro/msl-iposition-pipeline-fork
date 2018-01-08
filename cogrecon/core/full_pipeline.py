@@ -256,7 +256,7 @@ def trial_geometric_transform(trial_data, analysis_configuration):
     rotation_theta = np.nan
     scaling = np.nan
     transformation_auto_exclusion = True
-    translation = [np.nan, np.nan]
+    translation = [np.nan] * len(actual_points[0])
     transformed_coordinates = np.array(data_points, copy=True).tolist()
     # Confirm there are enough points to perform the transformation
     # (it is meaningless to perform with 0 or 1 points)
@@ -294,7 +294,7 @@ def trial_geometric_transform(trial_data, analysis_configuration):
                     rotation_theta = np.nan
                     scaling = np.nan
                     translation_magnitude = np.nan
-                    translation = [np.nan, np.nan]
+                    translation = [np.nan] * len(actual_points[0])
                     transformed_coordinates = np.array(data_points, copy=True).tolist()
                     logging.warning(str(debug_labels) + " : " +
                                     ('The transformation function did not reduce the error, removing transform ' +
@@ -546,6 +546,8 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
     flags = analysis_configuration.flags
 
     num_trials = len(participant_data.trials)
+    num_items = len(participant_data.trials[0].actual_points)
+    num_dimensions = len(participant_data.trials[0].actual_points[0])
 
     straight_misplacements = []
     axis_swaps = []
@@ -610,7 +612,7 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
          transformed_coordinates, geo_dist_threshold) = geometric_transform(participant_data, analysis_configuration)
         participant_data.data_points = transformed_coordinates
     else:
-        translation = [[np.nan, np.nan]] * num_trials
+        translation = [[np.nan] * num_dimensions] * num_trials
         transformation_auto_exclusion = [np.nan] * num_trials
         num_geometric_transform_points_excluded = [np.nan] * num_trials
         rotation_theta = [np.nan] * num_trials
@@ -639,6 +641,23 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
     if isinstance(edge_distort, list) and isinstance(edge_distort[0], list) and (0, []) in edge_distort:
         edge_distort = [[_x if _x is not (0, []) else np.nan for _x in sublist] for sublist in edge_distort]
 
+    # This is a bit of a temporary fix for the fact that the rest of the package can work in arbitrary dimensions, but
+    # a common use case is to do 1D/2D translation measurement. I'm not prepared to make a completely variable number
+    # of columns based on dimensionality...
+    if len(translation[0]) == 1:
+        x_translation = [x[0] for x in translation]
+        y_translation = [np.nan for _ in translation]
+    elif len(translation[0]) == 2:
+        try:
+            x_translation = [x for x, y in translation]
+            y_translation = [y for x, y in translation]
+        except ValueError:
+            x_translation = [np.nan for _ in translation]
+            y_translation = [np.nan for _ in translation]
+    else:
+        x_translation = [np.nan for _ in translation]
+        y_translation = [np.nan for _ in translation]
+
     output = \
         [straight_misplacements,
          axis_swaps,
@@ -658,8 +677,9 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
          rotation_theta,
          scaling,
          translation_magnitude,
-         [x for x, y in translation],
-         [y for x, y in translation],
+         translation,
+         x_translation,
+         y_translation,
          geo_dist_threshold,
          post_transform_misplacement,
          [len(x) for x in components],
@@ -717,7 +737,7 @@ def get_header_labels():
             "Deanonymized Inaccurate Placements", "Deanonymized Accuracy Threshold",  # 3
             "Raw Deanonymized Misplacement", "Post-Deanonymized Misplacement", "Transformation Auto-Exclusion",  # 4
             "Number of Points Excluded From Geometric Transform", "Rotation Theta", "Scaling",  # 5
-            "Translation Magnitude", "TranslationX", "TranslationY",  # 6
+            "Translation Magnitude", "Translation", "TranslationX", "TranslationY",  # 6
             "Geometric Distance Threshold", "Post-Transform Misplacement",  # 7
             "Number of Components", "Accurate Single-Item Placements", "Inaccurate Single-Item Placements",  # 8
             "True Swaps",  # 9
@@ -726,7 +746,7 @@ def get_header_labels():
             "True Swap Data Distance", "True Swap Actual Distance", "Partial Swap Data Distance",  # 12
             "Partial Swap Actual Distance", "Cycle Swap Data Distance", "Cycle Swap Actual Distance",  # 13
             "Partial Cycle Swap Data Distance", "Partial Cycle Swap Actual Distance",  # 14
-            "Unique Components", "Contains Category Data", "Category Label", # 15
+            "Unique Components", "Contains Category Data", "Category Label",  # 15
             "Accurate Misassignment Pairs", "Inaccurate Misassignment Pairs"]  # 16
 
 
@@ -744,8 +764,8 @@ def get_aggregation_functions():
             np.nanmean, np.nanmean,  # 3
             np.nanmean, np.nanmean, np.nansum,  # 4
             np.nansum, np.nanmean, np.nanmean,  # 5
-            np.nanmean, np.nanmean, np.nanmean,  # 6
-            np.nanmean, np.nanmean,  # Mean of vectors # 7
+            np.nanmean, (lambda xs: [np.nanmean(x) for x in np.transpose(xs)]), np.nanmean, np.nanmean,  # 6; vector mu
+            np.nanmean, np.nanmean,  # 7
             np.nanmean, np.nanmean, np.nanmean,  # 8
             np.nanmean,  # 9
             np.nanmean, np.nanmean, np.nanmean, np.nanmean, np.nanmean,  # 10
@@ -754,4 +774,4 @@ def get_aggregation_functions():
             np.nanmean, np.nanmean, np.nanmean,  # 13
             np.nanmean, np.nanmean,  # 14
             collapse_unique_components, any, collapse_unique_components,  # 15
-            collapse_unique_components, collapse_unique_components] # 16# 16
+            collapse_unique_components, collapse_unique_components]  # 16

@@ -59,6 +59,7 @@ def summarize_test_data(search_directory=None, file_regex="\d\d\d_\d_2_\d_\d\d\d
         iterations = read_binary_file(path)
         billboard_item_labels, reconstruction_items = parse_test_items(iterations, cols,
                                                                        item_number_label, event_state_labels)
+        print(reconstruction_items)
         meta = get_filename_meta_data(os.path.basename(path))
         line_start = meta['subID'] + ',' + meta['trial'] + ',' + meta['inverse'] + ',' + str(meta['datetime'])
         items = [','.join([str(x) for x in item['pos']]) + ',' + str(item['direction']) if item is not None

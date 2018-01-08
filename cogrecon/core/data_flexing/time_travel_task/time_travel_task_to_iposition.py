@@ -1,4 +1,5 @@
 import os
+import logging
 import numpy as np
 
 if __name__ == "__main__":
@@ -49,8 +50,8 @@ def extract_basic_order(order_list, first=True):
         try:
             indicies.sort(key=[x[0] for x in order_list].__getitem__)
         except IndexError:
-            print(order_list)
-            print(first)
+            logging.info(str(order_list))
+            logging.info(str(first))
     else:
         indicies.sort(key=[x[-1] for x in order_list].__getitem__)
     result = [None for _ in range(0, len(indicies))]
@@ -110,7 +111,7 @@ def time_travel_task_to_iposition(input_dir, output_dir,
         meta = get_filename_meta_data(os.path.basename(_path))
         items, times, directions = get_items_solutions(meta)
 
-        print(meta['subID'] + ',' + meta['trial'])
+        logging.info((meta['subID'] + ',' + meta['trial']))
 
         if exclude_incorrect_category:
             excluded_list = np.transpose([(r, i, o) for r, i, o in zip(reconstruction_items, items, order)
@@ -140,6 +141,7 @@ def time_travel_task_to_iposition(input_dir, output_dir,
             save_tsv(output_dir + '\\' + order_path.format(meta['subID']), order)
 
         save_tsv(output_dir + '\\' + category_path.format(meta['subID']), categories)
+
 
 if __name__ == "__main__":
     # TODO: Generalize this module to be run outside of the __main__ environment
