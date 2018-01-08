@@ -71,7 +71,7 @@ def generate_intermediate_files_command_line():
 
 def generate_intermediate_files(search_path, full_study_path=False, full_study_look=False, full_test_path=False,
                                 full_test_look=False, full_practice_path=False, full_practice_look=False,
-                                full_test_2d=False, full_test_vr=False, log_level=logging.INFO, min_num_trials=4,
+                                full_test_2d=False, full_test_vr=False, min_num_trials=4,
                                 exclude_incomplete_trials=True):
     """
     This script will take a folder containing subject data for the Holodeck Navigation Task and generate CSV files
@@ -93,9 +93,6 @@ def generate_intermediate_files(search_path, full_study_path=False, full_study_l
     :param min_num_trials: the minimum number of trials required for included data
     :param exclude_incomplete_trials: if True, only complete trials are included
     """
-
-    # Configure the output logger
-    logging.basicConfig(format="%(levelname)s (%(asctime)s): %(message)s", level=log_level)
 
     # Handle case where no optional arguments excluding processing are provided in which case all optional
     # args are assumed to be true (for convenience)
@@ -488,17 +485,14 @@ def generate_study_path_efficiency_command_line():
     generate_study_path_efficiency(args.path, args.point_speed)
 
 
-def generate_study_path_efficiency(input_file, log_level=20):
+def generate_study_path_efficiency(input_file):
 
     """
     This function will generate an efficiency_by_item.csv output file which lists the item-by-item efficiency for a log
     file. The input file is assumed to be an intermediate file from generate_intermediate_files.
 
     :param input_file: an input file to be processed
-    :param log_level: the log level for debugging/output
     """
-    # Configure the output logger
-    logging.basicConfig(format="%(levelname)s (%(asctime)s): %(message)s", level=log_level)
 
     logging.info("Done parsing command line arguments.")
 
@@ -636,18 +630,15 @@ def generate_basic_exploration_metrics_from_intermediate_files_command_line():
     generate_basic_exploration_metrics_from_intermediate_files(args.path, args.output_path, args.log_level)
 
 
-def generate_basic_exploration_metrics_from_intermediate_files(input_path, output_path, log_level=20):
+def generate_basic_exploration_metrics_from_intermediate_files(input_path, output_path):
     """
     This function will generate basic exploration metrics given the intermediate files from generate_intermediate_files.
 
     :param input_path: the path to the intermediate file
     :param output_path: the output path to which to save the metrics
-    :param log_level: the log level for debugging/output
 
     :return: Nothing
     """
-    # Configure the output logger
-    logging.basicConfig(format="%(levelname)s (%(asctime)s): %(message)s", level=log_level)
 
     logging.info("Done parsing command line arguments.")
 
@@ -762,13 +753,12 @@ def generate_segmentation_analysis_command_line():
     generate_segmentation_analysis(args.path, args.output_path, args.log_level)
 
 
-def generate_segmentation_analysis(input_path, output_path, log_level=20):
+def generate_segmentation_analysis(input_path, output_path):
     """
     This function will generate a segmentation analysis given the intermediate files from generate_intermediate_files.
 
     :param input_path: the path to the intermediate file
     :param output_path: the output path to which to save the metrics
-    :param log_level: the log level for debugging/output
 
     :return: Nothing
     """
@@ -778,9 +768,6 @@ def generate_segmentation_analysis(input_path, output_path, log_level=20):
     triples_labels = ["red->green", "green->yellow", "yellow->blue", "blue->red"]
     context_crossing_triples_indicies = [(7, 8), (15, 14), (6, 0), (2, 4)]
     noncontext_crossing_triples_indicies = [(11, 7), (13, 15), (5, 6), (1, 2)]
-
-    # Configure the output logger
-    logging.basicConfig(format="%(levelname)s (%(asctime)s): %(message)s", level=log_level)
 
     logging.info("Done parsing command line arguments.")
 

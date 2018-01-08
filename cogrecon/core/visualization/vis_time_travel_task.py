@@ -45,8 +45,6 @@ def visualize_time_travel_data(path=None, automatically_rotate=True):
     # Setup
     ####################################################################################################################
 
-    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.WARNING)
-
     # Get Log File Path and Load File
     local_directory = os.path.dirname(os.path.realpath(__file__))  # The directory of this script
     # filename = '001_1_1_1_2016-08-29_10-26-03.dat'  # The relative path to the data file (CHANGE ME)
@@ -291,7 +289,7 @@ def visualize_time_travel_data(path=None, automatically_rotate=True):
                     if i['itemsclicked'][idxx]:
                         click_size[idx][idxx] = 0.5
                     if not i1 == i2:
-                        click_pos[idxx] = (i['x'], i['z'], i['time'])
+                        click_pos[idxx] = (i['x'], i['z'], i['time_val'])
                         click_color[idxx] = (128, 128, 128, 255)
             else:
                 for idxx, i1 in enumerate(i['itemsclicked']):
@@ -314,8 +312,8 @@ def visualize_time_travel_data(path=None, automatically_rotate=True):
     reconstruction_item_scatter_plot = None
     reconstruction_item_lines = []
     if meta['phase'] == '2' or meta['phase'] == '5' or meta['phase'] == '8':
-        billboard_item_labels, reconstruction_items = parse_test_items(iterations, cols,
-                                                                       item_number_label, event_state_labels)
+        reconstruction_items, order = parse_test_items(iterations, cols,
+                                                       item_number_label, event_state_labels)
         pos = np.empty((len(reconstruction_items), 3))
         size = np.empty((len(reconstruction_items)))
         color = np.empty((len(reconstruction_items), 4))
@@ -669,8 +667,8 @@ def generate_normed_segments(path, __meta=None,
         end_idx = int(_click_idx[line_idx + 1])
         start_iter = _iterations[start_idx]
         end_iter = _iterations[end_idx - 1]
-        start_pos = [float(start_iter['x']), float(start_iter['z']), float(start_iter['time'])]
-        end_pos = [float(end_iter['x']), float(end_iter['z']), float(end_iter['time'])]
+        start_pos = [float(start_iter['x']), float(start_iter['z']), float(start_iter['time_val'])]
+        end_pos = [float(end_iter['x']), float(end_iter['z']), float(end_iter['time_val'])]
 
         original_vector = np.subtract(end_pos, start_pos)
         magnitude = np.sqrt(np.dot(original_vector, original_vector))
@@ -684,7 +682,7 @@ def generate_normed_segments(path, __meta=None,
         for _, i in enumerate(sub_iterations):
             xtmp = float(i['x'])
             ytmp = float(i['z'])
-            ztmp = float(i['time'])
+            ztmp = float(i['time_val'])
             if normalize_translation:
                 xtmp, ytmp, ztmp = np.subtract([xtmp, ytmp, ztmp], start_pos)
             if normalize_length:
@@ -734,8 +732,6 @@ def item_path_visualization(search_directory=None, file_regex="\d\d\d_\d_1_\d_\d
     ####################################################################################################################
     # Setup
     ####################################################################################################################
-
-    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
 
     mpl.rcParams['legend.fontsize'] = 10
 

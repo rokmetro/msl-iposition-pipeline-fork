@@ -12,9 +12,6 @@ from .cogrecon_globals import default_z_value, default_pipeline_flags, default_d
 from .._version import __version__
 
 
-logging.basicConfig(level=logging.INFO)
-
-
 def validate_list_format(l, require_numeric=False, dimension=None, list_name="list"):
 
     """

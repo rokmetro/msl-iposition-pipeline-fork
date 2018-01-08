@@ -35,8 +35,6 @@ def visualize(path=None):
     # Setup
     ####################################################################################################################
 
-    logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.WARNING)
-
     show_time = False
 
     if path is None:

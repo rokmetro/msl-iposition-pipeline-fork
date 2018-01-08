@@ -1,3 +1,5 @@
+coloredlogs
+pytz
 argparse
 logging
 matplotlib

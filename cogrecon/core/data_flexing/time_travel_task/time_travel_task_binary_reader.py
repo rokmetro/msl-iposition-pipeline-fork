@@ -458,7 +458,7 @@ def parse_test_items(iterations, cols, item_number_label, event_state_labels):
                 # according to the descrambler order)
                 placed_x = next_item_coords[insertion_index][0]
                 placed_z = next_item_coords[insertion_index][1]
-                placed_t = i['time']
+                placed_t = i['time_val']
                 # If the event is stationary, the time of placement doesn't matter, ignore it and set to 0
                 if event_state == 0:
                     placed_t = 0
@@ -497,8 +497,8 @@ def parse_test_items(iterations, cols, item_number_label, event_state_labels):
         order_num = 0
         for iter_idx, i in enumerate(iterations):
             for idx, (x, y, z, active, clicked, event, time_val) in enumerate(zip(i['itemsx'], i['itemsy'], i['itemsz'],
-                                                                              i['itemsactive'], i['itemsclicked'],
-                                                                              i['itemsevent'], i['itemstime'])):
+                                                                                  i['itemsactive'], i['itemsclicked'],
+                                                                                  i['itemsevent'], i['itemstime'])):
                 if active and not iterations[iter_idx - 1]['itemsactive'][idx]:
                     order[idx].append(order_num)
                     order_num += 1
@@ -640,10 +640,10 @@ def get_exploration_metrics(iterations):
     for idx, i in enumerate(iterations):
         if idx == len(iterations) - 1:
             break
-        t = iterations[idx]['time']
+        t = iterations[idx]['time_val']
         xy = [iterations[idx]['x'], iterations[idx]['y']]
         xyt = xy + [t]
-        t_next = iterations[idx + 1]['time']
+        t_next = iterations[idx + 1]['time_val']
         xy_next = [iterations[idx + 1]['x'], iterations[idx + 1]['y']]
         xyt_next = xy_next + [t_next]
         space_travelled += distance.euclidean(xy, xy_next)
@@ -739,9 +739,10 @@ def compute_accuracy(meta, items):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", category=RuntimeWarning)
         return space_misplacement, time_misplacement, space_time_misplacement, direction_correct_count, \
-            np.mean(context_crossing_dist_exclude_wrong_colors_pairs), \
-            np.mean(context_noncrossing_dist_exclude_wrong_colors_pairs), \
-            np.mean(context_crossing_dist_pairs), np.mean(context_noncrossing_dist_pairs)
+               np.mean(context_crossing_dist_exclude_wrong_colors_pairs), \
+               np.mean(context_noncrossing_dist_exclude_wrong_colors_pairs), \
+               np.mean(context_crossing_dist_pairs), np.mean(context_noncrossing_dist_pairs), \
+               np.nan, np.nan, np.nan, np.nan  # Patch to fix issue with space return values which are missing...
 
 
 def get_item_details(pastel_factor=127):

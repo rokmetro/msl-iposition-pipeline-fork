@@ -7,15 +7,12 @@ import logging
 
 
 # TODO: Fix issue with pyqt globals (should not used globals)
-def visualize(input_path, point_speed=100, colors='rg', log_level=20):
+def visualize(input_path, point_speed=100, colors='rg'):
     # noinspection PyGlobalUndefined
     global p, x, y, ptr, buf_x, buf_y, done, curve, img, ps, cols
 
     ps = point_speed
     cols = colors
-
-    # Configure the output logger
-    logging.basicConfig(format="%(levelname)s (%(asctime)s): %(message)s", level=log_level)
 
     logging.info("Done parsing command line arguments.")
 

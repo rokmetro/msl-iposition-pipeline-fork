@@ -64,8 +64,6 @@ def visualize(raw_file, summary_file):
     :param summary_file: the full path to the summary data file
     """
 
-    logging.basicConfig(level=logging.INFO)
-
     avatar_size = 1
     direction_marker_propotion_size = 0.25
     padding_size = 0.3

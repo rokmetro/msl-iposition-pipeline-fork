@@ -57,9 +57,9 @@ def summarize_test_data(search_directory=None, file_regex="\d\d\d_\d_2_\d_\d\d\d
 
     for path in files:
         iterations = read_binary_file(path)
-        billboard_item_labels, reconstruction_items = parse_test_items(iterations, cols,
-                                                                       item_number_label, event_state_labels)
-        print(reconstruction_items)
+        reconstruction_items, order = parse_test_items(iterations, cols,
+                                                       item_number_label, event_state_labels)
+
         meta = get_filename_meta_data(os.path.basename(path))
         line_start = meta['subID'] + ',' + meta['trial'] + ',' + meta['inverse'] + ',' + str(meta['datetime'])
         items = [','.join([str(x) for x in item['pos']]) + ',' + str(item['direction']) if item is not None
@@ -89,7 +89,7 @@ def summarize_test_data(search_directory=None, file_regex="\d\d\d_\d_2_\d_\d\d\d
 
 
 def summarize_navigation_data(search_directory=None, file_regex="\d\d\d_\d_2_\d_\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d.dat",
-                              output_path='time_travel_task_test_summary.csv', last_pilot_id=20, verbose=True):
+                              output_path='time_travel_task_navigation_summary.csv', last_pilot_id=20, verbose=True):
     """
     This function will produce an output file which contains the navigation summary data for all data files in a
     directory, searching recursively based on a regular expression.
