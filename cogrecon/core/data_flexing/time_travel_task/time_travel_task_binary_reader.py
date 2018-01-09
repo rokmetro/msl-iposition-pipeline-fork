@@ -514,7 +514,7 @@ def get_click_locations_and_indicies(iterations, items, meta):
     :param iterations: the iterations from read_binary_file
     :param items: the items to be visualized
     :param meta: the meta information from the filename
-    :return: a tuple containing:
+    :return: a dictionary containing:
              click_pos - the x, z, time coordinates of the click position
              click_idx - the index in iterations at which time the click happened
              click_size - the size the click should be visualized as
@@ -524,8 +524,7 @@ def get_click_locations_and_indicies(iterations, items, meta):
     click_pos = np.empty((len(items), 3))
     click_size = np.zeros((len(iterations), len(items)))
     click_color = np.empty((len(items), 4))
-    if meta['phase'] == '0' or meta['phase'] == '1' or meta['phase'] == '3' or meta['phase'] == '4' \
-            or meta['phase'] == '6' or meta['phase'] == '7':
+    if meta['phase'] in ['0', '1', '3', '4', '6', '7']:
         for idx, i in enumerate(iterations):
             if idx + 1 < len(iterations):
                 for idxx, (i1, i2) in enumerate(zip(i['itemsclicked'], iterations[idx + 1]['itemsclicked'])):
@@ -539,7 +538,7 @@ def get_click_locations_and_indicies(iterations, items, meta):
                 for idxx, i1 in enumerate(i['itemsclicked']):
                     if i['itemsclicked'][idxx]:
                         click_size[idx][idxx] = 0.5
-    return click_pos, click_idx, click_size, click_color
+    return {'position': click_pos, 'index': click_idx, 'size': click_size, 'color': click_color}
 
 
 def get_items_solutions(meta):

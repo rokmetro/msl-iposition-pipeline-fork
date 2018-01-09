@@ -1,5 +1,6 @@
 from time_travel_task_binary_reader import find_data_files_in_directory, get_item_details, read_binary_file, \
-    parse_test_items, get_filename_meta_data, compute_accuracy, get_exploration_metrics
+    parse_test_items, get_filename_meta_data, compute_accuracy, get_exploration_metrics, \
+    get_click_locations_and_indicies, get_items_solutions
 from itertools import chain, izip
 import numpy as np
 import os
@@ -89,7 +90,7 @@ def summarize_test_data(search_directory=None, file_regex="\d\d\d_\d_2_\d_\d\d\d
     return True
 
 
-def summarize_navigation_data(search_directory=None, file_regex="\d\d\d_\d_2_\d_\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d.dat",
+def summarize_navigation_data(search_directory=None, file_regex="\d\d\d_\d_1_\d_\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d.dat",
                               output_path='time_travel_task_navigation_summary.csv', last_pilot_id=20, verbose=True,
                               temporal_boundary_regions=None):
     """
@@ -131,29 +132,39 @@ def summarize_navigation_data(search_directory=None, file_regex="\d\d\d_\d_2_\d_
 
     header = 'subID,trial,inverse,datetime,pilot?,total_time,space_travelled,time_travelled,space_time_travelled,' + \
              'context_boundary_crossings,fd_time,fd_space,fd_spacetime,' + \
-             'lacunarity_time,lacunarity_space,lacunarity_spacetime'
+             'lacunarity_time,lacunarity_space,lacunarity_spacetime,click_order'
 
     fp.write(header + '\r\n')
 
     for path in files:
         iterations = read_binary_file(path)
+        meta = get_filename_meta_data(os.path.basename(path))
+
         total_time, space_travelled, time_travelled, space_time_travelled = get_exploration_metrics(iterations)
+
         timeline = [[i['time_val']] for i in iterations]
         spaceline = [[i['x'], i['z']] for i in iterations]
         spacetimeline = [[i['x'], i['z'], i['time_val']] for i in iterations]
+
         boundary_crossings = count_boundary_crossings(timeline, temporal_boundary_regions)
+
         fd_t, lac_t = calculate_fd_and_lacunarity(timeline)
         fd_s, lac_s = calculate_fd_and_lacunarity(spaceline)
         fd_st, lac_st = calculate_fd_and_lacunarity(spacetimeline)
-        meta = get_filename_meta_data(os.path.basename(path))
+
+        clicks = get_click_locations_and_indicies(iterations, list(range(0, 10)), meta)
+
         line_start = meta['subID'] + ',' + meta['trial'] + ',' + meta['inverse'] + ',' + str(meta['datetime'])
         line_start += ',' + str(int(meta['subID']) <= last_pilot_id)
         line = line_start + ',' + str(total_time) + ',' + str(space_travelled) + ',' \
                           + str(time_travelled) + ',' + str(space_time_travelled) + ',' \
                           + str(boundary_crossings) + ',' + str(fd_t) + ',' + str(fd_s) + ',' + str(fd_st) + ',' \
-                          + str(lac_t) + ',' + str(lac_s) + ',' + str(lac_st)
+                          + str(lac_t) + ',' + str(lac_s) + ',' + str(lac_st) + ',' + '"' \
+                          + str(list(clicks['index'])) + '"'
+
         if verbose:
             logging.info(line_start)
+
         fp.write(line + '\r\n')
         fp.flush()
 
@@ -203,3 +214,4 @@ def calculate_fd_and_lacunarity(data):
     lacunarity, fd = popt
 
     return fd, lacunarity
+
