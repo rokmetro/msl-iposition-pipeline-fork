@@ -5,6 +5,7 @@ import sys
 import tempfile
 import errno
 import time
+import collections
 from .cogrecon_globals import data_coordinates_file_suffix, order_file_suffix, category_file_suffix, \
     actual_coordinates_file_suffix
 
@@ -47,6 +48,13 @@ def get_coordinates_from_file(path, expected_shape, dimension=None, data_type=fl
             raise ValueError("Failed to get data coordinate of expected shape.")
         assert np.array(coordinates).shape == expected_shape, \
             "shape {0} does not equal expectation {1}".format(np.array(coordinates).shape, expected_shape)
+
+    # Allow nans to act as placeholders up until this point to make the expected shape reasonable, then remove them
+    # for the remainder of processing. Note that this only works with 2D or 3D inputs (i.e. position or category files)
+    coordinates = np.array([[p for p in trial if
+                             (isinstance(p, collections.Iterable) and not any([np.isnan(x) for x in p])) or
+                             (not isinstance(p, collections.Iterable) and not np.isnan(p))]
+                            for trial in coordinates])
 
     return coordinates.tolist()
 

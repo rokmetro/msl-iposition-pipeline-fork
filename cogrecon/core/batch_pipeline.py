@@ -34,13 +34,15 @@ def validate_list_format(l, require_numeric=False, dimension=None, list_name="li
     if dimension:
         assert isinstance(dimension, int), "dimension is not an integer: {0}".format(dimension)
         assert dimension > 0, "dimension is not greater than 0: {0}".format(dimension)
-        assert len(np.array(l).shape) == dimension, \
+        # Note: Arrays are allowed to be jagged at the first level
+        assert len(np.array(l).shape) == dimension or \
+               all([len(np.array(sublist).shape) == dimension - 1 for sublist in l]), \
             ("{1} should be a 3d list or numpy array of form (Nt, Ni, d) where Nt is the number of " +
              "trials, Ni is the number of items, and d is the dimensionality of the data: {0}").format(l, list_name)
     if require_numeric:
         assert all(isinstance(x, int) or isinstance(x, float) for x in
-                   np.ndarray.flatten(np.array(l))), "{1} contains some non int or float values: {0}".format(l,
-                                                                                                             list_name)
+                   np.ndarray.flatten(np.array([item for sublist in l for item in sublist]))), \
+            "{1} contains some non int or float values: {0}".format(l, list_name)
 
     return True
 
