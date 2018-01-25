@@ -68,60 +68,54 @@ In particular, note if you have trial_by_trial_accuracy set to True or False (to
 Output
 --------
 
-
- 
-=========== ===========
-Column Name Description 
------------ -----------
-=========== ===========
-subID placeholder 
-trial placeholder 
-Original Misplacement placeholder 
-Original Swap placeholder 
-Original Edge Resizing placeholder 
-Original Edge Distortion placeholder 
-Axis Swap Pairs placeholder 
-Pre-Processed Accurate Placements placeholder 
-Pre-Processed Inaccurate Placements placeholder 
-Pre-Processed Accuracy Threshold placeholder 
-Deanonymized Accurate Placements placeholder 
-Deanonymized Inaccurate Placements placeholder 
-Deanonymized Accuracy Threshold placeholder 
-Raw Deanonymized Misplacement placeholder 
-Post-Deanonymized Misplacement placeholder 
-Transformation Auto-Exclusion placeholder 
-Number of Points Excluded From Geometric Transform placeholder 
-Rotation Theta placeholder 
-Scaling placeholder 
-Translation Magnitude placeholder 
-Translation placeholder 
-TranslationX placeholder 
-TranslationY placeholder 
-Geometric Distance Threshold placeholder 
-Post-Transform Misplacement placeholder 
-Number of Components placeholder 
-Accurate Single-Item Placements placeholder 
-Inaccurate Single-Item Placements placeholder 
-True Swaps placeholder 
-Partial Swaps placeholder 
-Cycle Swaps placeholder 
-Partial Cycle Swaps placeholder 
-Misassignment placeholder 
-Accurate Misassignment placeholder 
-Inaccurate Misassignment placeholder 
-Swap Distance Threshold placeholder 
-True Swap Data Distance placeholder 
-True Swap Actual Distance placeholder 
-Partial Swap Data Distance placeholder 
-Partial Swap Actual Distance placeholder 
-Cycle Swap Data Distance placeholder 
-Cycle Swap Actual Distance placeholder 
-Partial Cycle Swap Data Distance placeholder 
-Partial Cycle Swap Actual Distance placeholder 
-Unique Components placeholder 
-Contains Category Data placeholder 
-Category Label placeholder 
-Accurate Misassignment Pairs placeholder 
-Inaccurate Misassignment Pairs placeholder 
-num_rows_with_nan placeholder 
-=========== ===========
+| Column Name | Description |
+| subID | placeholder |
+| trial | placeholder |
+| Original Misplacement | placeholder |
+| Original Swap | placeholder |
+| Original Edge Resizing | placeholder |
+| Original Edge Distortion | placeholder |
+| Axis Swap Pairs | placeholder |
+| Pre-Processed Accurate Placements | placeholder |
+| Pre-Processed Inaccurate Placements | placeholder |
+| Pre-Processed Accuracy Threshold | placeholder |
+| Deanonymized Accurate Placements | placeholder |
+| Deanonymized Inaccurate Placements | placeholder |
+| Deanonymized Accuracy Threshold | placeholder |
+| Raw Deanonymized Misplacement | placeholder |
+| Post-Deanonymized Misplacement | placeholder |
+| Transformation Auto-Exclusion | placeholder |
+| Number of Points Excluded From Geometric Transform | placeholder |
+| Rotation Theta | placeholder |
+| Scaling | placeholder |
+| Translation Magnitude | placeholder |
+| Translation | placeholder |
+| TranslationX | placeholder |
+| TranslationY | placeholder |
+| Geometric Distance Threshold | placeholder |
+| Post-Transform Misplacement | placeholder |
+| Number of Components | placeholder |
+| Accurate Single-Item Placements | placeholder |
+| Inaccurate Single-Item Placements | placeholder |
+| True Swaps | placeholder |
+| Partial Swaps | placeholder |
+| Cycle Swaps | placeholder |
+| Partial Cycle Swaps | placeholder |
+| Misassignment | placeholder |
+| Accurate Misassignment | placeholder |
+| Inaccurate Misassignment | placeholder |
+| Swap Distance Threshold | placeholder |
+| True Swap Data Distance | placeholder |
+| True Swap Actual Distance | placeholder |
+| Partial Swap Data Distance | placeholder |
+| Partial Swap Actual Distance | placeholder |
+| Cycle Swap Data Distance | placeholder |
+| Cycle Swap Actual Distance | placeholder |
+| Partial Cycle Swap Data Distance | placeholder |
+| Partial Cycle Swap Actual Distance | placeholder |
+| Unique Components | placeholder |
+| Contains Category Data | placeholder |
+| Category Label | placeholder |
+| Accurate Misassignment Pairs | placeholder |
+| Inaccurate Misassignment Pairs | placeholder |
+| num_rows_with_nan| | placeholder |
