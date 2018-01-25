@@ -70,53 +70,53 @@ Output
 
 | Column Name | Description |
 | ---      | ---       |
-| subID | placeholder |
-| trial | placeholder |
-| Original Misplacement | placeholder |
-| Original Swap | placeholder |
-| Original Edge Resizing | placeholder |
-| Original Edge Distortion | placeholder |
-| Axis Swap Pairs | placeholder |
-| Pre-Processed Accurate Placements | placeholder |
-| Pre-Processed Inaccurate Placements | placeholder |
-| Pre-Processed Accuracy Threshold | placeholder |
-| Deanonymized Accurate Placements | placeholder |
-| Deanonymized Inaccurate Placements | placeholder |
-| Deanonymized Accuracy Threshold | placeholder |
-| Raw Deanonymized Misplacement | placeholder |
-| Post-Deanonymized Misplacement | placeholder |
-| Transformation Auto-Exclusion | placeholder |
-| Number of Points Excluded From Geometric Transform | placeholder |
-| Rotation Theta | placeholder |
-| Scaling | placeholder |
-| Translation Magnitude | placeholder |
-| Translation | placeholder |
-| TranslationX | placeholder |
-| TranslationY | placeholder |
-| Geometric Distance Threshold | placeholder |
-| Post-Transform Misplacement | placeholder |
-| Number of Components | placeholder |
-| Accurate Single-Item Placements | placeholder |
-| Inaccurate Single-Item Placements | placeholder |
-| True Swaps | placeholder |
-| Partial Swaps | placeholder |
-| Cycle Swaps | placeholder |
-| Partial Cycle Swaps | placeholder |
-| Misassignment | placeholder |
-| Accurate Misassignment | placeholder |
-| Inaccurate Misassignment | placeholder |
-| Swap Distance Threshold | placeholder |
-| True Swap Data Distance | placeholder |
-| True Swap Actual Distance | placeholder |
-| Partial Swap Data Distance | placeholder |
-| Partial Swap Actual Distance | placeholder |
-| Cycle Swap Data Distance | placeholder |
-| Cycle Swap Actual Distance | placeholder |
-| Partial Cycle Swap Data Distance | placeholder |
-| Partial Cycle Swap Actual Distance | placeholder |
-| Unique Components | placeholder |
-| Contains Category Data | placeholder |
-| Category Label | placeholder |
-| Accurate Misassignment Pairs | placeholder |
-| Inaccurate Misassignment Pairs | placeholder |
-| num_rows_with_nan| | placeholder |
+| subID | The subject ID (i.e. text before the filename suffix) |
+| trial | The trial number |
+| Original Misplacement | The misplacement with no correction (i.e. euclidean distance between item placement and studied locations |
+| Original Swap | The original swap metric from Watson et. al 2013 |
+| Original Edge Resizing | The original edge resizing metric from Watson et. al 2013 |
+| Original Edge Distortion | The original edge distortion metric from Watson et. al 2013 |
+| Axis Swap Pairs | The pairs of items involved in the Original Swap column (note that if trials are collapsed, this list will contain pairs involved in any trial) |
+| Pre-Processed Accurate Placements | The number of items placed within the accuracy circle with an accuracy circle computed based on the raw inputs (i.e. no identity or transformation correction) |
+| Pre-Processed Inaccurate Placements | The number of items placed outside of the accuracy circle with an accuracy circle computed based on the raw inputs (i.e. no identity or transformation correction) |
+| Pre-Processed Accuracy Threshold | The accuracy circle radius computed based on the raw inputs (i.e. no identity or transformation correction) |
+| Deanonymized Accurate Placements | The number of items placed within the accuracy circle with an accuracy circle computed based on the deanonymized (i.e. identity-stripped) inputs (i.e. no transformation correction) |
+| Deanonymized Inaccurate Placements | The number of items placed outside of the accuracy circle with an accuracy circle computed based on the deanonymized (i.e. identity-stripped) inputs (i.e. no transformation correction) |
+| Deanonymized Accuracy Threshold | The accuracy circle radius computed based on the deanonymized (i.e. identity-stripped) inputs (i.e. no transformation correction) |
+| Raw Deanonymized Misplacement | The misplacement after deanonymization (i.e. after identities have been removed) |
+| Post-Deanonymized Misplacement | The misplacement after deanonymization (i.e. after identities have been removed) |
+| Transformation Auto-Exclusion | True if any items were excluded due to failure to meet the transform accuracy threshold |
+| Number of Points Excluded From Geometric Transform | The number of points excluded from the geometric transform due to poor accuracy |
+| Rotation Theta | The rotation in degrees detected by the geometric transform (note that it will be nan if the transform fails to improve the misplacement) |
+| Scaling | The scaling as a proportion (i.e. 1 means no scaling, 0 to 1 is shrinking, greater than 1 is stretching) detected by the geometric transform (note that it will be nan if the transform fails to improve the misplacement) |
+| Translation Magnitude | The translation magnitude (in pixels) detected by the geometric transform (note that it will be nan if the transform fails to improve the misplacement) |
+| Translation | A vector representing the translation along each axis found by the geometric transform (note that it will be nan if the transform fails to improve the misplacement) |
+| TranslationX | The x component of the translation found by the geometric transform (note that it will be nan if the transform fails to improve the misplacement) |
+| TranslationY | The y component of the translation found by the geometric transform (note that it will be nan if the transform fails to improve the misplacement) |
+| Geometric Distance Threshold | The threshold used to determine if the transformation function will be applied to a given point (note that points which are sufficiently inaccurate are excluded to avoid the transform being biased by the extreme nature of the outlier) |
+| Post-Transform Misplacement | The misplacement after both deanonymization and transformation has been performed on the points |
+| Number of Components | The number of associative components found by the deanonymization/assignment process (i.e. the sum of the number of single item placements, swaps, and cycles with no accuracy conditions) |
+| Accurate Single-Item Placements | The number of items which were associated with their studied location and within the accuracy circle |
+| Inaccurate Single-Item Placements | The number of items which were associated with their studied location and not within the accuracy circle |
+| True Swaps | The number of pairs of items which were associated with each other's studied location and within the accuracy circle (i.e. both items were within the accuracy circle) |
+| Partial Swaps | The number of pairs of items which were associated with each other's studied location where at least one was not within the accuracy circle (i.e. one or both were not accurately placed, but they were associated with each other's locations) |
+| Cycle Swaps | The number of cycles of items (i.e. groups with more than 2 members) which were associated with each other's studied locations where all items were within the accuracy circle |
+| Partial Cycle Swaps | The number of cycles of items (i.e. groups with more than 2 members) which were associated with each other's studied locations where at least one item was not within the accuracy circle |
+| Misassignment | The total number of items which were associated with another items location, regardless of accuracy (and disregarding any group-wise relations) |
+| Accurate Misassignment | The number of items which were associated with another items location and within the accuracy circle |
+| Inaccurate Misassignment | The number of items which were associated with another items location and not within the accuracy circle |
+| Swap Distance Threshold | The distance threshold for misassignment accuracy |
+| True Swap Data Distance | The average distance of true swap items from one another in the participant data |
+| True Swap Actual Distance | The average distance of true swap items from one another in the studied data |
+| Partial Swap Data Distance | The average distance of partial swap items from one another in the participant data |
+| Partial Swap Actual Distance | The average distance of partial swap items from one another in the studied data |
+| Cycle Swap Data Distance | The average distance of true cycle items from one another in the participant data |
+| Cycle Swap Actual Distance | The average distance of true cycle items from one another in the studied data |
+| Partial Cycle Swap Data Distance | The average distance of partial cycle items from one another in the participant data |
+| Partial Cycle Swap Actual Distance | The average distance of partial cycle items from one another in the studied data |
+| Unique Components | A list of the items in component groups without any duplicates (i.e. if items 0 and 1 were swapped in two separate trials, that pair will only appear once in this list) |
+| Contains Category Data | True if the data was processed categorically (i.e. separated according to a categories.txt) |
+| Category Label | The label of the category if the data was categorical |
+| Accurate Misassignment Pairs | The pairs of items involved in accurate misassignments (note that this is useful if you want to know what items were involved in what associative errors) |
+| Inaccurate Misassignment Pairs | The pairs of items involved in inaccurate misassignments (note that this is useful if you want to know what items were involved in what associative errors) |
+| num_rows_with_nan| | The number of rows which contain nan data |
