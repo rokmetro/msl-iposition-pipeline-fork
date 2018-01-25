@@ -68,8 +68,6 @@ In particular, note if you have trial_by_trial_accuracy set to True or False (to
 Output
 --------
 
-| Tables   |      Are      |  Cool |
-|----------|:-------------:|------:|
-| col 1 is |  left-aligned | $1600 |
-| col 2 is |    centered   |   $12 |
-| col 3 is | right-aligned |    $1 |
+| foo | bar |
+| --- | --- |
+| baz | bim |
