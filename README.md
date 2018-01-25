@@ -69,6 +69,7 @@ Output
 --------
 
 | Column Name | Description |
+| ---      | ---       |
 | subID | placeholder |
 | trial | placeholder |
 | Original Misplacement | placeholder |
