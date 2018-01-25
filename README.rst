@@ -69,7 +69,8 @@ Output
 --------
 
 
-| foo | bar |
-| --- | --- |
-| baz | bim |
+| Name     | Character |
+| ---      | ---       |
+| Backtick | `         |
+| Pipe     | \|        |
 
