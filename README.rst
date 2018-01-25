@@ -68,6 +68,8 @@ In particular, note if you have trial_by_trial_accuracy set to True or False (to
 Output
 --------
 
+
 | foo | bar |
 | --- | --- |
 | baz | bim |
+
