@@ -92,11 +92,30 @@ def summarize_test_data(search_directory=None, file_regex="\d\d\d_\d_2_\d_\d\d\d
 
 def summarize_navigation_data(search_directory=None, file_regex="\d\d\d_\d_1_\d_\d\d\d\d-\d\d-\d\d_\d\d-\d\d-\d\d.dat",
                               output_path='time_travel_task_navigation_summary.csv', last_pilot_id=20, verbose=True,
-                              temporal_boundary_regions=None):
+                              temporal_boundary_regions=None,
+                              fd_indicies_time=None,
+                              fd_indicies_space=None,
+                              fd_indicies_spacetime=None):
     """
     This function will produce an output file which contains the navigation summary data for all data files in a
     directory, searching recursively based on a regular expression.
 
+    :type fd_indicies_time: object
+    :param fd_indicies_time: If None, the FD scale window will be calculated for every path independently. Otherwise, a
+    list of indicies is expected which specify the scale indicies across the range
+    [0.0009765625, 0.001953125, 0.00390625, 0.0078125, 0.015625, 0.03125, 0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0,
+    8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0]. Currently, this range is not able to be redefined via the top
+    level interface.
+    :param fd_indicies_space: If None, the FD scale window will be calculated for every path independently. Otherwise, a
+    list of indicies is expected which specify the scale indicies across the range
+    [0.0009765625, 0.001953125, 0.00390625, 0.0078125, 0.015625, 0.03125, 0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0,
+    8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0]. Currently, this range is not able to be redefined via the top
+    level interface.
+    :param fd_indicies_spacetime: If None, the FD scale window will be calculated for every path independently.
+    Otherwise, a list of indicies is expected which specify the scale indicies across the range
+    [0.0009765625, 0.001953125, 0.00390625, 0.0078125, 0.015625, 0.03125, 0.0625, 0.125, 0.25, 0.5, 1.0, 2.0, 4.0,
+    8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0]. Currently, this range is not able to be redefined via the top
+    level interface.
     :param search_directory: the directory to recursively search for files matching file_regex to process
     :param file_regex: the regular expression for files to search for in search_directory, recursively
     :param output_path: the output path to save the data (CSV format)
@@ -148,9 +167,9 @@ def summarize_navigation_data(search_directory=None, file_regex="\d\d\d_\d_1_\d_
 
         boundary_crossings = count_boundary_crossings(timeline, temporal_boundary_regions)
 
-        fd_t, lac_t = calculate_fd_and_lacunarity(timeline)
-        fd_s, lac_s = calculate_fd_and_lacunarity(spaceline)
-        fd_st, lac_st = calculate_fd_and_lacunarity(spacetimeline)
+        fd_t, lac_t = calculate_fd_and_lacunarity(timeline, indicies=fd_indicies_time)
+        fd_s, lac_s = calculate_fd_and_lacunarity(spaceline, indicies=fd_indicies_space)
+        fd_st, lac_st = calculate_fd_and_lacunarity(spacetimeline, indicies=fd_indicies_spacetime)
 
         clicks = get_click_locations_and_indicies(iterations, list(range(0, 10)), meta)
 
@@ -197,13 +216,14 @@ def count_boxes(data, scale):
     return filled_boxes
 
 
-def calculate_fd_and_lacunarity(data):
+def calculate_fd_and_lacunarity(data, indicies=None):
     scale_range = 20
     r = np.array([2.0 ** (scale_range / 2) / (2.0 ** i) for i in range(scale_range, 0, -1)])  # Powers of 2 around 0
     N = [count_boxes(data, ri) for ri in r]
     Nlog = np.log(N)
     ste = np.std(Nlog) / np.sqrt(len(data))
-    indicies = [idx for idx, n in enumerate(Nlog) if (not n <= (min(Nlog) + ste) and not n >= (max(Nlog) - ste))]
+    if indicies is None:
+        indicies = [idx for idx, n in enumerate(Nlog) if (not n <= (min(Nlog) + ste) and not n >= (max(Nlog) - ste))]
     N = np.take(N, indicies)
     r = np.take(r, indicies)
 
@@ -214,4 +234,3 @@ def calculate_fd_and_lacunarity(data):
     lacunarity, fd = popt
 
     return fd, lacunarity
-

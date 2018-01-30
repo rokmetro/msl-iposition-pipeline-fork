@@ -55,11 +55,15 @@ def update_line(num, avatar, avatar_direction_marker, fig, pos, orient, line, r)
     return line,
 
 
-def visualize(raw_file, summary_file):
+def visualize(raw_file, summary_file,
+              background_img_path='./media/spatial_navigation/background.png',
+              frame_interval_ms=1):
     """
     This function provides basic visualization for the 2-Room Spatial Navigation task given a raw and summary input
     file.
 
+    :param frame_interval_ms: the updated interval of the animation in ms
+    :param background_img_path: the path to the image to be displayed in the background
     :param raw_file: the full path to the raw data file
     :param summary_file: the full path to the summary data file
     """
@@ -67,21 +71,27 @@ def visualize(raw_file, summary_file):
     avatar_size = 1
     direction_marker_propotion_size = 0.25
     padding_size = 0.3
-    frame_interval_ms = 0
+
     bounds = (-20, 20, -40, 40)
 
     # Set data
+    logging.info('Reading raw file {0}...'.format(raw_file))
     raw_iterations, raw_events = read_raw_file(raw_file)
+    logging.info('Reading summary file {0}...'.format(summary_file))
     summary_events = read_summary_file(summary_file)
+    logging.info('Processing raw path into simple path...')
     position_data = get_simple_path_from_raw_iterations(raw_iterations)
     logging.info('Plotting {0} points.'.format(len(position_data)))
+    logging.info('Processing raw path into simple orientation...')
     orientation_data = get_simple_orientation_path_from_raw_iterations(raw_iterations)
+    logging.info('Compressing data points...')
     position_data, orientation_data = compress(position_data, orientation_data)
     logging.info('Plotting {0} compressed points.'.format(len(position_data)))
     position_data = np.transpose(position_data)
     orientation_data = np.transpose(orientation_data)
     data_length = len(raw_iterations)
 
+    logging.info('Generating figures...')
     # Set up figure
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
@@ -120,20 +130,28 @@ def visualize(raw_file, summary_file):
     # Set up plot labels
     plt.title('Holodeck Spatial Navigation Animation')
 
+    logging.info('Loading background image...')
+
+    # Show Background Image
+    img = imread(os.path.abspath(background_img_path))
+    plt.imshow(img, zorder=0, extent=bounds)
+
+    logging.info('Generating animation...')
+
     # Animate Line
     # noinspection PyUnusedLocal
     anim = animation.FuncAnimation(fig, update_line, data_length, fargs=(avatar, avatar_direction_marker, fig,
                                                                          position_data, orientation_data, l, r_adj),
                                    interval=frame_interval_ms, blit=True)
 
-    # Show Background Image
-    img = imread(os.path.abspath('./media/spatial_navigation/background.png'))
-    plt.imshow(img, zorder=0, extent=bounds)
+    logging.info('Showing figure...')
 
     try:
         plt.show()
     except AttributeError:
-        return
+        pass
+
+    return anim
 
 
 if __name__ == "__main__":

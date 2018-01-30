@@ -10,8 +10,12 @@ from scipy.spatial import distance
 
 import spatial_navigation_parser as log_parser
 
-from ...cogrecon_globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, category_file_suffix, \
-    order_file_suffix
+if __name__ == "__main__":
+    from cogrecon.core.cogrecon_globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, category_file_suffix, \
+        order_file_suffix
+else:
+    from ...cogrecon_globals import data_coordinates_file_suffix, actual_coordinates_file_suffix, category_file_suffix, \
+        order_file_suffix
 
 
 def generate_intermediate_files_command_line():
@@ -49,10 +53,6 @@ def generate_intermediate_files_command_line():
                         help='Generates vr_test.csv containing relevant 2D test results.')
     parser.set_defaults(full_test_vr=False)
 
-    parser.add_argument('--exclude_incomplete_trials', dest='exclude_incomplete_trials', action='store_true',
-                        help='Exclude any trials that don\'t have all expected files in a trial (default=True).')
-    parser.set_defaults(exclude_incomplete_trials=True)
-
     parser.add_argument('--min_num_trials', default=4, type=int,
                         help='Minimum number of valid, complete trials necessary to include subject in output ('
                              'default=1).')
@@ -65,14 +65,12 @@ def generate_intermediate_files_command_line():
     args = parser.parse_args()
     generate_intermediate_files(args.path, args.full_study_path, args.full_study_look, args.full_test_path,
                                 args.full_test_look, args.full_practice_path, args.full_practice_look,
-                                args.full_test_2d, args.full_test_vr, args.log_level, args.min_num_trials,
-                                args.exclude_incomplete_trials)
+                                args.full_test_2d, args.full_test_vr, args.log_level, args.min_num_trials)
 
 
 def generate_intermediate_files(search_path, full_study_path=False, full_study_look=False, full_test_path=False,
                                 full_test_look=False, full_practice_path=False, full_practice_look=False,
-                                full_test_2d=False, full_test_vr=False, min_num_trials=4,
-                                exclude_incomplete_trials=True):
+                                full_test_2d=False, full_test_vr=False, min_num_trials=4):
     """
     This script will take a folder containing subject data for the Holodeck Navigation Task and generate CSV files
     containing the meta-data of interest as requested by the script options. The default is for all data to be
@@ -91,7 +89,6 @@ def generate_intermediate_files(search_path, full_study_path=False, full_study_l
     :param full_test_vr: if True, test VR will be processed
     :param log_level: the logging.level to output
     :param min_num_trials: the minimum number of trials required for included data
-    :param exclude_incomplete_trials: if True, only complete trials are included
     """
 
     # Handle case where no optional arguments excluding processing are provided in which case all optional
@@ -126,13 +123,12 @@ def generate_intermediate_files(search_path, full_study_path=False, full_study_l
 
     # Stores filenames for individuals in a data structure for easy handling
     individuals, excluded, non_matching = log_parser.catalog_files(files,
-                                                                   min_num_trials,
-                                                                   exclude_incomplete_trials)
+                                                                   min_num_trials)
 
-    logging.info(("Done cataloging files. %d individuals found which conform to the trial minimum (%d). Incomplete " +
-                  "trials %s excluding. %d files not matching any expected filename format. %d files excluded " +
+    logging.info(("Done cataloging files. %d individuals found which conform to the trial minimum (%d). " +
+                  "%d files not matching any expected filename format. %d files excluded " +
                   "on input criteria.")
-                 % (len(individuals), min_num_trials, "ARE" if exclude_incomplete_trials else "ARE NOT",
+                 % (len(individuals), min_num_trials,
                     len(non_matching), len(excluded)))
 
     # In debug mode, print excluded files
@@ -1008,3 +1004,16 @@ def convert_to_iposition(input_path, output_path, expected_number_of_trials=4):
             fp.write('\t'.join([str(_a) for _a in categories]) + '\r\n')
 
     fp_reader.close()
+
+
+if __name__ == "__main__":
+    import os
+    import cogrecon.core.data_flexing.spatial_navigation.spatial_navigation_parser as parser
+    parser.study_labels = ['PurseCube', 'CrownCube', 'BasketballCube', 'BootCube', 'CloverCube', 'GuitarCube',
+                           'HammerCube', 'LemonCube', 'IceCubeCube', 'BottleCube']
+    directory = r'Z:\Kelsey\2017 Summer RetLu\Virtual_Navigation_Task\v5_2\NavigationTask_Data\Logged_Data\2RoomTestAnonymous'
+    raw_filepath = os.path.join(directory, 'RawLog_Sub124_Trial1_13_15_57_30-05-2017.csv')
+    summary_filepath = os.path.join(directory, 'SummaryLog_Sub124_Trial1_13_15_57_30-05-2017.csv')
+    generate_intermediate_files(directory, full_study_path=False, full_study_look=False, full_test_path=False,
+                                           full_test_look=False, full_practice_path=False, full_practice_look=False,
+                                           full_test_2d=False, full_test_vr=True, min_num_trials=4)

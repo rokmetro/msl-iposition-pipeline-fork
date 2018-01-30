@@ -356,24 +356,16 @@ class Individual:
         self.subject_id = None  # string of the subject id
         self.trials = []  # list of the trials as Trial objects
 
-    def meets_trial_number_requirement(self, required_number_of_trials, require_complete_trials):
+    def meets_trial_number_requirement(self, required_number_of_trials):
         """
         This helper function is to confirm the trial requirements are met.
 
         :param required_number_of_trials: an integer number of trials which are required
-        :param require_complete_trials: a bool which, if True, requires that all trials be complete
 
         :return: if True, all trials meet the requirements
         """
-        # Count the number of complete trials
-        complete_trials_count = 0
-        for t in self.trials:
-            if t.is_complete():
-                complete_trials_count += 1
         # Use the correct trial count based on the completion requirement
         trials_count = len(self.trials)
-        if require_complete_trials:
-            trials_count = complete_trials_count
 
         # Return the requirement criteria
         return trials_count >= required_number_of_trials
@@ -412,19 +404,6 @@ class Trial:
         self.practice_summary = None
         self.test_2d = None
         self.test_vr = None
-
-    def is_complete(self):
-        """
-        This helper function determines if a Trial contains complete data.
-
-        Note: Completion does not require a Practice phase.
-
-        :return: True if data is complete.
-        """
-        return self.num >= 0 and self.study_path is not None and self.study_look is not None \
-            and self.test_path is not None and self.test_look is not None \
-            and self.test_2d is not None and self.test_vr is not None \
-            and self.study_summary is not None and self.test_summary is not None
 
     def get_full_file_list(self):
         """
@@ -487,13 +466,12 @@ def extract_date_time_from_filename_custom(filename):
     return datetime.datetime.fromtimestamp(time.mktime(datetime_val))
 
 
-def catalog_files(files, min_num_trials, exclude_incomplete_trials):
+def catalog_files(files, min_num_trials):
     """
     This function should produce an Individual list filled according to input restrictions.
 
     :param files: a list of files
     :param min_num_trials: a minimum criteria for number of trials
-    :param exclude_incomplete_trials: if True, incomplete trials are excluded
 
     :return: a tuple containing a list of Individual objects, a list of excluded files, and a list of non matching files
     """
@@ -667,20 +645,15 @@ def catalog_files(files, min_num_trials, exclude_incomplete_trials):
                 new_trial.practice_summary = subject_dict[subject_id][practice_store_key_summary][i]
 
             # Check if trial should be excluded based on the input criteria and trial status
-            if exclude_incomplete_trials and not new_trial.is_complete():
-                # If it should be excluded, add its files to the other_files list
-                other_files.extend(new_trial.get_full_file_list())
-                continue
+            # If it should not be excluded, add it to the individual
+            if new_trial.all_trial_dates_match():
+                new_individual.trials.append(new_trial)
             else:
-                # If it should not be excluded, add it to the individual
-                if new_trial.all_trial_dates_match():
-                    new_individual.trials.append(new_trial)
-                else:
-                    logging.error(("Error: In cataloging trials a trial was found to have non-matching dates " +
-                                   "(Subject ID: %s; Trial #: %d).") % (new_individual.subject_id, new_trial.num))
+                logging.error(("Error: In cataloging trials a trial was found to have non-matching dates " +
+                               "(Subject ID: %s; Trial #: %d).") % (new_individual.subject_id, new_trial.num))
 
         # If the individual (now completely constructed) meets the minimum trial number requirement
-        if new_individual.meets_trial_number_requirement(min_num_trials, exclude_incomplete_trials):
+        if new_individual.meets_trial_number_requirement(min_num_trials):
             # Add them to the output list
             individuals.append(new_individual)
 
@@ -808,6 +781,8 @@ def parse_summary_file(path):
     # This line_count business just skips the first line of the data (or can be reconfigured to skip more if necessary
     line_count = 0
     for line in data:
+        if line.startswith('End of File'):
+            break
         if line_count == 0:
             line_count += 1
             continue
@@ -834,9 +809,12 @@ def parse_summary_file(path):
     expected_elements = len(study_labels)
     if practice_search_key in path.lower():
         expected_elements /= 2
-    if len(times) < expected_elements:
-        logging.warning(("Warning: The summary file %s contains an incomplete accounting of objects. " +
-                         "This may impact parsing in unpredictable ways.") % path)
+    found_elements = len(list(set(object_types)))
+    if found_elements != expected_elements:
+        logging.warning(("Warning: The summary file {2} contains an incorrect accounting (found {0}, expected {1}) " +
+                         "of objects. This may impact parsing in unpredictable ways.").format(found_elements,
+                                                                                              expected_elements,
+                                                                                              path))
     return summary_type, times, event_types, object_types, locations
 
 
@@ -1305,3 +1283,7 @@ def get_location_by_name(name, test2d=True):
     else:
         index = study_labels.index(name)
         return study_realX[index], study_realY[index]
+
+
+if __name__ == '__main__':
+    parse_summary_file(r'Z:\Kelsey\2017 Summer RetLu\Virtual_Navigation_Task\v5_2\NavigationTask_Data\Logged_Data\2RoomTestAnonymous\123\SummaryLog_Sub123_Trial1_17_43_36_08-06-2017.csv')
