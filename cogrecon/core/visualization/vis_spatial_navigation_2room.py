@@ -46,12 +46,15 @@ def update_line(num, avatar, avatar_direction_marker, fig, pos, orient, line, r)
     """
     jump = 10
     num *= jump
-    pos_data = pos[..., num]
-    ori_data = orient[num]
-    avatar.center = pos_data
-    avatar_direction_marker.center = get_direction_patch_location(pos_data, r, ori_data)
-    fig.canvas.draw()
-    line.set_data(pos[..., :num])
+    try:
+        pos_data = pos[..., num]
+        ori_data = orient[num]
+        avatar.center = pos_data
+        avatar_direction_marker.center = get_direction_patch_location(pos_data, r, ori_data)
+        fig.canvas.draw()
+        line.set_data(pos[..., :num])
+    except IndexError:
+        pass
     return line,
 
 
@@ -86,10 +89,10 @@ def visualize(raw_file, summary_file,
     orientation_data = get_simple_orientation_path_from_raw_iterations(raw_iterations)
     logging.info('Compressing data points...')
     position_data, orientation_data = compress(position_data, orientation_data)
-    logging.info('Plotting {0} compressed points.'.format(len(position_data)))
+    data_length = len(position_data)
+    logging.info('Plotting {0} compressed points.'.format(data_length))
     position_data = np.transpose(position_data)
     orientation_data = np.transpose(orientation_data)
-    data_length = len(raw_iterations)
 
     logging.info('Generating figures...')
     # Set up figure
@@ -141,7 +144,7 @@ def visualize(raw_file, summary_file,
     # Animate Line
     # noinspection PyUnusedLocal
     anim = animation.FuncAnimation(fig, update_line, data_length, fargs=(avatar, avatar_direction_marker, fig,
-                                                                         position_data, orientation_data, l, r_adj),
+                                                                         position_data-1, orientation_data, l, r_adj),
                                    interval=frame_interval_ms, blit=True)
 
     logging.info('Showing figure...')

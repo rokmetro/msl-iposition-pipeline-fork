@@ -103,24 +103,24 @@ def visualization(trial_data, analysis_configuration, min_points, transformed_po
 
     # Generate accuracy patches
     for acc, x, y in zip(start_accuracy_map, np.transpose(transformed_points)[0], np.transpose(transformed_points)[1]):
+        ax.add_patch(plt.Circle((x, y), start_threshold, alpha=default_visualization_accuracies_uncorrected_alpha,
+                                color=default_visualization_accuracies_uncorrected_color))
+
+    for acc, x, y in zip(end_accuracy_map, np.transpose(min_points)[0], np.transpose(min_points)[1]):
         color = default_visualization_accuracies_incorrect_color
         if acc:
             color = default_visualization_accuracies_correct_color
-        ax.add_patch(plt.Circle((x, y), start_threshold, alpha=default_visualization_accuracies_corrected_alpha,
-                                color=color))
-
-    for acc, x, y in zip(end_accuracy_map, np.transpose(min_points)[0], np.transpose(min_points)[1]):
         ax.add_patch(plt.Circle((x, y), end_threshold,
-                                alpha=default_visualization_accuracies_uncorrected_alpha,
-                                color=default_visualization_accuracies_uncorrected_color))
+                                alpha=default_visualization_accuracies_corrected_alpha,
+                                color=color))
 
     # Generate legend
     transformed_threshold_incorrect_patch = mpatches.Patch(color=default_visualization_accuracies_incorrect_color,
                                                            alpha=default_visualization_accuracies_corrected_alpha,
-                                                           label='Transformed Threshold, Incorrect')
+                                                           label='Threshold, Incorrect')
     transformed_threshold_correct_patch = mpatches.Patch(color=default_visualization_accuracies_correct_color,
                                                          alpha=default_visualization_accuracies_corrected_alpha,
-                                                         label='Transformed Threshold, Correct')
+                                                         label='Threshold, Correct')
     pre_transformed_threshold = mpatches.Patch(color=default_visualization_accuracies_uncorrected_color,
                                                alpha=default_visualization_accuracies_uncorrected_alpha,
                                                label='Pre-Transformed Threshold')
