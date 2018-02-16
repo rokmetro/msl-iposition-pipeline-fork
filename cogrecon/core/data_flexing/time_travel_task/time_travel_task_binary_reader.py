@@ -77,7 +77,7 @@ def datetime_from_dot_net_binary(data):
     """
     kind = (data % 2 ** 64) >> 62  # This says about UTC and stuff...
     ticks = data & 0x3FFFFFFFFFFFFFFF
-    seconds = ticks / 10000000
+    seconds = float(ticks) / 10000000.0
     tz = pytz.utc
     if kind == 0:
         tz = get_localzone()
