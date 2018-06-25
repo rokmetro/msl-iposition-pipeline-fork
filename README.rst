@@ -16,7 +16,7 @@ In a command prompt/terminal (you may need to run as administrator), navigate to
     
     activate iposition
     
-    conda install scipy jupyter scikit-learn --yes
+    conda install scipy jupyter scikit-learn pandas --yes
     
     git clone https://github.com/kevroy314/msl-iposition-pipeline/ .
     
