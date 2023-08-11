@@ -91,11 +91,11 @@ class TrialData(object):
         self.actual_points = actual_points
         self.data_points = data_points
         if not actual_labels:
-            self.actual_labels = range(0, len(self.actual_points))
+            self.actual_labels = list(range(len(self.actual_points)))
         else:
             self.actual_labels = actual_labels
         if not data_labels:
-            self.data_labels = range(0, len(self.data_points))
+            self.data_labels = list(range(len(self.data_points)))
         else:
             self.data_labels = data_labels
 
@@ -198,7 +198,7 @@ class TrialData(object):
 
         :param value: a list of unique values of any type to label the actual/correct/target points
         """
-        assert isinstance(value, list), "TrialData actual_labels must be type list"
+        assert isinstance(value, list), "TrialData actual_labels must be type list, {}".format(type(value))
         assert np.unique(value).shape == np.array(value).shape, \
             "swaps actual_labels are not unique: {0}".format(value)
         self._actual_labels = value
