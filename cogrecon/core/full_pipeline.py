@@ -6,6 +6,7 @@ import warnings
 import networkx as nx
 import numpy as np
 from scipy.spatial import distance
+import math
 
 from .visualization.vis_iposition import visualization
 from .cogrecon_globals import default_z_value
@@ -544,7 +545,7 @@ def deanonymize(participant_data, analysis_configuration):
 
 
 # noinspection PyDefaultArgument
-def full_pipeline(participant_data, analysis_configuration, visualize=False, visualization_extent=None, fig_size=None):
+def full_pipeline(participant_data, analysis_configuration, visualize=False, visualization_extent=None, fig_size=None, single_trial=True, return_as_dict=False):
     """
     This function is the main pipeline for the new processing methods. When run alone, it just returns the values
     for a single trial. With visualize=True it will display the results. debug_labels is used to help specify
@@ -775,7 +776,7 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
          [list(map(list, x)) for x in accurate_misassignment_pairs],
          [list(map(list, x)) for x in inaccurate_miassignment_pairs]
          ]
-
+    
     output = np.transpose(np.array(output, dtype=object))
     # If requested, visualize the data
     if visualize:
@@ -790,8 +791,82 @@ def full_pipeline(participant_data, analysis_configuration, visualize=False, vis
                           pre_processed_accuracy_trial, post_distance_accuracy_map_trial,
                           extent=visualization_extent, fig_size=fig_size)
 
+    #removes the outer list and format into a dictionary
+    if single_trial and return_as_dict:
+        
+        output_dict = \
+        {"straight_misplacements": straight_misplacements,
+         "axis_swaps": axis_swaps,
+         "edge_resize": edge_resize,
+         "edge_distort": edge_distort,
+         "axis_swap_pairs": axis_swap_pairs,
+         "pre_process_accuracies_true": pre_process_accuracies.count(True),
+         "pre_process_accuracies_false": pre_process_accuracies.count(False),
+         "pre_process_threshold": pre_process_threshold,
+         "deanon_accuracies_true": deanon_accuracies.count(True),
+         "deanon_accuracies_false": deanon_accuracies.count(False),
+         "deanon_threshold": deanon_threshold,
+         "raw_deanonymized_misplacement": raw_deanonymized_misplacement,
+         "post_deanonymized_misplacement": post_deanonymized_misplacement,
+         "transformation_auto_exclusion": transformation_auto_exclusion,
+         "num_geometric_transform_points_excluded": num_geometric_transform_points_excluded,
+         "rotation_theta": rotation_theta,
+         "scaling": scaling,
+         "translation_magnitude": translation_magnitude,
+         "translation": translation,
+         "x_translation": x_translation,
+         "y_translation": y_translation,
+         "geo_dist_threshold": geo_dist_threshold,
+         "post_transform_misplacement": post_transform_misplacement,
+         "components_len": len(components),
+         "accurate_placements": accurate_placements,
+         "inaccurate_placements": inaccurate_placements,
+         "true_swaps": true_swaps,
+         "partial_swaps": partial_swaps,
+         "cycle_swaps": cycle_swaps,
+         "partial_cycle_swaps": partial_cycle_swaps,
+         "misassignment": misassignment,
+         "accurate_misassignment": accurate_misassignment,
+         "inaccurate_misassignment": inaccurate_misassignment,
+         "swap_dist_threshold": swap_dist_threshold,
+         "true_swap_distances": true_swap_distances,
+         "true_swap_expected_distances": true_swap_expected_distances,
+         "partial_swap_distances": partial_swap_distances,
+         "partial_swap_expected_distances": partial_swap_expected_distances,
+         "cycle_swap_distances": cycle_swap_distances,
+         "cycle_swap_expected_distances": cycle_swap_expected_distances,
+         "partial_cycle_swap_distances": partial_cycle_swap_distances,
+         "partial_cycle_swap_expected_distances": partial_cycle_swap_expected_distances,
+         "components_list": [list(map(list, x)) for x in components],
+         "is_category_times_trials": analysis_configuration.is_category * len(participant_data.trials),
+         "category_label_times_trials":[analysis_configuration.category_label] * len(participant_data.trials),
+         "accurate_misassignment_pairs_list": [list(map(list, x)) for x in accurate_misassignment_pairs],
+         "inaccurate_miassignment_pairs_list": [list(map(list, x)) for x in inaccurate_miassignment_pairs]
+    }
+        #we know every value is a list so we don't do additional if check here
+        for key, val in output_dict.items():
+            output_dict[key] = clean_jsonfy_output(val)
+        return output_dict
     return output
 
+def clean_jsonfy_output(res):
+    """
+    This function removes the outmost list wrapper,
+    and replace all the NaN to null to allow correct json parsing
+    """
+    if isinstance(res,list):
+        res = res[0]
+    return change_nan_to_null_helper(res)
+        
+def change_nan_to_null_helper(res):
+    """
+    helper function that recursively go through the result, and change all numpy NaN to None
+    """
+    if isinstance(res,list):
+        res = [change_nan_to_null_helper(item) for item in res]
+    if isinstance(res,float) and math.isnan(res):
+        return None
+    return res
 
 def get_header_labels():
     """
